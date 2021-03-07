@@ -91,14 +91,21 @@ clone_and_stagit() {
   cp "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
 
+update_sysadm() {
+  sysadm_dir='/etc/sysadm'
+  rm -rf "${sysadm_dir:?}"
+  git clone "${bare_srcdir}" "${sysadm_dir}"
+}
+
 main() {
   assign_bare_srcdir
   assign_description
   handle_tmpfiles
   add_metadata
-  if [ "${PWD##*.git}" = 'website_md' ]; then
-    gen_website
-  fi
+  case "${bare_srcdir##*/}" in
+    'website_md.git') gen_website ;;
+    'sysadm.git') update_sysadm ;;
+  esac
   clone_and_stagit
 }
 
