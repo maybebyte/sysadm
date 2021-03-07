@@ -95,6 +95,7 @@ update_sysadm() {
   sysadm_dir='/etc/sysadm'
   rm -rf "${sysadm_dir:?}/*"
   git clone "${bare_srcdir}" "${sysadm_dir}"
+  rm -rf "${sysadm_dir:?}/.git"
 }
 
 main() {
