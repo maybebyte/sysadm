@@ -93,8 +93,9 @@ clone_and_stagit() {
 
 update_sysadm() {
   sysadm_dir='/etc/sysadm'
-  rm -rf "${sysadm_dir:?}/*" "${sysadm_dir:?}/.git"
-  git clone "${bare_srcdir}" "${sysadm_dir}"
+  sysadm_stage="${HOME}/sysadm-staging"
+  git clone "${bare_srcdir}" "${sysadm_stage}"
+  openrsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/"
 }
 
 main() {
