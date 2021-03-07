@@ -1,0 +1,105 @@
+#!/usr/bin/env sh
+# Copyright (c) 2020-2021 Ashlen <eurydice@riseup.net>
+
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+set -e
+library="/etc/sysadm/common.sh"
+if [ -r "${library}" ]; then
+  . "${library}"
+else
+  cat >&2 <<EOF
+${library} doesn't exist or isn't readable.
+${0##*/} may not function correctly without it; exiting for safety.
+EOF
+  exit 1
+fi
+
+# change ${website} and ${owner} to suit your needs
+owner='Ashlen'
+website='https://amissing.link'
+webdir="/var/www/htdocs/${website##*//}"
+stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
+
+# if ${PWD} is in the form of 'foo-bar.git', then
+# bare_srcdir='foo-bar.git'
+#
+# otherwise, bare_srcdir is the present
+# working directory with '/.git' appended
+assign_bare_srcdir() {
+  if [ -z "${PWD##*.git}" ]; then
+    bare_srcdir="${PWD}"
+  else
+    bare_srcdir="${PWD}/.git"
+  fi
+}
+
+# a relevant description is chosen based on which repository is being
+# interacted with
+assign_description() {
+  case "${bare_srcdir##*/}" in
+    'website_md.git') description="${website##*//}" ;;
+    'dotfiles.git')   description='My OpenBSD configuration files.' ;;
+    'cobs.git')       description='Comfy OpenBSD Bootstrapping Script.' ;;
+    'sysadm.git')     description='System Administration tools.' ;;
+    *)                err 'No description set for current repo.' ;;
+  esac
+}
+
+add_metadata() {
+  echo "${owner}" > "${bare_srcdir}/owner"
+  echo "${description##*//}" > "${bare_srcdir}/description"
+}
+
+handle_tmpfiles() {
+  rm -rf "${stagit_dir:?}"
+  mkdir -p "${stagit_dir:?}"
+}
+
+# only called if working with website_md. deletes files exclusive to
+# website_md, then clones the bare source directory. after that,
+# gen_website() renders markdown to HTML + generates a news feed.
+gen_website() {
+    stage_dir="${HOME}/website-staging"
+
+    rm -f "${webdir}/.files"
+    rm -rf "${stage_dir:?}"
+    find "${webdir:?}/*" -type d ! -iname '*src*' -exec rm -rf '{}' \;
+    find "${webdir:?}" -type f -exec rm '{}' \;
+
+    git clone "${bare_srcdir}" "${stage_dir}"
+    "${HOME}/bin/ssg6" "${stage_dir}" "${webdir}" "${owner}" "${description}" >/dev/null
+    "${HOME}/bin/rssg" "${stage_dir}/articles.md" "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
+}
+
+# repo is cloned, server info is updated, then the stagit page is generated.
+clone_and_stagit() {
+  git clone --bare "${bare_srcdir}" "${stagit_dir}/.git"
+  (cd "${stagit_dir}/.git" && git update-server-info)
+
+  (cd "${stagit_dir}" && stagit "${bare_srcdir}")
+  cp -f "${stagit_dir}/log.html" "${stagit_dir}/index.html"
+  cp "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
+}
+
+main() {
+  assign_bare_srcdir
+  assign_description
+  handle_tmpfiles
+  add_metadata
+  if [ "${PWD##*.git}" = 'website_md' ]; then
+    gen_website
+  fi
+  clone_and_stagit
+}
+
+main
