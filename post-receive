@@ -93,9 +93,8 @@ clone_and_stagit() {
 
 update_sysadm() {
   sysadm_dir='/etc/sysadm'
-  rm -rf "${sysadm_dir:?}/*"
+  rm -rf "${sysadm_dir:?}/*" "${sysadm_dir:?}/.git"
   git clone "${bare_srcdir}" "${sysadm_dir}"
-  rm -rf "${sysadm_dir:?}/.git"
 }
 
 main() {
