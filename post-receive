@@ -67,7 +67,8 @@ handle_tmpfiles() {
 
 # only called if working with website_md. deletes files exclusive to
 # website_md, then clones the bare source directory. after that,
-# gen_website() renders markdown to HTML + generates a news feed.
+# gen_website() renders markdown to HTML, synchronizes changes, and
+# generates a news feed.
 gen_website() {
     stage_dir="${HOME}/website-staging"
     html_dir="${HOME}/website-final"
@@ -77,9 +78,15 @@ gen_website() {
 
     mkdir -p "${html_dir}"
     git clone "${bare_srcdir}" "${stage_dir}"
-    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" "${description}" >/dev/null
-    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git" --exclude="*src*"
-    "${HOME}/bin/rssg" "${stage_dir}/articles.md" "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
+
+    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
+      "${description}" >/dev/null
+
+    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git" \
+      --exclude="*src*"
+
+    "${HOME}/bin/rssg" "${stage_dir}/articles.md" \
+      "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
 }
 
 # the sysadm directory houses 'post-receive' which is the target of
