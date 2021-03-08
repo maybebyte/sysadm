@@ -81,7 +81,19 @@ gen_website() {
     "${HOME}/bin/rssg" "${stage_dir}/articles.md" "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
 }
 
-# repo is cloned, server info is updated, then the stagit page is generated.
+# the sysadm directory houses 'post-receive' which is the target of
+# several symlinks. it makes sense to automate updating it so as to
+# minimize supervision needed.
+update_sysadm() {
+  sysadm_dir='/etc/sysadm'
+  sysadm_stage="${HOME}/sysadm-staging"
+  rm -rf "${sysadm_stage:?}"
+  git clone "${bare_srcdir}" "${sysadm_stage}"
+  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/"
+}
+
+# repo is cloned, server info is updated, then the stagit page is
+# generated. some misc files are copied.
 clone_and_stagit() {
   git clone --bare "${bare_srcdir}" "${stagit_dir}/.git"
   (cd "${stagit_dir}/.git" && git update-server-info)
@@ -91,14 +103,9 @@ clone_and_stagit() {
   cp "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
 
-update_sysadm() {
-  sysadm_dir='/etc/sysadm'
-  sysadm_stage="${HOME}/sysadm-staging"
-  rm -rf "${sysadm_stage:?}"
-  git clone "${bare_srcdir}" "${sysadm_stage}"
-  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/"
-}
-
+# assign some variables, clean up, and add metadata. generate the
+# website and update sysadm tools if appropriate, then clone the
+# repository and point stagit at it
 main() {
   assign_bare_srcdir
   assign_description
