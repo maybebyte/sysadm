@@ -97,7 +97,7 @@ update_sysadm() {
   sysadm_stage="${HOME}/sysadm-staging"
   rm -rf "${sysadm_stage:?}"
   git clone "${bare_srcdir}" "${sysadm_stage}"
-  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/"
+  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude="*.git"
 }
 
 # repo is cloned, server info is updated, then the stagit page is
