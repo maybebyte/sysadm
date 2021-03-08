@@ -70,14 +70,14 @@ handle_tmpfiles() {
 # gen_website() renders markdown to HTML + generates a news feed.
 gen_website() {
     stage_dir="${HOME}/website-staging"
+    html_dir="${HOME}/website-final"
 
     rm -f "${webdir}/.files"
-    rm -rf "${stage_dir:?}"
-    find "${webdir:?}/*" -type d ! -iname '*src*' -exec rm -rf '{}' \;
-    find "${webdir:?}" -type f -exec rm '{}' \;
+    rm -rf "${stage_dir:?}" "${html_dir:?}"
 
     git clone "${bare_srcdir}" "${stage_dir}"
-    "${HOME}/bin/ssg6" "${stage_dir}" "${webdir}" "${owner}" "${description}" >/dev/null
+    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" "${description}" >/dev/null
+    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git"
     "${HOME}/bin/rssg" "${stage_dir}/articles.md" "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
 }
 
