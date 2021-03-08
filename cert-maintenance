@@ -42,10 +42,10 @@ cert_maintenance() {
 
 # reload httpd and relayd if they're enabled
 restart_daemons() {
-  grep -q '^httpd' <<EOF && rcctl reload httpd >/dev/null
+  grep -q '^httpd$' <<EOF && rcctl reload httpd >/dev/null
 ${enabled_daemons}
 EOF
-  grep -q '^relayd' <<EOF && rcctl reload relayd >/dev/null
+  grep -q '^relayd$' <<EOF && rcctl reload relayd >/dev/null
 ${enabled_daemons}
 EOF
 }
