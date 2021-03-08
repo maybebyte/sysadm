@@ -78,7 +78,7 @@ gen_website() {
     mkdir -p "${html_dir}"
     git clone "${bare_srcdir}" "${stage_dir}"
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" "${description}" >/dev/null
-    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git"
+    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git" --exclude="*src*"
     "${HOME}/bin/rssg" "${stage_dir}/articles.md" "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
 }
 
