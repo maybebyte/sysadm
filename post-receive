@@ -57,7 +57,7 @@ assign_description() {
 
 handle_tmpfiles() {
   rm -rf "${stagit_dir:?}"
-  mkdir -p "${stagit_dir:?}"
+  mkdir -p "${stagit_dir}"
 }
 
 add_metadata() {

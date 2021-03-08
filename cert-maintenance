@@ -25,7 +25,7 @@ EOF
 fi
 
 arguments_needed=1
-enabled_daemons="$(/usr/sbin/rcctl ls on)"
+enabled_daemons="$(rcctl ls on 2>/dev/null)"
 usage_details="${0##*/} requires ${arguments_needed} argument(s).
 
 usage:
@@ -36,16 +36,16 @@ ${0##*/} [domain name]"
 #
 # $1 is a chosen domain name.
 cert_maintenance() {
-  /usr/sbin/acme-client "$1" >/dev/null
-  /usr/sbin/ocspcheck -No "/etc/ssl/$1.ocsp" "/etc/ssl/$1.pem" >/dev/null
+  acme-client "$1" >/dev/null
+  ocspcheck -No "/etc/ssl/$1.ocsp" "/etc/ssl/$1.pem" >/dev/null
 }
 
 # reload httpd and relayd if they're enabled
 restart_daemons() {
-  grep -q '^httpd' <<EOF && /usr/sbin/rcctl reload httpd >/dev/null
+  grep -q '^httpd' <<EOF && rcctl reload httpd >/dev/null
 ${enabled_daemons}
 EOF
-  grep -q '^relayd' <<EOF && /usr/sbin/rcctl reload relayd >/dev/null
+  grep -q '^relayd' <<EOF && rcctl reload relayd >/dev/null
 ${enabled_daemons}
 EOF
 }
