@@ -46,7 +46,7 @@ assign_bare_srcdir() {
 # a relevant description is chosen based on which repository is being
 # interacted with
 assign_description() {
-  case "${bare_srcdir##*/}" in
+  case "${PWD##*/}" in
     'website_md.git') description="${website##*//}" ;;
     'dotfiles.git')   description='My OpenBSD configuration files.' ;;
     'cobs.git')       description='Comfy OpenBSD Bootstrapping Script.' ;;
@@ -119,7 +119,7 @@ main() {
   assign_description
   handle_tmpfiles
   add_metadata
-  case "${bare_srcdir##*/}" in
+  case "${PWD##*/}" in
     'website_md.git') gen_website ;;
     'sysadm.git') update_sysadm ;;
   esac
