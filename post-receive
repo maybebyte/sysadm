@@ -62,7 +62,7 @@ handle_tmpfiles() {
 
 add_metadata() {
   echo "${owner}" > "${bare_srcdir}/owner"
-  echo "${description##*//}" > "${bare_srcdir}/description"
+  echo "${description}" > "${bare_srcdir}/description"
 }
 
 # only called if working with website_md. deletes files exclusive to
@@ -82,11 +82,11 @@ gen_website() {
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
       "${description}" >/dev/null
 
-    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude="*.git" \
-      --exclude="*src*"
+    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude=*.git \
+      --exclude=*src*
 
     "${HOME}/bin/rssg" "${stage_dir}/articles.md" \
-      "Newsletter - ${description##*//}" > "${webdir}/rss.xml"
+      "Newsletter - ${description}" > "${webdir}/rss.xml"
 }
 
 # the sysadm directory houses 'post-receive' which is the target of
@@ -97,7 +97,7 @@ update_sysadm() {
   sysadm_stage="${HOME}/sysadm-staging"
   rm -rf "${sysadm_stage:?}"
   git clone "${bare_srcdir}" "${sysadm_stage}"
-  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude="*.git"
+  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude=*.git
 }
 
 # repo is cloned, server info is updated, then the stagit page is
