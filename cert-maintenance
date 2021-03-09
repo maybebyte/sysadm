@@ -49,7 +49,7 @@ cert_maintenance() {
   fi
 }
 
-# reload httpd and relayd if they're enabled
+# reload httpd and relayd if they're enabled.
 restart_daemons() {
   enabled_daemons="$(rcctl ls on 2>/dev/null)"
   grep -q '^httpd$' <<EOF && rcctl reload httpd >/dev/null

@@ -51,11 +51,11 @@ assign_bare_srcdir() {
 # interacted with
 assign_description() {
   case "${PWD##*/}" in
-    'website_md.git') description="${website##*//}" ;;
-    'dotfiles.git')   description='My OpenBSD configuration files.' ;;
+    'website_md.git') description="${website##*//}"                     ;;
+    'dotfiles.git')   description='My OpenBSD configuration files.'     ;;
     'cobs.git')       description='Comfy OpenBSD Bootstrapping Script.' ;;
-    'sysadm.git')     description='System Administration tools.' ;;
-    *)                err 'No description set for current repo.' ;;
+    'sysadm.git')     description='System Administration tools.'        ;;
+    *)                err 'No description set for current repo.'        ;;
   esac
 }
 
@@ -69,10 +69,9 @@ add_metadata() {
   echo "${description}" > "${bare_srcdir}/description"
 }
 
-# only called if working with website_md. deletes files exclusive to
-# website_md, then clones the bare source directory. after that,
-# gen_website() renders markdown to HTML, synchronizes changes, and
-# generates a news feed.
+# only called if working with website_md. delete files exclusive to
+# website_md, then clone the bare source directory. after that, render
+# markdown to HTML, synchronize changes, and generate a news feed.
 gen_website() {
     stage_dir="${HOME}/website-staging"
     html_dir="${HOME}/website-final"
@@ -93,9 +92,9 @@ gen_website() {
       "Newsletter - ${description}" > "${webdir}/rss.xml"
 }
 
-# the sysadm directory houses 'post-receive' which is the target of
-# several symlinks. it makes sense to automate updating it so as to
-# minimize supervision needed.
+# remove ${sysadm_stage}, clone the source directory to ${sysadm_stage},
+# then synchronize changes to ${sysadm_dir} so as to minimize
+# supervision/manual intervention.
 update_sysadm() {
   sysadm_dir='/etc/sysadm'
   sysadm_stage="${HOME}/sysadm-staging"
@@ -104,8 +103,8 @@ update_sysadm() {
   rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude=*.git
 }
 
-# repo is cloned, server info is updated, then the stagit page is
-# generated. some misc files are copied.
+# clone the repo and update the server information. generate the stagit
+# page and copy some misc files.
 clone_and_stagit() {
   git clone --bare "${bare_srcdir}" "${stagit_dir}/.git"
   (cd "${stagit_dir}/.git" && git update-server-info)
@@ -115,17 +114,17 @@ clone_and_stagit() {
   cp "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
 
-# assign some variables, clean up, and add metadata. generate the
-# website and update sysadm tools if appropriate, then clone the
-# repository and point stagit at it.
+# assign some variables, clean up, and add metadata. perform tasks
+# specific to website_md and sysadm if appropriate, then clone the
+# repository in question and point stagit at it.
 main() {
   assign_bare_srcdir
   assign_description
   handle_tmpfiles
   add_metadata
   case "${PWD##*/}" in
-    'website_md.git') gen_website ;;
-    'sysadm.git') update_sysadm ;;
+    'website_md.git') gen_website   ;;
+    'sysadm.git')     update_sysadm ;;
   esac
   clone_and_stagit
 }
