@@ -1,0 +1,67 @@
+#!/usr/bin/env sh
+# shellcheck disable=SC1090
+set -e
+# Copyright (c) 2020-2021 Ashlen <eurydice@riseup.net>
+
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# check that the library file is readable. if it is, source it so its
+# functions are available. if not, exit due to potentially unpredictable
+# behavior.
+library='/etc/sysadm/common.sh'
+if [ -r "${library}" ]; then
+  . "${library}"
+else
+  cat >&2 <<EOF
+${library} doesn't exist or isn't readable.
+${0##*/} may not function correctly without it; exiting for safety.
+EOF
+  exit 1
+fi
+
+# select a compressor based on whether or not bzip2(1) is installed.
+# perform a filesystem backup with dump(8) on $1, compress it with
+# ${compressor}, then save it to $2 + an appropriate extension.
+#
+# bkup [backup target] [destination (no filename extension)]
+bkup() {
+  compressor_args='-c'
+  if command -v bzip2 >/dev/null 2>&1; then
+    compressor='bzip2'
+    extension='.dump.bz2'
+  else
+    compressor='gzip'
+    extension='.dump.gz'
+  fi
+  dump -0auf - "$1" \
+    | "${compressor}" "${compressor_args}" \
+    > "$2${extension}"
+}
+
+# TODO: add a function to test validity of $1 and $2
+#
+# check to see that the appropriate number of arguments have been
+# passed and that the user is root. then, back up the filesystem.
+main() {
+  arguments_needed=2
+  usage_details="${0##*/} requires ${arguments_needed} argument(s).
+
+usage:
+${0##*/} [backup target] [destination (no filename extension)]"
+  arg_eq "$@"
+  must_be_root
+  echo 'Dumping...'
+  bkup "$1" "$2"
+}
+
+main "$@"
