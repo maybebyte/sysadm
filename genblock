@@ -132,10 +132,6 @@ revert() {
   fi
 }
 
-rm_tmpfile() {
-  rm "${tmp_blocklist:?}"
-}
-
 # check for root privilege. determine which dns server is running, then
 # accordingly download and format the 'ticked' hosts files listed on
 # firebog.net in aggregate. after the formatted output is saved, back up
@@ -162,7 +158,7 @@ main() {
   backup || err 'Unable to backup blocklist file.'
   install_blocklist || err 'Unable to install blocklist.'
   restart_dns || revert
-  rm_tmpfile || err "Unable to remove ${tmp_blocklist}."
+  rm "${tmp_blocklist}" || err "Unable to remove ${tmp_blocklist}."
 }
 
 main
