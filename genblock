@@ -1,0 +1,172 @@
+#!/usr/bin/env sh
+# shellcheck disable=SC1090
+set -e
+# Copyright (c) 2020-2021 Ashlen <eurydice@riseup.net>
+
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# TODO:
+# if a blocklist has been retrieved recently, use it instead of
+# downloading a new one
+
+# standard function. check that the library file is readable. if it is,
+# source it so its functions are available. if not, exit due to
+# potentially unpredictable behavior.
+import_library() {
+  library='/etc/sysadm/common.sh'
+  if [ -r "${library}" ]; then
+    . "${library}"
+  else
+    cat >&2 <<EOF
+${library} doesn't exist or isn't readable.
+${0##*/} may not function correctly without it; exiting for safety.
+EOF
+    exit 1
+  fi
+}
+
+backup() {
+  [ -f "${blocklist}" ] \
+    && mv "${blocklist}" "${blocklist}.bak"
+}
+
+# for each domain with a hosts file that ${firebog} contains, download
+# and output the contents to STDOUT.
+dl_blocklists() {
+  firebog="$(ftp -Vo - https://v.firebog.net/hosts/lists.php?type=tick)"
+  for list in ${firebog}; do
+    ftp -o - "${list}"
+  done
+}
+
+# filter out localhost definitions in hosts files and grab the lines
+# that begin with 0.0.0.0 or 127.0.0.1
+#
+# $1 is a file or STDIN.
+grab_domains() {
+  grep -Ev 'localhost$' "$1" \
+    | grep -E -e '^0.0.0.0' -e '^127.0.0.1'
+}
+
+# convert grab_domains() output using awk(1) so either unwind(8) or
+# unbound(8) can block those domains. remove carriage returns, sort
+# domains, and filter out duplicate entries.
+#
+# unwind's configuration syntax is simple--one domain per line.
+#
+# unbound's configuration syntax is in the form:
+# local-zone: "example.com" always_refuse
+#
+# $1 is a file or STDIN.
+format_domains() {
+  case "${dns}" in
+    'unwind')
+      (
+      awk '$1 == "0.0.0.0" {print $2}' "$1"
+      awk '$1 == "127.0.0.1" {print $2}' "$1"
+      # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+      echo 'use-application-dns.net'
+      )
+      ;;
+    'unbound')
+      (
+      awk '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
+        "$1"
+      awk '$1 == "127.0.0.1" {print "local-zone: \""$2"\" always_refuse"}' \
+        "$1"
+      # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+      echo 'local-zone: "use-application-dns.net" always_refuse'
+      )
+      ;;
+  esac \
+      | sed 's///g' \
+      | sort \
+      | uniq
+    # the sed expression gets rid of the '^M' control character in
+    # blocklists
+
+    # given that '^M' represents a carriage return, it may not display
+    # properly in various places
+}
+
+# copy the temporary blocklist to the destination and make it world
+# readable.
+install_blocklist() {
+  cp "${tmp_blocklist}" "${blocklist}"
+  chmod 0444 "${blocklist}"
+}
+
+# check that the configuration file is valid. if it is, restart the DNS
+# server.
+restart_dns() {
+  case "${dns}" in
+    'unwind')
+      unwind -n >/dev/null 2>&1 \
+        && rcctl restart unwind >/dev/null 2>&1
+      ;;
+    'unbound')
+      unbound-checkconf >/dev/null 2>&1 \
+        && rcctl restart unbound >/dev/null 2>&1
+      ;;
+  esac
+}
+
+# called if restart_dns() fails. if a backup file exists, restore it.
+# otherwise, remove the blocklist and create an empty world readable
+# file in its place.
+revert() {
+  if [ -f "${blocklist}.bak" ]; then
+    mv "${blocklist}.bak" "${blocklist}"
+  else
+    rm "${blocklist}"
+    touch "${blocklist}"
+    chmod 0444 "${blocklist}"
+  fi
+}
+
+rm_tmpfile() {
+  rm "${tmp_blocklist:?}"
+}
+
+# import library functions, check for root privilege. determine which
+# dns server is running, then accordingly download and format the
+# 'ticked' hosts files listed on firebog.net in aggregate. after the
+# formatted output is saved, back up the old blocklist and replace it
+# with the new one. restart the DNS server--in the event that it fails,
+# revert everything to a functional state so the DNS server remains
+# operational. clean up.
+main() {
+  import_library
+  must_be_root
+  enabled_daemons="$(rcctl ls on 2>/dev/null)"
+  if echo "${enabled_daemons}" | grep -q '^unwind$'; then
+    dns='unwind'
+  elif echo "${enabled_daemons}" | grep -q '^unbound$'; then
+    dns='unbound'
+  else
+    err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
+  fi
+  blocklist='/etc/blocklist.txt'
+  tmp_blocklist="$(mktemp /tmp/genblock.XXXXXX)"
+  dl_blocklists \
+    | grab_domains - \
+    | format_domains - \
+    > "${tmp_blocklist}" \
+    || err 'Unable to create blocklist.'
+  backup || err 'Unable to backup blocklist file.'
+  install_blocklist || err 'Unable to install blocklist.'
+  restart_dns || revert
+  rm_tmpfile || err "Unable to remove ${tmp_blocklist}."
+}
+
+main
