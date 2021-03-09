@@ -28,13 +28,25 @@ EOF
   exit 1
 fi
 
-# refreshes TLS certificate, then checks the certificate for validity
-# against its OCSP responder.
+# if acme-client.conf(5) exists as a file in /etc/, run acme-client(1)
+# to refresh the TLS certificate for $1.
+#
+# if a TLS certificate exists as a file in /etc/ssl/ with $1 as its
+# name, validate it against its OCSP responder with ocspcheck(8) and
+# save the response to /etc/ssl/$1.ocsp.
 #
 # $1 is a chosen domain name.
 cert_maintenance() {
-  acme-client "$1" >/dev/null
-  ocspcheck -No "/etc/ssl/$1.ocsp" "/etc/ssl/$1.pem" >/dev/null
+  if [ -f '/etc/acme-client.conf' ]; then
+    acme-client "$1" >/dev/null
+  else
+    err "acme-client.conf(5) wasn't found."
+  fi
+  if [ -f "/etc/ssl/$1.pem" ]; then
+    ocspcheck -No "/etc/ssl/$1.ocsp" "/etc/ssl/$1.pem" >/dev/null
+  else
+    err "/etc/ssl/$1.pem wasn't found."
+  fi
 }
 
 # reload httpd and relayd if they're enabled
