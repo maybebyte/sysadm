@@ -136,13 +136,12 @@ rm_tmpfile() {
   rm "${tmp_blocklist:?}"
 }
 
-# import library functions, check for root privilege. determine which
-# dns server is running, then accordingly download and format the
-# 'ticked' hosts files listed on firebog.net in aggregate. after the
-# formatted output is saved, back up the old blocklist and replace it
-# with the new one. restart the DNS server--in the event that it fails,
-# revert everything to a functional state so the DNS server remains
-# operational. clean up.
+# check for root privilege. determine which dns server is running, then
+# accordingly download and format the 'ticked' hosts files listed on
+# firebog.net in aggregate. after the formatted output is saved, back up
+# the old blocklist and replace it with the new one. restart the DNS
+# server--in the event that it fails, revert everything to a functional
+# state so the DNS server remains operational. clean up.
 main() {
   must_be_root
   enabled_daemons="$(rcctl ls on 2>/dev/null)"
