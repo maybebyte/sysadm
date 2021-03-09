@@ -149,7 +149,7 @@ main() {
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
   fi
   blocklist='/etc/blocklist.txt'
-  tmp_blocklist="$(mktemp /tmp/genblock.XXXXXX)"
+  tmp_blocklist="$(mktemp)"
   dl_blocklists \
     | grab_domains - \
     | format_domains - \
