@@ -17,7 +17,7 @@ set -e
 # check that the library file is readable. if it is, source it so its
 # functions are available. if not, exit due to potentially unpredictable
 # behavior.
-library="/etc/sysadm/common.sh"
+library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
@@ -27,13 +27,6 @@ ${0##*/} may not function correctly without it; exiting for safety.
 EOF
   exit 1
 fi
-
-arguments_needed=1
-enabled_daemons="$(rcctl ls on 2>/dev/null)"
-usage_details="${0##*/} requires ${arguments_needed} argument(s).
-
-usage:
-${0##*/} [domain name]"
 
 # refreshes TLS certificate, then checks the certificate for validity
 # against its OCSP responder.
@@ -46,6 +39,7 @@ cert_maintenance() {
 
 # reload httpd and relayd if they're enabled
 restart_daemons() {
+  enabled_daemons="$(rcctl ls on 2>/dev/null)"
   grep -q '^httpd$' <<EOF && rcctl reload httpd >/dev/null
 ${enabled_daemons}
 EOF
@@ -59,6 +53,11 @@ EOF
 # cert_maintenance() and restart_daemons() if cert_maintenance()
 # succeeds.
 main() {
+  arguments_needed=1
+  usage_details="${0##*/} requires ${arguments_needed} argument(s).
+
+usage:
+${0##*/} [domain name]"
   arg_eq "$@"
   must_be_root
   cert_maintenance "$1" && restart_daemons
