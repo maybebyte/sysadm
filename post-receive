@@ -28,17 +28,17 @@ EOF
   exit 1
 fi
 
-# change ${website} and ${owner} to suit your needs
+# change ${website} and ${owner} to suit your needs.
 owner='Ashlen'
 website='https://amissing.link'
 webdir="/var/www/htdocs/${website##*//}"
 stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
 
 # if ${PWD} is in the form of 'foo-bar.git', then
-# ${bare_srcdir} equals 'foo-bar.git'
+# ${bare_srcdir} equals 'foo-bar.git'.
 #
 # otherwise, ${bare_srcdir} is the present
-# working directory with '/.git' appended
+# working directory with '/.git' appended.
 assign_bare_srcdir() {
   if [ -z "${PWD##*.git}" ]; then
     bare_srcdir="${PWD}"
@@ -47,8 +47,8 @@ assign_bare_srcdir() {
   fi
 }
 
-# a relevant description is chosen based on which repository is being
-# interacted with
+# choose a relevant description based on which repository is being
+# interacted with.
 assign_description() {
   case "${PWD##*/}" in
     'website_md.git') description="${website##*//}"                     ;;
