@@ -30,10 +30,12 @@ EOF
 fi
 
 # select a compressor based on whether or not bzip2(1) is installed.
+# determine whether $2 has a trailing slash; if not, add one.
 # perform a filesystem backup with dump(8) on $1, compress it with
-# ${compressor}, then save it to $2 + an appropriate extension.
+# ${compressor}, then save it at the destination with the current date,
+# more or less the basename(1) of $1, and an appropriate extension.
 #
-# bkup [backup target] [destination (no filename extension)]
+# bkup [backup target] [destination (not filename)]
 bkup() {
   compressor_args='-c'
   if command -v bzip2 >/dev/null 2>&1; then
@@ -43,9 +45,15 @@ bkup() {
     compressor='gzip'
     extension='.dump.gz'
   fi
+  if [ -z "${2##*/}" ]; then
+    dest="$2"
+  else
+    dest="$2/"
+  fi
+  filename="${dest}${1##*/}-$(today)${extension}"
   dump -0auf - "$1" \
     | "${compressor}" "${compressor_args}" \
-    > "$2${extension}"
+    > "${filename}"
 }
 
 # TODO: add a function to test validity of $1 and $2
@@ -57,7 +65,7 @@ main() {
   usage_details="${0##*/} requires ${arguments_needed} argument(s).
 
 usage:
-${0##*/} [backup target] [destination (no filename extension)]"
+${0##*/} [backup target] [destination (not filename)]"
   arg_eq "$@"
   must_be_root
   echo 'Dumping...'
