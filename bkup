@@ -32,8 +32,8 @@ fi
 # select a compressor based on whether or not bzip2(1) is installed.
 # determine whether $2 has a trailing slash; if not, add one.
 # perform a filesystem backup with dump(8) on $1, compress it with
-# ${compressor}, then save it at the destination with the current date,
-# more or less the basename(1) of $1, and an appropriate extension.
+# ${compressor}, then save it at the destination with the basename(1) of
+# $1 (more or less), the current date, and an appropriate extension.
 #
 # bkup [backup target] [destination (not filename)]
 bkup() {
@@ -59,7 +59,8 @@ bkup() {
 # TODO: add a function to test validity of $1 and $2
 #
 # check to see that the appropriate number of arguments have been
-# passed and that the user is root. then, back up the filesystem.
+# passed, that the user is root, and that $2 is a directory. then, back
+# up the filesystem.
 main() {
   arguments_needed=2
   usage_details="${0##*/} requires ${arguments_needed} argument(s).
