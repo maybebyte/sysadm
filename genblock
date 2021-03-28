@@ -86,10 +86,7 @@ format_domains() {
       echo 'local-zone: "use-application-dns.net" always_refuse'
       )
       ;;
-  esac \
-      | sed 's///g' \
-      | sort \
-      | uniq
+  esac | sed 's///g' | sort | uniq
     # the sed expression gets rid of the '^M' control character in
     # blocklists
 
