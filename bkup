@@ -38,7 +38,7 @@ fi
 # bkup [backup target] [destination (not filename)]
 bkup() {
   compressor_args='-c'
-  if command -v bzip2 >/dev/null 2>&1; then
+  if [ -x "$(command -v bzip2)" ]; then
     compressor='bzip2'
     extension='.dump.bz2'
   else

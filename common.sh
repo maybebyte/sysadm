@@ -5,9 +5,9 @@
 # instead of remembering/accounting for two different forms of privilege
 # elevation, one is assigned to the alias 'priv.' doas is preferred over
 # sudo.
-if command -v doas >/dev/null 2>&1; then
+if [ -x "$(command -v doas)" ]; then
   alias priv='doas '
-elif command -v sudo >/dev/null 2>&1; then
+elif [ -x "$(command -v sudo)" ]; then
   alias priv='sudo '
 fi
 
