@@ -69,7 +69,7 @@ usage:
 ${0##*/} [backup target] [destination (not filename)]"
   arg_eq "$@"
   must_be_root
-  [ -d "$2" ] || err "The destination must be a directory, exiting."
+  [ -d "$2" ] || err 'The destination must be a directory, exiting.'
   echo 'Dumping...'
   bkup "$1" "$2"
 }
