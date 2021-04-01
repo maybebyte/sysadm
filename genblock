@@ -53,7 +53,7 @@ dl_blocklists() {
 # $1 is a file or STDIN.
 grab_domains() {
   grep -Ev 'localhost$' "$1" \
-    | grep -E -e '^0.0.0.0' -e '^127.0.0.1'
+    | grep -Ee '^0.0.0.0' -e '^127.0.0.1'
 }
 
 # convert grab_domains() output using awk(1) so either unwind(8) or
