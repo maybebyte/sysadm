@@ -1,3 +1,4 @@
+# shellcheck disable=SC2154
 # 'common.sh' is a file with frequently used functions. its purpose is
 # to be sourced in scripts for readability purposes and ease of
 # management. therefore, it has no shebang and isn't executable.
@@ -14,10 +15,7 @@ fi
 # err() is the generic way to print an error message and exit a script.
 # all of its output goes to STDERR.
 #
-# print the date + time of the error in this format:
-# [yyyy-mm-dd|hh:mm:ss]:
-#
-# after that, print everything passed as an argument.
+# print everything passed as an argument.
 # exit with a return code of 1.
 err() {
   printf '%s\n' "$*" >&2
