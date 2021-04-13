@@ -17,7 +17,7 @@ set -e
 # check that the library file is readable. if it is, source it so its
 # functions are available. if not, exit due to potentially unpredictable
 # behavior.
-library='/etc/sysadm/common.sh'
+readonly library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
@@ -29,10 +29,10 @@ EOF
 fi
 
 # change ${website} and ${owner} to suit your needs.
-owner='Ashlen'
-website='https://amissing.link'
-webdir="/var/www/htdocs/${website##*//}"
-stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
+readonly owner='Ashlen'
+readonly website='https://amissing.link'
+readonly webdir="/var/www/htdocs/${website##*//}"
+readonly stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
 
 # if ${PWD} is in the form of 'foo-bar.git', then
 # ${bare_srcdir} equals 'foo-bar.git'.
@@ -41,9 +41,9 @@ stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
 # working directory with '/.git' appended.
 assign_bare_srcdir() {
   if [ -z "${PWD##*.git}" ]; then
-    bare_srcdir="${PWD}"
+    readonly bare_srcdir="${PWD}"
   else
-    bare_srcdir="${PWD}/.git"
+    readonly bare_srcdir="${PWD}/.git"
   fi
 }
 
@@ -51,11 +51,11 @@ assign_bare_srcdir() {
 # interacted with.
 assign_description() {
   case "${PWD##*/}" in
-    'website_md.git') description="${website##*//}"                     ;;
-    'dotfiles.git')   description='My OpenBSD configuration files.'     ;;
-    'cobs.git')       description='Comfy OpenBSD Bootstrapping Script.' ;;
-    'sysadm.git')     description='System Administration tools.'        ;;
-    *)                err 'No description set for current repo.'        ;;
+    'website_md.git') readonly description="${website##*//}"                     ;;
+    'dotfiles.git')   readonly description='My OpenBSD configuration files.'     ;;
+    'cobs.git')       readonly description='Comfy OpenBSD Bootstrapping Script.' ;;
+    'sysadm.git')     readonly description='System Administration tools.'        ;;
+    *)                err 'No description set for current repo.'                 ;;
   esac
 }
 
@@ -73,8 +73,8 @@ add_metadata() {
 # website_md, then clone the bare source directory. after that, render
 # markdown to HTML, synchronize changes, and generate a news feed.
 gen_website() {
-    stage_dir="${HOME}/website-staging"
-    html_dir="${HOME}/website-final"
+    readonly stage_dir="${HOME}/website-staging"
+    readonly html_dir="${HOME}/website-final"
 
     rm -f "${webdir}/.files"
     rm -rf "${stage_dir:?}" "${html_dir:?}"
@@ -96,8 +96,8 @@ gen_website() {
 # then synchronize changes to ${sysadm_dir} so as to minimize
 # supervision/manual intervention.
 update_sysadm() {
-  sysadm_dir='/etc/sysadm'
-  sysadm_stage="${HOME}/sysadm-staging"
+  readonly sysadm_dir='/etc/sysadm'
+  readonly sysadm_stage="${HOME}/sysadm-staging"
   rm -rf "${sysadm_stage:?}"
   git clone "${bare_srcdir}" "${sysadm_stage}"
   rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude=*.git

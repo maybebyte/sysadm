@@ -22,7 +22,7 @@ set -e
 # check that the library file is readable. if it is, source it so its
 # functions are available. if not, exit due to potentially unpredictable
 # behavior.
-library='/etc/sysadm/common.sh'
+readonly library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
@@ -41,7 +41,7 @@ backup() {
 # for each domain with a hosts file that ${firebog} contains, download
 # and output the contents to STDOUT.
 dl_blocklists() {
-  firebog="$(ftp -Vo - https://v.firebog.net/hosts/lists.php?type=tick)"
+  readonly firebog="$(ftp -Vo - https://v.firebog.net/hosts/lists.php?type=tick)"
   for list in ${firebog}; do
     ftp -o - "${list}"
   done
@@ -137,16 +137,16 @@ revert() {
 # state so the DNS server remains operational. clean up.
 main() {
   must_be_root
-  enabled_daemons="$(rcctl ls on 2>/dev/null)"
+  readonly enabled_daemons="$(rcctl ls on 2>/dev/null)"
   if echo "${enabled_daemons}" | grep -q '^unwind$'; then
-    dns='unwind'
+    readonly dns='unwind'
   elif echo "${enabled_daemons}" | grep -q '^unbound$'; then
-    dns='unbound'
+    readonly dns='unbound'
   else
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
   fi
-  blocklist='/etc/blocklist.txt'
-  tmp_blocklist="$(mktemp)"
+  readonly blocklist='/etc/blocklist.txt'
+  readonly tmp_blocklist="$(mktemp)"
   dl_blocklists \
     | grab_domains - \
     | format_domains - \
