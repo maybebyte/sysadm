@@ -28,7 +28,7 @@ must_be_root() {
 }
 
 # print date in yyyy-mm-dd format.
-today() { date '+%Y-%m-%d'; }
+today() { date '+%F'; }
 
 # if the number of arguments isn't equal to the number needed, print the
 # usage details to STDERR and exit.
