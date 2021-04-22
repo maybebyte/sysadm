@@ -29,15 +29,3 @@ must_be_root() {
 
 # print date in yyyy-mm-dd format.
 today() { date '+%F'; }
-
-# if the number of arguments isn't equal to the number needed, print the
-# usage details to STDERR and exit.
-arg_eq() {
-  [ "$#" -eq "${arguments_needed}" ] || err "${usage_details}"
-}
-
-# if the number of arguments isn't greater than or equal to the number
-# needed, print the usage details to STDERR and exit.
-arg_ge() {
-  [ "$#" -ge "${arguments_needed}" ] || err "${usage_details}"
-}

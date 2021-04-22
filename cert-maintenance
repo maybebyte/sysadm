@@ -28,6 +28,16 @@ EOF
   exit 1
 fi
 
+usage() {
+  cat >&2 <<EOF
+${0##*/} requires ${args_needed} argument(s).
+
+usage:
+${0##*/} [domain name]"
+EOF
+  exit 1
+}
+
 # if acme-client.conf(5) exists as a file in /etc/, run acme-client(1)
 # to refresh the TLS certificate for $1.
 #
@@ -61,18 +71,18 @@ ${enabled_daemons}
 EOF
 }
 
+prereqs() {
+  readonly args_needed=1
+  [ "$#" = "${args_needed}" ] || usage
+  must_be_root
+}
+
 # first check whether there's an appropriate number of arguments and
 # whether the script has root privileges. then execute
 # cert_maintenance() and restart_daemons() if cert_maintenance()
 # succeeds.
 main() {
-  readonly arguments_needed=1
-  readonly usage_details="${0##*/} requires ${arguments_needed} argument(s).
-
-usage:
-${0##*/} [domain name]"
-  arg_eq "$@"
-  must_be_root
+  prereqs "$@"
   cert_maintenance "$1" && restart_daemons
 }
 

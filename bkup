@@ -29,6 +29,16 @@ EOF
   exit 1
 fi
 
+usage() {
+  cat >&2 <<EOF
+${0##*/} requires ${args_needed} argument(s).
+
+usage:
+${0##*/} [backup target] [destination (not filename)]"
+EOF
+  exit 1
+}
+
 # select a compressor based on whether or not bzip2(1) is installed.
 # determine whether $2 has a trailing slash; if not, add one.
 # perform a filesystem backup with dump(8) on $1, compress it with
@@ -55,20 +65,20 @@ bkup() {
     > "${filename}"
 }
 
+prereqs() {
+  readonly args_needed=2
+  [ "$#" = "${args_needed}" ] || usage "$@"
+  must_be_root
+  [ -d "$2" ] || err 'The destination must be a directory, exiting.'
+}
+
 # TODO: add a function to test validity of $1 and $2
 #
 # check to see that the appropriate number of arguments have been
 # passed, that the user is root, and that $2 is a directory. then, back
 # up the filesystem.
 main() {
-  readonly arguments_needed=2
-  readonly usage_details="${0##*/} requires ${arguments_needed} argument(s).
-
-usage:
-${0##*/} [backup target] [destination (not filename)]"
-  arg_eq "$@"
-  must_be_root
-  [ -d "$2" ] || err 'The destination must be a directory, exiting.'
+  prereqs "$@"
   echo 'Dumping...'
   bkup "$1" "$2"
 }
