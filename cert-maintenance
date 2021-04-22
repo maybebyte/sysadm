@@ -33,7 +33,7 @@ usage() {
 ${0##*/} requires ${args_needed} argument(s).
 
 usage:
-${0##*/} [domain name]"
+${0##*/} [domain name]
 EOF
   exit 1
 }
