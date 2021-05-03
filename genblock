@@ -34,8 +34,11 @@ EOF
 fi
 
 backup() {
-  [ -f "${blocklist}" ] \
-    && mv "${blocklist}" "${blocklist}.bak"
+  if [ -f "${blocklist}" ]; then
+     mv "${blocklist}" "${blocklist}.bak"
+  else
+    return 0
+  fi
 }
 
 # for each domain with a hosts file that ${firebog} contains, download
