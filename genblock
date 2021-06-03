@@ -72,6 +72,7 @@ grab_domains() {
 # $1 is a file or STDIN.
 format_domains() {
   case "${dns}" in
+
     'unwind')
       {
       awk '$1 == "0.0.0.0" {print $2}' "$1"
@@ -80,6 +81,7 @@ format_domains() {
       echo 'use-application-dns.net';
       }
       ;;
+
     'unbound')
       {
       awk '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
@@ -90,6 +92,7 @@ format_domains() {
       echo 'local-zone: "use-application-dns.net" always_refuse';
       }
       ;;
+
   esac | sed 's///g' | sort | uniq
     # the sed expression gets rid of the '^M' control character in
     # blocklists
@@ -109,14 +112,17 @@ install_blocklist() {
 # server.
 restart_dns() {
   case "${dns}" in
+
     'unwind')
       unwind -n >/dev/null 2>&1 \
         && rcctl restart unwind >/dev/null 2>&1
       ;;
+
     'unbound')
       unbound-checkconf >/dev/null 2>&1 \
         && rcctl restart unbound >/dev/null 2>&1
       ;;
+
   esac
 }
 
@@ -141,7 +147,9 @@ revert() {
 # state so the DNS server remains operational. clean up.
 main() {
   must_be_root
+
   readonly enabled_daemons="$(rcctl ls on 2>/dev/null)"
+
   if echo "${enabled_daemons}" | grep -q '^unwind$'; then
     readonly dns='unwind'
   elif echo "${enabled_daemons}" | grep -q '^unbound$'; then
@@ -149,13 +157,16 @@ main() {
   else
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
   fi
+
   readonly blocklist='/etc/blocklist.txt'
   readonly tmp_blocklist="$(mktemp)"
+
   dl_blocklists \
     | grab_domains - \
     | format_domains - \
     > "${tmp_blocklist}" \
     || err 'Unable to create blocklist.'
+
   backup || err 'Unable to backup blocklist file.'
   install_blocklist || err 'Unable to install blocklist.'
   restart_dns || revert
