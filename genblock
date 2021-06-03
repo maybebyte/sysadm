@@ -148,11 +148,9 @@ revert() {
 main() {
   must_be_root
 
-  readonly enabled_daemons="$(rcctl ls on 2>/dev/null)"
-
-  if echo "${enabled_daemons}" | grep -q '^unwind$'; then
+  if [ "$(rcctl get unwind flags)" != 'NO' ]; then
     readonly dns='unwind'
-  elif echo "${enabled_daemons}" | grep -q '^unbound$'; then
+  elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
     readonly dns='unbound'
   else
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
