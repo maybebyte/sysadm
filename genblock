@@ -43,16 +43,12 @@ backup() {
 
 # for each domain with a hosts file that ${firebog} contains, download
 # and output the contents to STDOUT.
-#
-# TODO: consider using xargs(1) instead of a for loop.
 dl_blocklists() {
-  if readonly firebog="$(ftp -Vo - https://v.firebog.net/hosts/lists.php?type=tick)"; then
-    for list in ${firebog}; do
-      ftp -o - "${list}"
-    done
+  if ftp -Vo - 'https://v.firebog.net/hosts/lists.php?type=tick'; then
+    :
   else
     err 'Unable to download blocklists.'
-  fi
+  fi | xargs ftp -o -
 }
 
 # filter out localhost definitions in hosts files and grab the lines
