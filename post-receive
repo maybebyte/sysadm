@@ -53,7 +53,6 @@ assign_description() {
   case "${PWD##*/}" in
     'website_md.git') readonly description="${website##*//}"                     ;;
     'dotfiles.git')   readonly description='My OpenBSD configuration files.'     ;;
-    'cobs.git')       readonly description='Comfy OpenBSD Bootstrapping Script.' ;;
     'sysadm.git')     readonly description='System Administration tools.'        ;;
     *)                err 'No description set for current repo.'                 ;;
   esac
