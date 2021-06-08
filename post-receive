@@ -84,6 +84,8 @@ gen_website() {
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
       "${description}" >/dev/null
 
+    # TODO: this rsync pattern doesn't update '/src/index.html', which
+    # could possibly be fixed by passing '--include' in some fashion.
     rsync -a --delete "${html_dir}/" "${webdir}/" --exclude=*.git \
       --exclude=*src*
 
