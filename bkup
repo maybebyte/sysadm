@@ -39,7 +39,6 @@ EOF
   exit 1
 }
 
-# select a compressor based on whether or not bzip2(1) is installed.
 # determine whether $2 has a trailing slash; if not, add one.
 # perform a filesystem backup with dump(8) on $1, compress it with
 # ${compressor}, then save it at the destination with the basename(1) of
@@ -47,13 +46,8 @@ EOF
 #
 # bkup [backup target] [destination (not filename)]
 bkup() {
-  if [ -x "$(command -v bzip2)" ]; then
-    readonly compressor='bzip2'
-    readonly extension='.dump.bz2'
-  else
-    readonly compressor='gzip'
-    readonly extension='.dump.gz'
-  fi
+  readonly compressor='gzip'
+  readonly extension='.dump.gz'
   if [ -z "${2##*/}" ]; then
     dest="$2"
   else
