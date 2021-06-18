@@ -52,6 +52,7 @@ cert_maintenance() {
   else
     err "acme-client.conf(5) wasn't found."
   fi
+
   if [ -f "/etc/ssl/$1.pem" ]; then
     # if your provider supports the use of OCSP nonces, don't use -N
     ocspcheck -No "/etc/ssl/$1.ocsp" "/etc/ssl/$1.pem" >/dev/null
@@ -62,13 +63,13 @@ cert_maintenance() {
 
 # reload httpd and relayd if they're enabled.
 restart_daemons() {
-  readonly enabled_daemons="$(rcctl ls on 2>/dev/null)"
-  grep -q '^httpd$' <<EOF && rcctl reload httpd >/dev/null
-${enabled_daemons}
-EOF
-  grep -q '^relayd$' <<EOF && rcctl reload relayd >/dev/null
-${enabled_daemons}
-EOF
+  if [ "$(rcctl get httpd flags)" != 'NO' ]; then
+    rcctl reload httpd >/dev/null
+  fi
+
+  if [ "$(rcctl get relayd flags)" != 'NO' ]; then
+    rcctl reload relayd >/dev/null
+  fi
 }
 
 prereqs() {
