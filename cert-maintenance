@@ -62,7 +62,7 @@ cert_maintenance() {
 }
 
 # reload httpd and relayd if they're enabled.
-restart_daemons() {
+reload_daemons() {
   if [ "$(rcctl get httpd flags)" != 'NO' ]; then
     rcctl reload httpd >/dev/null
   fi
@@ -80,11 +80,11 @@ prereqs() {
 
 # first check whether there's an appropriate number of arguments and
 # whether the script has root privileges. then execute
-# cert_maintenance() and restart_daemons() if cert_maintenance()
+# cert_maintenance() and reload_daemons() if cert_maintenance()
 # succeeds.
 main() {
   prereqs "$@"
-  cert_maintenance "$1" && restart_daemons
+  cert_maintenance "$1" && reload_daemons
 }
 
 main "$@"
