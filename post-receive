@@ -21,7 +21,7 @@ readonly library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
-  cat >&2 <<EOF
+  cat >&2 -- <<EOF
 ${library} doesn't exist or isn't readable.
 ${0##*/} may not function correctly without it; exiting for safety.
 EOF
@@ -32,7 +32,7 @@ fi
 readonly owner='Ashlen'
 readonly website='https://amissing.link'
 readonly webdir="/var/www/htdocs/${website##*//}"
-readonly stagit_dir="${webdir}/src/$(basename "${PWD}" '.git')"
+readonly stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')"
 
 # if ${PWD} is in the form of 'foo-bar.git', then
 # ${bare_srcdir} equals 'foo-bar.git'.
@@ -59,8 +59,8 @@ assign_description() {
 }
 
 handle_tmpfiles() {
-  rm -rf "${stagit_dir:?}"
-  mkdir -p "${stagit_dir}"
+  rm -rf -- "${stagit_dir:?}"
+  mkdir -p -- "${stagit_dir}"
 }
 
 add_metadata() {
@@ -75,11 +75,11 @@ gen_website() {
     readonly stage_dir="${HOME}/website-staging"
     readonly html_dir="${HOME}/website-final"
 
-    rm -f "${webdir}/.files"
-    rm -rf "${stage_dir:?}" "${html_dir:?}"
+    rm -f -- "${webdir}/.files"
+    rm -rf -- "${stage_dir:?}" "${html_dir:?}"
 
-    mkdir -p "${html_dir}"
-    git clone "${bare_srcdir}" "${stage_dir}"
+    mkdir -p -- "${html_dir}"
+    git clone -- "${bare_srcdir}" "${stage_dir}"
 
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
       "${description}" >/dev/null
@@ -99,8 +99,8 @@ gen_website() {
 update_sysadm() {
   readonly sysadm_dir='/etc/sysadm'
   readonly sysadm_stage="${HOME}/sysadm-staging"
-  rm -rf "${sysadm_stage:?}"
-  git clone "${bare_srcdir}" "${sysadm_stage}"
+  rm -rf -- "${sysadm_stage:?}"
+  git clone -- "${bare_srcdir}" "${sysadm_stage}"
   rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude=*.git
 }
 
@@ -111,8 +111,8 @@ clone_and_stagit() {
   (cd "${stagit_dir}/.git" && git update-server-info)
 
   (cd "${stagit_dir}" && stagit "${bare_srcdir}")
-  cp -f "${stagit_dir}/log.html" "${stagit_dir}/index.html"
-  cp "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
+  cp -f -- "${stagit_dir}/log.html" "${stagit_dir}/index.html"
+  cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
 
 # assign some variables, clean up, and add metadata. perform tasks

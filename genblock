@@ -26,7 +26,7 @@ readonly library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
-  cat >&2 <<EOF
+  cat >&2 -- <<EOF
 ${library} doesn't exist or isn't readable.
 ${0##*/} may not function correctly without it; exiting for safety.
 EOF
@@ -35,7 +35,7 @@ fi
 
 backup() {
   if [ -f "${blocklist}" ]; then
-     mv "${blocklist}" "${blocklist}.bak"
+     mv -- "${blocklist}" "${blocklist}.bak"
   else
     return 0
   fi
@@ -44,11 +44,11 @@ backup() {
 # for each domain with a hosts file that ${firebog} contains, download
 # and output the contents to STDOUT.
 dl_blocklists() {
-  if ftp -Vo - 'https://v.firebog.net/hosts/lists.php?type=tick'; then
+  if ftp -Vo - -- 'https://v.firebog.net/hosts/lists.php?type=tick'; then
     :
   else
     err 'Unable to download blocklists.'
-  fi | xargs ftp -o -
+  fi | xargs ftp -o - --
 }
 
 # filter out localhost definitions in hosts files and grab the lines
@@ -56,7 +56,7 @@ dl_blocklists() {
 #
 # $1 is a file or STDIN.
 grab_domains() {
-  grep -Ev 'localhost$' "$1" \
+  grep -Ev -- 'localhost$' "$1" \
     | grep -Ee '^0.0.0.0' -e '^127.0.0.1'
 }
 
@@ -75,8 +75,8 @@ format_domains() {
 
     'unwind')
       {
-      awk '$1 == "0.0.0.0" {print $2}' "$1"
-      awk '$1 == "127.0.0.1" {print $2}' "$1"
+      awk -- '$1 == "0.0.0.0" {print $2}' "$1"
+      awk -- '$1 == "127.0.0.1" {print $2}' "$1"
       # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
       echo 'use-application-dns.net';
       }
@@ -84,16 +84,16 @@ format_domains() {
 
     'unbound')
       {
-      awk '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
+      awk -- '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
         "$1"
-      awk '$1 == "127.0.0.1" {print "local-zone: \""$2"\" always_refuse"}' \
+      awk -- '$1 == "127.0.0.1" {print "local-zone: \""$2"\" always_refuse"}' \
         "$1"
       # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
       echo 'local-zone: "use-application-dns.net" always_refuse';
       }
       ;;
 
-  esac | sed 's///g' | sort | uniq
+  esac | sed -- 's///g' | sort -- | uniq --
     # the sed expression gets rid of the '^M' control character in
     # blocklists
 
@@ -104,8 +104,8 @@ format_domains() {
 # copy the temporary blocklist to the destination and make it world
 # readable.
 install_blocklist() {
-  cp "${tmp_blocklist}" "${blocklist}"
-  chmod 0444 "${blocklist}"
+  cp -- "${tmp_blocklist}" "${blocklist}"
+  chmod -- 0444 "${blocklist}"
 }
 
 # check that the configuration file is valid. if it is, restart the DNS
@@ -114,13 +114,13 @@ restart_dns() {
   case "${dns}" in
 
     'unwind')
-      unwind -n >/dev/null 2>&1 \
-        && rcctl restart unwind >/dev/null 2>&1
+      unwind -n -- >/dev/null 2>&1 \
+        && rcctl -- restart unwind >/dev/null 2>&1
       ;;
 
     'unbound')
-      unbound-checkconf >/dev/null 2>&1 \
-        && rcctl restart unbound >/dev/null 2>&1
+      unbound-checkconf -- >/dev/null 2>&1 \
+        && rcctl -- restart unbound >/dev/null 2>&1
       ;;
 
   esac
@@ -131,11 +131,11 @@ restart_dns() {
 # file in its place.
 revert() {
   if [ -f "${blocklist}.bak" ]; then
-    mv "${blocklist}.bak" "${blocklist}"
+    mv -- "${blocklist}.bak" "${blocklist}"
   else
-    rm "${blocklist}"
-    touch "${blocklist}"
-    chmod 0444 "${blocklist}"
+    rm -- "${blocklist}"
+    touch -- "${blocklist}"
+    chmod -- 0444 "${blocklist}"
   fi
 }
 
@@ -148,16 +148,16 @@ revert() {
 main() {
   must_be_root
 
-  if [ "$(rcctl get unwind flags)" != 'NO' ]; then
+  if [ "$(rcctl -- get unwind flags)" != 'NO' ]; then
     readonly dns='unwind'
-  elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
+  elif [ "$(rcctl -- get unbound flags)" != 'NO' ]; then
     readonly dns='unbound'
   else
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
   fi
 
   readonly blocklist='/etc/blocklist.txt'
-  readonly tmp_blocklist="$(mktemp)"
+  readonly tmp_blocklist="$(mktemp --)"
 
   dl_blocklists \
     | grab_domains - \
@@ -168,7 +168,7 @@ main() {
   backup || err 'Unable to backup blocklist file.'
   install_blocklist || err 'Unable to install blocklist.'
   restart_dns || revert
-  rm "${tmp_blocklist}" || err "Unable to remove ${tmp_blocklist}."
+  rm -- "${tmp_blocklist}" || err "Unable to remove ${tmp_blocklist}."
 }
 
 main

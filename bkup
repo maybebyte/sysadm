@@ -22,7 +22,7 @@ readonly library='/etc/sysadm/common.sh'
 if [ -r "${library}" ]; then
   . "${library}"
 else
-  cat >&2 <<EOF
+  cat >&2 -- <<EOF
 ${library} doesn't exist or isn't readable.
 ${0##*/} may not function correctly without it; exiting for safety.
 EOF
@@ -30,7 +30,7 @@ EOF
 fi
 
 usage() {
-  cat >&2 <<EOF
+  cat >&2 -- <<EOF
 ${0##*/} requires ${args_needed} argument(s).
 
 usage:
@@ -54,8 +54,8 @@ bkup() {
     dest="$2/"
   fi
   filename="${dest}${1##*/}-$(today)${extension}"
-  dump -0auf - "$1" \
-    | "${compressor}" -c \
+  dump -0auf - -- "$1" \
+    | "${compressor}" -c -- \
     > "${filename}"
 }
 
