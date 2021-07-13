@@ -41,12 +41,11 @@ EOF
 
 # determine whether $2 has a trailing slash; if not, add one.
 # perform a filesystem backup with dump(8) on $1, compress it with
-# ${compressor}, then save it at the destination with the basename(1) of
+# gzip(1), then save it at the destination with the basename(1) of
 # $1 (more or less), the current date, and an appropriate extension.
 #
 # bkup [backup target] [destination (not filename)]
 bkup() {
-  readonly compressor='gzip'
   readonly extension='.dump.gz'
   if [ -z "${2##*/}" ]; then
     dest="$2"
@@ -55,7 +54,7 @@ bkup() {
   fi
   filename="${dest}${1##*/}-$(today)${extension}"
   dump -0auf - -- "$1" \
-    | "${compressor}" -c \
+    | gzip -c \
     > "${filename}"
 }
 
