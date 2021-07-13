@@ -48,7 +48,7 @@ dl_blocklists() {
     :
   else
     err 'Unable to download blocklists.'
-  fi | xargs ftp -o -
+  fi | xargs ftp -o - --
 }
 
 # filter out localhost definitions in hosts files and grab the lines
