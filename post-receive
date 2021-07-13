@@ -112,9 +112,9 @@ update_ssg() {
   rm -rf -- "${dotfiles_stage:?}"
   git clone -- "${bare_srcdir}" "${dotfiles_stage}"
   install -g git -o git -m 700 -- \
-    "${bare_srcdir}/.local/bin/rssg" "${bindir}/rssg"
+    "${dotfiles_stage}/.local/bin/rssg" "${bindir}/rssg"
   install -g git -o git -m 700 -- \
-    "${bare_srcdir}/.local/bin/ssg6" "${bindir}/ssg6"
+    "${dotfiles_stage}/.local/bin/ssg6" "${bindir}/ssg6"
 }
 
 # clone the repo and update the server information. generate the stagit
