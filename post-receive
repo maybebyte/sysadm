@@ -84,10 +84,10 @@ gen_website() {
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
       "${description}" >/dev/null
 
-    # TODO: this rsync pattern doesn't update '/src/index.html', which
-    # could possibly be fixed by passing '--include' in some fashion.
-    rsync -a --delete "${html_dir}/" "${webdir}/" --exclude=*.git \
-      --exclude=*src*
+    rsync -a --delete --exclude=*.git --exclude=*src* -- \
+      "${html_dir}/" "${webdir}/"
+
+    rsync -a --exclude=*.git -- "${html_dir}/src/" "${webdir}/src/"
 
     "${HOME}/bin/rssg" "${stage_dir}/articles.md" \
       "Newsletter - ${description}" > "${webdir}/rss.xml"
@@ -101,7 +101,7 @@ update_sysadm() {
   readonly sysadm_stage="${HOME}/sysadm-staging"
   rm -rf -- "${sysadm_stage:?}"
   git clone -- "${bare_srcdir}" "${sysadm_stage}"
-  rsync -a --delete "${sysadm_stage}/" "${sysadm_dir}/" --exclude=*.git
+  rsync -a --delete --exclude=*.git -- "${sysadm_stage}/" "${sysadm_dir}/"
 }
 
 # clone the repo and update the server information. generate the stagit
