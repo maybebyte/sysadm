@@ -129,8 +129,8 @@ clone_and_stagit() {
 }
 
 # assign some variables, clean up, and add metadata. perform tasks
-# specific to website_md and sysadm if appropriate, then clone the
-# repository in question and point stagit at it.
+# specific to the repository if appropriate, then clone the repository
+# and point stagit at it.
 main() {
   assign_bare_srcdir
   assign_description
