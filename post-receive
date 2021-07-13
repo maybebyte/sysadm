@@ -110,7 +110,7 @@ clone_and_stagit() {
   git clone --bare -- "${bare_srcdir}" "${stagit_dir}/.git"
   (cd "${stagit_dir}/.git" && git update-server-info)
 
-  (cd "${stagit_dir}" && stagit "${bare_srcdir}")
+  (cd "${stagit_dir}" && stagit -- "${bare_srcdir}")
   cp -f -- "${stagit_dir}/log.html" "${stagit_dir}/index.html"
   cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
