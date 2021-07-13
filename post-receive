@@ -104,6 +104,19 @@ update_sysadm() {
   rsync -a --delete --exclude=*.git -- "${sysadm_stage}/" "${sysadm_dir}/"
 }
 
+# if upstream ssg receives an update, e.g., changes to ssg7, make sure
+# to update the pathname to match!
+update_ssg() {
+  readonly bindir="${HOME}/bin"
+  readonly dotfiles_stage="${HOME}/dotfiles-staging"
+  rm -rf -- "${dotfiles_stage:?}"
+  git clone -- "${bare_srcdir}" "${dotfiles_stage}"
+  install -g git -o git -m 700 -- \
+    "${bare_srcdir}/.local/bin/rssg" "${bindir}/rssg"
+  install -g git -o git -m 700 -- \
+    "${bare_srcdir}/.local/bin/ssg6" "${bindir}/ssg6"
+}
+
 # clone the repo and update the server information. generate the stagit
 # page and copy some misc files.
 clone_and_stagit() {
@@ -126,6 +139,7 @@ main() {
   case "${PWD##*/}" in
     'website_md.git') gen_website   ;;
     'sysadm.git')     update_sysadm ;;
+    'dotfiles.git')   update_ssg    ;;
   esac
   clone_and_stagit
 }
