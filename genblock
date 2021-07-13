@@ -48,7 +48,7 @@ dl_blocklists() {
     :
   else
     err 'Unable to download blocklists.'
-  fi | xargs ftp -o - --
+  fi | xargs ftp -o -
 }
 
 # filter out localhost definitions in hosts files and grab the lines
@@ -93,7 +93,7 @@ format_domains() {
       }
       ;;
 
-  esac | sed -- 's///g' | sort -- | uniq --
+  esac | sed -- 's///g' | sort | uniq
     # the sed expression gets rid of the '^M' control character in
     # blocklists
 
@@ -114,12 +114,12 @@ restart_dns() {
   case "${dns}" in
 
     'unwind')
-      unwind -n -- >/dev/null 2>&1 \
+      unwind -n >/dev/null 2>&1 \
         && rcctl -- restart unwind >/dev/null 2>&1
       ;;
 
     'unbound')
-      unbound-checkconf -- >/dev/null 2>&1 \
+      unbound-checkconf >/dev/null 2>&1 \
         && rcctl -- restart unbound >/dev/null 2>&1
       ;;
 
@@ -157,7 +157,7 @@ main() {
   fi
 
   readonly blocklist='/etc/blocklist.txt'
-  readonly tmp_blocklist="$(mktemp --)"
+  readonly tmp_blocklist="$(mktemp)"
 
   dl_blocklists \
     | grab_domains - \

@@ -55,7 +55,7 @@ bkup() {
   fi
   filename="${dest}${1##*/}-$(today)${extension}"
   dump -0auf - -- "$1" \
-    | "${compressor}" -c -- \
+    | "${compressor}" -c \
     > "${filename}"
 }
 
