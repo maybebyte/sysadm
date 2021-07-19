@@ -115,12 +115,12 @@ restart_dns() {
 
     'unwind')
       unwind -n >/dev/null 2>&1 \
-        && rcctl -- restart unwind >/dev/null 2>&1
+        && rcctl restart unwind >/dev/null 2>&1
       ;;
 
     'unbound')
       unbound-checkconf >/dev/null 2>&1 \
-        && rcctl -- restart unbound >/dev/null 2>&1
+        && rcctl restart unbound >/dev/null 2>&1
       ;;
 
   esac
@@ -148,9 +148,9 @@ revert() {
 main() {
   must_be_root
 
-  if [ "$(rcctl -- get unwind flags)" != 'NO' ]; then
+  if [ "$(rcctl get unwind flags)" != 'NO' ]; then
     readonly dns='unwind'
-  elif [ "$(rcctl -- get unbound flags)" != 'NO' ]; then
+  elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
     readonly dns='unbound'
   else
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'

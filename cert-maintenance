@@ -64,8 +64,8 @@ cert_maintenance() {
 # reload httpd and relayd if they're enabled.
 reload_daemons() {
   for daemon in 'httpd' 'relayd'; do
-    if [ "$(rcctl -- get "${daemon}" flags)" != 'NO' ]; then
-      rcctl -- reload "${daemon}" >/dev/null
+    if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
+      rcctl reload "${daemon}" >/dev/null
     fi
   done
 }

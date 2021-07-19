@@ -6,9 +6,9 @@
 # instead of remembering/accounting for two different forms of privilege
 # elevation, one is assigned to the alias 'priv.' doas is preferred over
 # sudo.
-if [ -x "$(command -v -- 'doas')" ]; then
+if [ -x "$(command -v 'doas')" ]; then
   alias priv='doas '
-elif [ -x "$(command -v -- 'sudo')" ]; then
+elif [ -x "$(command -v 'sudo')" ]; then
   alias priv='sudo '
 fi
 
@@ -28,4 +28,4 @@ must_be_root() {
 }
 
 # print date in yyyy-mm-dd format.
-today() { date -- '+%F'; }
+today() { date '+%F'; }
