@@ -89,7 +89,7 @@ gen_website() {
 
     rsync -a --exclude=*.git -- "${html_dir}/src/" "${webdir}/src/"
 
-    "${HOME}/bin/rssg" "${stage_dir}/articles.md" \
+    "${HOME}/bin/rssg" "${stage_dir}/index.md" \
       "Newsletter - ${description}" > "${webdir}/rss.xml"
 }
 
