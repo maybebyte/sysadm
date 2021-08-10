@@ -114,13 +114,11 @@ restart_dns() {
   case "${dns}" in
 
     'unwind')
-      unwind -n >/dev/null 2>&1 \
-        && rcctl restart unwind >/dev/null 2>&1
+      unwind -n && rcctl restart unwind
       ;;
 
     'unbound')
-      unbound-checkconf >/dev/null 2>&1 \
-        && rcctl restart unbound >/dev/null 2>&1
+      unbound-checkconf && rcctl restart unbound
       ;;
 
   esac
@@ -167,7 +165,7 @@ main() {
 
   backup || err 'Unable to backup blocklist file.'
   install_blocklist || err 'Unable to install blocklist.'
-  restart_dns || revert
+  restart_dns >/dev/null 2>&1 || revert
   rm -- "${tmp_blocklist}" || err "Unable to remove ${tmp_blocklist}."
 }
 
