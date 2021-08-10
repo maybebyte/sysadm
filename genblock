@@ -156,10 +156,10 @@ main() {
     > "${tmp_blocklist}" \
     || err 'Unable to create blocklist.'
 
-  backup || err 'Unable to backup blocklist file.'
-  install_blocklist || err 'Unable to install blocklist.'
+  backup                      || err 'Unable to backup blocklist file.'
+  install_blocklist           || err 'Unable to install blocklist.'
   restart_dns >/dev/null 2>&1 || revert
-  rm -- "${tmp_blocklist}" || err "Unable to remove ${tmp_blocklist}."
+  rm -- "${tmp_blocklist}"    || err "Unable to remove ${tmp_blocklist}."
 }
 
 main
