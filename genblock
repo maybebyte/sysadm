@@ -112,15 +112,8 @@ install_blocklist() {
 # server.
 restart_dns() {
   case "${dns}" in
-
-    'unwind')
-      unwind -n && rcctl restart unwind
-      ;;
-
-    'unbound')
-      unbound-checkconf && rcctl restart unbound
-      ;;
-
+    'unwind')  unwind -n         && rcctl restart unwind  ;;
+    'unbound') unbound-checkconf && rcctl restart unbound ;;
   esac
 }
 
