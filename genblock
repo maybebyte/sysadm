@@ -148,7 +148,7 @@ main() {
   fi
 
   readonly blocklist='/etc/blocklist.txt'
-  readonly tmp_blocklist="$(mktemp)"
+  tmp_blocklist="$(mktemp)" && readonly tmp_blocklist
 
   dl_blocklists \
     | grab_domains - \
