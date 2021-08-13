@@ -82,7 +82,7 @@ gen_website() {
     git clone -- "${bare_srcdir}" "${stage_dir}"
 
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
-      "${description}" >/dev/null
+      "${website}" >/dev/null
 
     rsync -a --delete --exclude=*.git --exclude=*src* -- \
       "${html_dir}/" "${webdir}/"
