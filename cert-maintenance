@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+# shellcheck disable=SC1090
 set -e
 # Copyright (c) 2020-2021 Ashlen <eurydice@riseup.net>
 
