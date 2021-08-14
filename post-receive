@@ -32,7 +32,8 @@ fi
 readonly owner='Ashlen'
 readonly website='https://amissing.link'
 readonly webdir="/var/www/htdocs/${website##*//}"
-readonly stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')"
+stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')" \
+  && readonly stagit_dir
 
 # if ${PWD} is in the form of 'foo-bar.git', then
 # ${bare_srcdir} equals 'foo-bar.git'.
