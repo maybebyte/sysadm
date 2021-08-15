@@ -93,6 +93,10 @@ format_domains() {
       }
       ;;
 
+    *)
+      err "${0##*/} only supports unwind(8) and unbound(8)."
+      ;;
+
   esac | sed -- 's///g' | sort | uniq
     # the sed expression gets rid of the '^M' control character in
     # blocklists
@@ -112,8 +116,9 @@ install_blocklist() {
 # server.
 restart_dns() {
   case "${dns}" in
-    'unwind')  unwind -n         && rcctl restart unwind  ;;
-    'unbound') unbound-checkconf && rcctl restart unbound ;;
+    'unwind')  unwind -n         && rcctl restart unwind              ;;
+    'unbound') unbound-checkconf && rcctl restart unbound             ;;
+    *)         err "${0##*/} only supports unwind(8) and unbound(8)." ;;
   esac
 }
 

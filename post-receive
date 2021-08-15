@@ -147,6 +147,7 @@ main() {
     'website_md.git') gen_website   ;;
     'sysadm.git')     update_sysadm ;;
     'dotfiles.git')   update_ssg    ;;
+    *)                :             ;;
   esac
   clone_and_stagit
 }
