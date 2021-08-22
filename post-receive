@@ -144,10 +144,10 @@ main() {
   handle_tmpfiles
   add_metadata
   case "${PWD##*/}" in
-    'website_md.git') gen_website   ;;
-    'sysadm.git')     update_sysadm ;;
-    'dotfiles.git')   update_ssg    ;;
-    *)                :             ;;
+    'website_md.git') gen_website                                         ;;
+    'sysadm.git')     update_sysadm                                       ;;
+    'dotfiles.git')   update_ssg                                          ;;
+    *)                # if unrecognized, perform no repo specific actions ;;
   esac
   clone_and_stagit
 }

@@ -1,4 +1,4 @@
-# shellcheck disable=SC2154
+# shellcheck disable=SC2154 shell=sh
 # 'common.sh' is a file with frequently used functions. its purpose is
 # to be sourced in scripts for readability purposes and ease of
 # management. therefore, it has no shebang and isn't executable.
