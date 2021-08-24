@@ -45,7 +45,7 @@ backup() {
 # and output the contents to STDOUT.
 dl_blocklists() {
   if ftp -Vo - -- 'https://v.firebog.net/hosts/lists.php?type=tick'; then
-    :
+    : # successfully fetched blocklists, so pass input to xargs(1)
   else
     err 'Unable to download blocklists.'
   fi | xargs ftp -o - --
