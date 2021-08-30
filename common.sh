@@ -12,6 +12,20 @@ elif [ -x "$(command -v 'sudo')" ]; then
   alias priv='sudo '
 fi
 
+# reads from STDIN and checks that all commands needed are executable
+# and available.
+#
+# note that I only check executables that aren't accounted for in dotfiles.
+check_deps() {
+  while read -r -- dependency; do
+    if [ -x "$(command -v -- "${dependency}")" ]; then
+      continue
+    else
+      err "${dependency} not found in PATH or not executable."
+    fi
+  done
+}
+
 # err() is the generic way to print an error message and exit a script.
 # all of its output goes to STDERR.
 #

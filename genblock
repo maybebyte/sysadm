@@ -97,12 +97,7 @@ format_domains() {
       err "${0##*/} only supports unwind(8) and unbound(8)."
       ;;
 
-  esac | sed -- 's///g' | sort | uniq
-    # the sed expression gets rid of the '^M' control character in
-    # blocklists
-
-    # given that '^M' represents a carriage return, it may not display
-    # properly in various places
+  esac | dos2unix | sort | uniq
 }
 
 # copy the temporary blocklist to the destination and make it world
@@ -135,6 +130,11 @@ revert() {
   fi
 }
 
+prereqs() {
+  must_be_root
+  echo 'dos2unix' | check_deps
+}
+
 # check for root privilege. determine which dns server is running, then
 # accordingly download and format the 'ticked' hosts files listed on
 # firebog.net in aggregate. after the formatted output is saved, back up
@@ -142,7 +142,7 @@ revert() {
 # server--in the event that it fails, revert everything to a functional
 # state so the DNS server remains operational. clean up.
 main() {
-  must_be_root
+  prereqs
 
   if [ "$(rcctl get unwind flags)" != 'NO' ]; then
     readonly dns='unwind'
