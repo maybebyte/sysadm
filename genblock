@@ -41,7 +41,7 @@ backup() {
   fi
 }
 
-# for each domain with a hosts file that ${firebog} contains, download
+# for each domain with a hosts file that firebog.net contains, download
 # and output the contents to STDOUT.
 dl_blocklists() {
   if ftp -Vo - -- 'https://v.firebog.net/hosts/lists.php?type=tick'; then
