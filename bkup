@@ -52,7 +52,7 @@ bkup() {
   else
     dest="$2/"
   fi
-  filename="${dest}${1##*/}-$(today)${extension}"
+  filename="${dest}${1##*/}-$(date '+%F')${extension}"
   dump -0auf - -- "$1" \
     | gzip -c \
     > "${filename}"
