@@ -152,7 +152,12 @@ main() {
     err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
   fi
 
-  readonly blocklist='/etc/blocklist.txt'
+  case "${dns}" in
+    'unwind')  blocklist='/etc/blocklist.nwnd'                 ;;
+    'unbound') blocklist='/etc/blocklist.nbnd'                 ;;
+    *)         err 'This error condition should never happen.' ;;
+  esac
+
   tmp_blocklist="$(mktemp)" && readonly tmp_blocklist
 
   dl_blocklists \
