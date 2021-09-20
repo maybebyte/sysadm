@@ -153,8 +153,8 @@ main() {
   fi
 
   case "${dns}" in
-    'unwind')  blocklist='/etc/blocklist.nwnd'                 ;;
-    'unbound') blocklist='/etc/blocklist.nbnd'                 ;;
+    'unwind')  readonly blocklist='/etc/blocklist.nwnd'        ;;
+    'unbound') readonly blocklist='/etc/blocklist.nbnd'        ;;
     *)         err 'This error condition should never happen.' ;;
   esac
 
