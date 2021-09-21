@@ -83,21 +83,21 @@ format_domains() {
 
     'unwind')
       {
-      awk -- '$1 == "0.0.0.0" {print $2}' "$1"
-      awk -- '$1 == "127.0.0.1" {print $2}' "$1"
-      # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-      echo 'use-application-dns.net'
+        awk -- '$1 == "0.0.0.0" {print $2}' "$1"
+        awk -- '$1 == "127.0.0.1" {print $2}' "$1"
+        # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+        echo 'use-application-dns.net'
       }
       ;;
 
     'unbound')
       {
-      awk -- '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
-        "$1"
-      awk -- '$1 == "127.0.0.1" {print "local-zone: \""$2"\" always_refuse"}' \
-        "$1"
-      # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-      echo 'local-zone: "use-application-dns.net" always_refuse'
+        awk -- '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
+          "$1"
+        awk -- '$1 == "127.0.0.1" {print "local-zone: \""$2"\" always_refuse"}' \
+          "$1"
+        # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+        echo 'local-zone: "use-application-dns.net" always_refuse'
       }
       ;;
 
