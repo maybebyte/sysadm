@@ -71,19 +71,13 @@ reload_daemons() {
   done
 }
 
+# check whether there's an appropriate number of arguments and
+# whether the script has root privileges.
 prereqs() {
   readonly args_needed=1
   [ "$#" = "${args_needed}" ] || usage
   must_be_root
 }
 
-# first check whether there's an appropriate number of arguments and
-# whether the script has root privileges. then execute
-# cert_maintenance() and reload_daemons() if cert_maintenance()
-# succeeds.
-main() {
-  prereqs "$@"
-  cert_maintenance "$1" && reload_daemons
-}
-
-main "$@"
+prereqs "$@"
+cert_maintenance "$1" && reload_daemons

@@ -58,6 +58,10 @@ bkup() {
     > "${filename}"
 }
 
+# TODO: add more to test validity of $1 and $2
+#
+# check to see that the appropriate number of arguments have been
+# passed, that the user is root, and that $2 is a directory.
 prereqs() {
   readonly args_needed=2
   [ "$#" = "${args_needed}" ] || usage "$@"
@@ -65,15 +69,6 @@ prereqs() {
   [ -d "$2" ] || err 'The destination must be a directory, exiting.'
 }
 
-# TODO: add a function to test validity of $1 and $2
-#
-# check to see that the appropriate number of arguments have been
-# passed, that the user is root, and that $2 is a directory. then, back
-# up the filesystem.
-main() {
-  prereqs "$@"
-  echo 'Dumping...'
-  bkup "$1" "$2"
-}
-
-main "$@"
+prereqs "$@"
+echo 'Dumping...'
+bkup "$1" "$2"

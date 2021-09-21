@@ -135,21 +135,16 @@ clone_and_stagit() {
   cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
 
-# assign some variables, clean up, and add metadata. perform tasks
-# specific to the repository if appropriate, then clone the repository
-# and point stagit at it.
-main() {
-  assign_bare_srcdir
-  assign_description
-  handle_tmpfiles
-  add_metadata
-  case "${PWD##*/}" in
-    'website_md.git') gen_website                                         ;;
-    'sysadm.git')     update_sysadm                                       ;;
-    'dotfiles.git')   update_ssg                                          ;;
-    *)                # if unrecognized, perform no repo specific actions ;;
-  esac
-  clone_and_stagit
-}
+assign_bare_srcdir
+assign_description
+handle_tmpfiles
+add_metadata
 
-main
+case "${PWD##*/}" in
+  'website_md.git') gen_website                                         ;;
+  'sysadm.git')     update_sysadm                                       ;;
+  'dotfiles.git')   update_ssg                                          ;;
+  *)                # if unrecognized, perform no repo specific actions ;;
+esac
+
+clone_and_stagit

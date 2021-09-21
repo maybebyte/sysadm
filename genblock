@@ -135,41 +135,31 @@ prereqs() {
   echo 'dos2unix' | check_deps
 }
 
-# check for root privilege. determine which dns server is running, then
-# accordingly download and format the 'ticked' hosts files listed on
-# firebog.net in aggregate. after the formatted output is saved, back up
-# the old blocklist and replace it with the new one. restart the DNS
-# server--in the event that it fails, revert everything to a functional
-# state so the DNS server remains operational. clean up.
-main() {
-  prereqs
+prereqs
 
-  if [ "$(rcctl get unwind flags)" != 'NO' ]; then
-    readonly dns='unwind'
-  elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
-    readonly dns='unbound'
-  else
-    err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
-  fi
+if [ "$(rcctl get unwind flags)" != 'NO' ]; then
+  readonly dns='unwind'
+elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
+  readonly dns='unbound'
+else
+  err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
+fi
 
-  case "${dns}" in
-    'unwind')  readonly blocklist='/etc/blocklist.nwnd'        ;;
-    'unbound') readonly blocklist='/etc/blocklist.nbnd'        ;;
-    *)         err 'This error condition should never happen.' ;;
-  esac
+case "${dns}" in
+  'unwind')  readonly blocklist='/etc/blocklist.nwnd'        ;;
+  'unbound') readonly blocklist='/etc/blocklist.nbnd'        ;;
+  *)         err 'This error condition should never happen.' ;;
+esac
 
-  tmp_blocklist="$(mktemp)" && readonly tmp_blocklist
+tmp_blocklist="$(mktemp)" && readonly tmp_blocklist
 
-  dl_blocklists \
-    | grab_domains - \
-    | format_domains - \
-    > "${tmp_blocklist}" \
-    || err 'Unable to create blocklist.'
+dl_blocklists \
+  | grab_domains - \
+  | format_domains - \
+  > "${tmp_blocklist}" \
+  || err 'Unable to create blocklist.'
 
-  backup                      || err 'Unable to backup blocklist file.'
-  install_blocklist           || err 'Unable to install blocklist.'
-  restart_dns >/dev/null 2>&1 || revert
-  rm -- "${tmp_blocklist}"    || err "Unable to remove ${tmp_blocklist}."
-}
-
-main
+backup                      || err 'Unable to backup blocklist file.'
+install_blocklist           || err 'Unable to install blocklist.'
+restart_dns >/dev/null 2>&1 || revert
+rm -- "${tmp_blocklist}"    || err "Unable to remove ${tmp_blocklist}."
