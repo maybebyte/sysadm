@@ -8,8 +8,10 @@
 # sudo.
 if [ -x "$(command -v 'doas')" ]; then
   alias priv='doas '
+
 elif [ -x "$(command -v 'sudo')" ]; then
   alias priv='sudo '
+
 fi
 
 # reads from STDIN and checks that all commands needed are executable
@@ -18,11 +20,15 @@ fi
 # note that I only check executables that aren't accounted for in dotfiles.
 check_deps() {
   while read -r -- dependency; do
+
     if [ -x "$(command -v -- "${dependency}")" ]; then
       continue
+
     else
       err "${dependency} not found in PATH or not executable."
+
     fi
+
   done
 }
 

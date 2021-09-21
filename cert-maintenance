@@ -19,14 +19,18 @@ set -e
 # functions are available. if not, exit due to potentially unpredictable
 # behavior.
 readonly library='/etc/sysadm/common.sh'
+
 if [ -r "${library}" ]; then
   . "${library}"
+
 else
   cat >&2 <<EOF
 ${library} doesn't exist or isn't readable.
 ${0##*/} may not function correctly without it; exiting for safety.
 EOF
+
   exit 1
+
 fi
 
 usage() {
@@ -36,6 +40,7 @@ ${0##*/} requires ${args_needed} argument(s).
 usage:
 ${0##*/} [domain name]
 EOF
+
   exit 1
 }
 
@@ -50,24 +55,30 @@ EOF
 cert_maintenance() {
   if [ -f '/etc/acme-client.conf' ]; then
     acme-client -- "$1" >/dev/null
+
   else
     err "acme-client.conf(5) wasn't found."
+
   fi
 
   if [ -f "/etc/ssl/$1.pem" ]; then
     # if your provider supports the use of OCSP nonces, don't use -N
     ocspcheck -No "/etc/ssl/$1.ocsp" -- "/etc/ssl/$1.pem" >/dev/null
+
   else
     err "/etc/ssl/$1.pem wasn't found."
+
   fi
 }
 
 # reload httpd and relayd if they're enabled.
 reload_daemons() {
   for daemon in 'httpd' 'relayd'; do
+
     if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
       rcctl reload "${daemon}" >/dev/null
     fi
+
   done
 }
 
