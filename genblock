@@ -88,6 +88,7 @@ format_domains() {
         # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
         echo 'use-application-dns.net'
       }
+
       ;;
 
     'unbound')
@@ -99,10 +100,12 @@ format_domains() {
         # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
         echo 'local-zone: "use-application-dns.net" always_refuse'
       }
+
       ;;
 
     *)
       err "${0##*/} only supports unwind(8) and unbound(8)."
+
       ;;
 
   esac | dos2unix | sort | uniq
