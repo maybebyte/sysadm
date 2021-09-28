@@ -75,10 +75,14 @@ bkup() {
 prereqs() {
   readonly args_needed=2
   [ "$#" = "${args_needed}" ] || usage "$@"
+
   must_be_root
+
   [ -d "$2" ] || err 'The destination must be a directory, exiting.'
 }
 
 prereqs "$@"
+
 echo 'Dumping...'
+
 bkup "$1" "$2"

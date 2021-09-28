@@ -35,10 +35,15 @@ fi
 
 usage() {
   cat >&2 <<EOF
-${0##*/} requires ${args_needed} argument(s).
-
 usage:
-${0##*/} [domain name]
+${0##*/} [domain name] [daemon(s) to reload] ...
+
+Only the domain name is strictly necessary. If only the domain name is
+given, ${0##*/} will simply perform certificate maintenance without
+reloading any daemon(s).
+
+${0##*/} needs a valid acme-client.conf(5) and full chain certificate.
+The full chain certificate must be located at '/etc/ssl/example.com.pem'.
 EOF
 
   exit 1
@@ -71,12 +76,12 @@ cert_maintenance() {
   fi
 }
 
-# reload httpd and relayd if they're enabled.
+# reload daemons if enabled.
 reload_daemons() {
-  for daemon in 'httpd' 'relayd'; do
+  for daemon in "$@"; do
 
     if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
-      rcctl reload "${daemon}" >/dev/null
+      rcctl reload "${daemon}"
     fi
 
   done
@@ -85,10 +90,25 @@ reload_daemons() {
 # check whether there's an appropriate number of arguments and
 # whether the script has root privileges.
 prereqs() {
-  readonly args_needed=1
-  [ "$#" = "${args_needed}" ] || usage
+  [ -z "$1" ] && err "${0##*/} needs a domain name."
   must_be_root
 }
 
 prereqs "$@"
-cert_maintenance "$1" && reload_daemons
+
+if cert_maintenance "$1"; then
+  shift
+
+  if [ -n "$*" ]; then
+    reload_daemons "$@" >/dev/null
+
+  else
+    # no daemons to reload, simply exit
+    exit
+
+  fi
+
+else
+  err 'Unable to perform certificate maintenance.'
+
+fi

@@ -37,8 +37,9 @@ fi
 readonly owner='Ashlen'
 readonly website='https://amissing.link'
 readonly webdir="/var/www/htdocs/${website##*//}"
-stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')" \
-  && readonly stagit_dir
+
+stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')"
+readonly stagit_dir
 
 # if ${PWD} is in the form of 'foo-bar.git', then
 # ${bare_srcdir} equals 'foo-bar.git'.
@@ -87,6 +88,7 @@ gen_website() {
     rm -rf -- "${stage_dir:?}" "${html_dir:?}"
 
     mkdir -p -- "${html_dir}"
+
     git clone -- "${bare_srcdir}" "${stage_dir}"
 
     "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
@@ -107,8 +109,11 @@ gen_website() {
 update_sysadm() {
   readonly sysadm_dir='/etc/sysadm'
   readonly sysadm_stage="${HOME}/sysadm-staging"
+
   rm -rf -- "${sysadm_stage:?}"
+
   git clone -- "${bare_srcdir}" "${sysadm_stage}"
+
   rsync -a --delete --exclude=*.git -- "${sysadm_stage}/" "${sysadm_dir}/"
 }
 
@@ -123,9 +128,12 @@ update_ssg() {
   readonly dotfiles_stage="${HOME}/dotfiles-staging"
 
   rm -rf -- "${dotfiles_stage:?}"
+
   git clone -- "${bare_srcdir}" "${dotfiles_stage}"
+
   install -g git -o git -m 700 -- \
     "${dotfiles_stage}/.local/bin/rssg" "${bindir}/rssg"
+
   install -g git -o git -m 700 -- \
     "${dotfiles_stage}/.local/bin/ssg6" "${bindir}/ssg6"
 }
@@ -134,9 +142,11 @@ update_ssg() {
 # page and copy some misc files.
 clone_and_stagit() {
   git clone --bare -- "${bare_srcdir}" "${stagit_dir}/.git"
+
   (cd "${stagit_dir}/.git" && git update-server-info)
 
   (cd "${stagit_dir}" && stagit -- "${bare_srcdir}")
+
   cp -f -- "${stagit_dir}/log.html" "${stagit_dir}/index.html"
   cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }

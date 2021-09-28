@@ -167,7 +167,8 @@ case "${dns}" in
   *)         err 'This error condition should never happen.' ;;
 esac
 
-tmp_blocklist="$(mktemp)" && readonly tmp_blocklist
+tmp_blocklist="$(mktemp)"
+readonly tmp_blocklist
 
 dl_blocklists \
   | grab_domains - \
