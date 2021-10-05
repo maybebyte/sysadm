@@ -39,7 +39,7 @@ fi
 
 backup() {
   if [ -f "${blocklist}" ]; then
-     mv -- "${blocklist}" "${blocklist}.bak"
+    mv -- "${blocklist}" "${blocklist}.bak"
 
   else
     return 0
