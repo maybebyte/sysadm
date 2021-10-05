@@ -139,20 +139,16 @@ prereqs
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
   readonly dns='unwind'
+  readonly blocklist='/etc/blocklist.unwind'
 
 elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
   readonly dns='unbound'
+  readonly blocklist='/etc/blocklist.unbound'
 
 else
   err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
 
 fi
-
-case "${dns}" in
-  'unwind')  readonly blocklist='/etc/blocklist.unwind'      ;;
-  'unbound') readonly blocklist='/etc/blocklist.unbound'     ;;
-  *)         err 'This error condition should never happen.' ;;
-esac
 
 tmp_blocklist="$(mktemp)"
 readonly tmp_blocklist
