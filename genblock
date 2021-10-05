@@ -120,7 +120,7 @@ restart_dns() {
 
 # called if restart_dns() fails. restores the backup file.
 restore_backup_blocklist() {
-  # due to the way handle_old_blocklist() works, ${blocklist}.bak should
+  # due to the way rotate_old_blocklist() works, ${blocklist}.bak should
   # always be a working file with appropriate permissions, so it is safe
   # to move ${blocklist}.bak to ${blocklist} without further checks.
   mv -- "${blocklist}.bak" "${blocklist}"
