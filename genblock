@@ -163,10 +163,10 @@ readonly blocklist_urls='/etc/sysadm/blocklist_urls'
 [ -r "${blocklist_urls}" ] || err "${blocklist_urls} isn't readable."
 
 xargs ftp -o - -- 2>/dev/null \
-  < "${blocklist_urls}" \
-  | grab_domains - \
-  | format_domains - \
-  > "${tmp_blocklist}" \
+  < "${blocklist_urls}"       \
+  | grab_domains -            \
+  | format_domains -          \
+  > "${tmp_blocklist}"        \
   || err 'Unable to create blocklist.'
 
 backup                      || err 'Unable to backup blocklist file.'
