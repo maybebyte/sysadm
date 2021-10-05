@@ -97,7 +97,9 @@ format_domains() {
 
       ;;
 
-  esac | dos2unix | sort | uniq
+  # carriage returns are a nonprintable character that screw up
+  # formatting
+  esac | tr -d '\r' | sort | uniq
 }
 
 # copy the temporary blocklist to the destination.
@@ -132,12 +134,7 @@ For now, either the previous working blocklist or a blank blocklist was
 instated at ${blocklist} with appropriate permissions."
 }
 
-prereqs() {
-  must_be_root
-  echo 'dos2unix' | check_deps
-}
-
-prereqs
+must_be_root
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
   readonly dns='unwind'
