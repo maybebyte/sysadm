@@ -124,8 +124,7 @@ revert() {
     mv -- "${blocklist}.bak" "${blocklist}"
 
   else
-    rm -- "${blocklist}"
-    touch -- "${blocklist}"
+    :>"${blocklist}"
     chmod -- 0444 "${blocklist}"
 
   fi
