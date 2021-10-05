@@ -40,7 +40,7 @@ fi
 handle_old_blocklist() {
   # if no blocklist, just create a blank template file so mv(1) is
   # guaranteed to have something to move and ${blocklist}.bak is
-  # guaranteed to exist for revert().
+  # guaranteed to exist.
   [ -f "${blocklist}" ] || :>"${blocklist}"
 
   chmod -- 0444 "${blocklist}"
