@@ -124,7 +124,7 @@ restore_backup_blocklist() {
   mv -- "${blocklist}.bak" "${blocklist}"
 
   # exits immediately without removing ${tmp_blocklist} and printing the
-  # file in the error messageso it can be inspected.
+  # file in the error message so it can be inspected.
   err "restart_dns() failed, which probably means ${dns}(8) didn't like ${tmp_blocklist}.
 
 For now, either the previous working blocklist or a blank blocklist was
