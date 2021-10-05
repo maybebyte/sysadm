@@ -47,18 +47,6 @@ backup() {
   fi
 }
 
-# for each domain with a hosts file that firebog.net contains, download
-# and output the contents to STDOUT.
-dl_blocklists() {
-  if ftp -Vo - -- 'https://v.firebog.net/hosts/lists.php?type=tick'; then
-    : # successfully fetched blocklists, so pass input to xargs(1)
-
-  else
-    err 'Unable to download blocklists.'
-
-  fi | xargs ftp -o - --
-}
-
 # filter out localhost definitions in hosts files and grab the lines
 # that begin with 0.0.0.0 or 127.0.0.1
 #
@@ -162,15 +150,18 @@ else
 fi
 
 case "${dns}" in
-  'unwind')  readonly blocklist='/etc/blocklist.nwnd'        ;;
-  'unbound') readonly blocklist='/etc/blocklist.nbnd'        ;;
+  'unwind')  readonly blocklist='/etc/blocklist.unwind'      ;;
+  'unbound') readonly blocklist='/etc/blocklist.unbound'     ;;
   *)         err 'This error condition should never happen.' ;;
 esac
 
 tmp_blocklist="$(mktemp)"
 readonly tmp_blocklist
 
-dl_blocklists \
+readonly blocklist_urls='/etc/sysadm/blocklist_urls'
+
+xargs ftp -o - -- \
+  < "${blocklist_urls}" \
   | grab_domains - \
   | format_domains - \
   > "${tmp_blocklist}" \
