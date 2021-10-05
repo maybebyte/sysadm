@@ -165,4 +165,6 @@ install_new_blocklist
 
 restart_dns >/dev/null 2>&1 || restore_backup_blocklist
 
+# if restore_backup_blocklist() is called, it exits before the removal
+# so the temporary blocklist is kept.
 rm -- "${tmp_blocklist}"
