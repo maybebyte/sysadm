@@ -96,7 +96,7 @@ format_domains() {
 
       ;;
 
-  esac | dos2unix | sort | uniq
+  esac | dos2unix -D utf8 | sort | uniq
 }
 
 # copy the temporary blocklist to the destination and make it world
