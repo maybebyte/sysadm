@@ -49,17 +49,20 @@ handle_old_blocklist() {
 }
 
 # filter out localhost definitions in hosts files and grab the lines
-# that begin with 0.0.0.0 or 127.0.0.1
+# that begin with 0.0.0.0 or 127.0.0.1. remove carriage returns, sort
+# domains, and filter out duplicate entries.
 #
 # $1 is a file or STDIN.
 grab_domains() {
-  grep -v -- 'localhost$' "$1" \
-    | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]'
+  grep -v -- 'localhost$' "$1"                        \
+    | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' \
+    | tr -d '\r'                                      \
+    | sort                                            \
+    | uniq
 }
 
 # convert grab_domains() output using awk(1) so either unwind(8) or
-# unbound(8) can block those domains. remove carriage returns, sort
-# domains, and filter out duplicate entries.
+# unbound(8) can block those domains.
 #
 # unwind's configuration syntax is simple--one domain per line.
 #
@@ -95,9 +98,7 @@ format_domains() {
 
       ;;
 
-  # carriage returns are a nonprintable character that screw up
-  # formatting
-  esac | tr -d '\r' | sort | uniq
+  esac
 }
 
 # copy the temporary blocklist to the destination.
