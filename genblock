@@ -160,7 +160,7 @@ readonly tmp_blocklist
 
 readonly blocklist_urls='/etc/sysadm/blocklist_urls'
 
-xargs ftp -o - -- \
+xargs ftp -o - -- 2>/dev/null \
   < "${blocklist_urls}" \
   | grab_domains - \
   | format_domains - \
