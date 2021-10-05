@@ -37,7 +37,7 @@ EOF
 
 fi
 
-handle_old_blocklist() {
+rotate_old_blocklist() {
   # if no blocklist, just create a blank template file so mv(1) is
   # guaranteed to have something to move and ${blocklist}.bak is
   # guaranteed to exist.
@@ -162,7 +162,7 @@ xargs ftp -o - -- 2>/dev/null \
   > "${tmp_blocklist}"        \
   || err 'Unable to create blocklist.'
 
-handle_old_blocklist
+rotate_old_blocklist
 install_new_blocklist
 
 restart_dns >/dev/null 2>&1 || restore_backup_blocklist
