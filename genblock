@@ -77,7 +77,7 @@ format_domains() {
       echo 'use-application-dns.net'
     }
 
-    ;;
+      ;;
 
     'unbound') {
       awk -- '$1 == "0.0.0.0" {print "local-zone: \""$2"\" always_refuse"}' \
@@ -88,12 +88,12 @@ format_domains() {
       echo 'local-zone: "use-application-dns.net" always_refuse'
     }
 
-    ;;
+      ;;
 
     *)
       err "${0##*/} only supports unwind(8) and unbound(8)."
 
-    ;;
+      ;;
 
   # carriage returns are a nonprintable character that screw up
   # formatting
