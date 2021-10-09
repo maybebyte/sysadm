@@ -75,6 +75,10 @@ prepare_domains() {
 format_domains() {
   case "${dns}" in
 
+    # there are two identical cut(1) invocations in the 'unwind' and
+    # 'unbound' patterns, but refactoring and moving them up into
+    # prepare_domains() means that cat(1) would need to be added to the
+    # 'unwind' pattern to handle STDIN.
     'unwind')
       cut -f 2 "$1"
 
