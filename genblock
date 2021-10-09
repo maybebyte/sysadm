@@ -53,7 +53,7 @@ rotate_old_blocklist() {
 # tabs to spaces, sort domains, and filter out duplicate entries.
 #
 # $1 is a file or STDIN.
-grab_domains() {
+prepare_domains() {
   grep -v -- 'localhost$' "$1"                        \
     | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' \
     | tr -d '\r'                                      \
@@ -62,7 +62,7 @@ grab_domains() {
     | uniq
 }
 
-# convert grab_domains() output so either unwind(8) or unbound(8) can
+# convert prepare_domains() output so either unwind(8) or unbound(8) can
 # block those domains.
 #
 # unwind's configuration syntax is simple--one domain per line.
@@ -153,7 +153,7 @@ readonly blocklist_urls='/etc/sysadm/blocklist_urls'
 
 xargs ftp -o - -- 2>/dev/null \
   < "${blocklist_urls}"       \
-  | grab_domains -            \
+  | prepare_domains -            \
   | format_domains -          \
   > "${tmp_blocklist}"        \
   || err 'Unable to create blocklist.'
