@@ -134,6 +134,7 @@ For now, either the previous working blocklist or a blank blocklist was
 instated at ${blocklist} with appropriate permissions."
 }
 
+[ "$(uname)" = 'OpenBSD' ] || err "${0##*/} only supports OpenBSD."
 must_be_root
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
