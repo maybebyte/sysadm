@@ -48,10 +48,10 @@ rotate_old_blocklist() {
   mv -- "${blocklist}" "${blocklist}.bak"
 }
 
-# filter out localhost definitions in hosts files and grab the lines
-# that begin with 0.0.0.0 or 127.0.0.1. remove carriage returns, convert
-# spaces to tabs (since it is the default delimiter for cut(1)), sort
-# domains, and filter out duplicate entries.
+# grab the lines from a file formatted like hosts(5) that begin with
+# 0.0.0.0 or 127.0.0.1, remove localhost definitions, remove carriage
+# returns, convert spaces to tabs (since it is the default delimiter for
+# cut(1)), sort domains, and filter out duplicate entries.
 #
 # $1 is a file or STDIN.
 prepare_domains() {
