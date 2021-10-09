@@ -153,7 +153,7 @@ readonly blocklist_urls='/etc/sysadm/blocklist_urls'
 
 xargs ftp -o - -- 2>/dev/null \
   < "${blocklist_urls}"       \
-  | prepare_domains -            \
+  | prepare_domains -         \
   | format_domains -          \
   > "${tmp_blocklist}"        \
   || err 'Unable to create blocklist.'
