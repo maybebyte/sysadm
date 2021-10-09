@@ -33,6 +33,10 @@ EOF
 
 fi
 
+complain_dns() {
+  err "${0##*/} only supports unwind(8) and unbound(8)."
+}
+
 rotate_old_blocklist() {
   # if no blocklist, just create a blank template file so mv(1) is
   # guaranteed to have something to move and ${blocklist}.bak is
@@ -91,7 +95,7 @@ format_domains() {
       ;;
 
     *)
-      err "${0##*/} only supports unwind(8) and unbound(8)."
+      complain_dns
 
       ;;
 
@@ -113,9 +117,9 @@ install_new_blocklist() {
 # server.
 restart_dns() {
   case "${dns}" in
-    'unwind')  unwind -n         && rcctl restart unwind              ;;
-    'unbound') unbound-checkconf && rcctl restart unbound             ;;
-    *)         err "${0##*/} only supports unwind(8) and unbound(8)." ;;
+    'unwind')  unwind -n         && rcctl restart unwind  ;;
+    'unbound') unbound-checkconf && rcctl restart unbound ;;
+    *)         complain_dns                               ;;
   esac
 }
 
@@ -146,7 +150,7 @@ elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
   readonly blocklist='/etc/blocklist.unbound'
 
 else
-  err 'Only unwind(8) and unbound(8) are supported. Enable one of them and try again.'
+  complain_dns
 
 fi
 
