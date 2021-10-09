@@ -57,6 +57,7 @@ grab_domains() {
   grep -v -- 'localhost$' "$1"                        \
     | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' \
     | tr -d '\r'                                      \
+    | tr '\t' ' '                                     \
     | sort                                            \
     | uniq
 }
@@ -74,7 +75,7 @@ format_domains() {
   case "${dns}" in
 
     'unwind')
-      awk -- '$1 == "0.0.0.0" || $1 == "127.0.0.1" {print $2}' "$1"
+      cut -f 2 -d ' ' "$1"
 
       # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
       echo 'use-application-dns.net'
@@ -82,8 +83,7 @@ format_domains() {
       ;;
 
     'unbound')
-      awk -- '$1 == "0.0.0.0" || $1 == "127.0.0.1"
-      {print "local-zone: \""$2"\" always_refuse"}' "$1"
+      cut -f 2 -d ' ' "$1" | sed 's/.*/local-zone: "&" always_refuse/'
 
       echo 'local-zone: "use-application-dns.net" always_refuse'
 
