@@ -62,8 +62,8 @@ grab_domains() {
     | uniq
 }
 
-# convert grab_domains() output using awk(1) so either unwind(8) or
-# unbound(8) can block those domains.
+# convert grab_domains() output so either unwind(8) or unbound(8) can
+# block those domains.
 #
 # unwind's configuration syntax is simple--one domain per line.
 #
