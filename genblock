@@ -55,11 +55,11 @@ rotate_old_blocklist() {
 #
 # $1 is a file or STDIN.
 prepare_domains() {
-  grep -v -- 'localhost$' "$1"                        \
-    | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' \
-    | tr -d '\r'                                      \
-    | tr ' ' '\t'                                     \
-    | sort                                            \
+  grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' "$1" \
+    | grep -v -- 'localhost$'                          \
+    | tr -d '\r'                                       \
+    | tr ' ' '\t'                                      \
+    | sort                                             \
     | uniq
 }
 
