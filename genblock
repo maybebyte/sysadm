@@ -49,8 +49,8 @@ rotate_old_blocklist() {
 }
 
 # filter out localhost definitions in hosts files and grab the lines
-# that begin with 0.0.0.0 or 127.0.0.1. remove carriage returns, sort
-# domains, and filter out duplicate entries.
+# that begin with 0.0.0.0 or 127.0.0.1. remove carriage returns, convert
+# tabs to spaces, sort domains, and filter out duplicate entries.
 #
 # $1 is a file or STDIN.
 grab_domains() {
