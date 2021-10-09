@@ -50,14 +50,15 @@ rotate_old_blocklist() {
 
 # filter out localhost definitions in hosts files and grab the lines
 # that begin with 0.0.0.0 or 127.0.0.1. remove carriage returns, convert
-# tabs to spaces, sort domains, and filter out duplicate entries.
+# spaces to tabs (since it is the default delimiter for cut(1)), sort
+# domains, and filter out duplicate entries.
 #
 # $1 is a file or STDIN.
 prepare_domains() {
   grep -v -- 'localhost$' "$1"                        \
     | grep -E '^(0\.0\.0\.0|127\.0\.0\.1)[[:space:]]' \
     | tr -d '\r'                                      \
-    | tr '\t' ' '                                     \
+    | tr ' ' '\t'                                     \
     | sort                                            \
     | uniq
 }
@@ -75,7 +76,7 @@ format_domains() {
   case "${dns}" in
 
     'unwind')
-      cut -f 2 -d ' ' "$1"
+      cut -f 2 "$1"
 
       # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
       echo 'use-application-dns.net'
@@ -83,7 +84,7 @@ format_domains() {
       ;;
 
     'unbound')
-      cut -f 2 -d ' ' "$1" | sed 's/.*/local-zone: "&" always_refuse/'
+      cut -f 2 "$1" | sed 's/.*/local-zone: "&" always_refuse/'
 
       echo 'local-zone: "use-application-dns.net" always_refuse'
 
