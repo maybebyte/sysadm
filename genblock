@@ -99,6 +99,10 @@ format_domains() {
 }
 
 # copy the temporary blocklist to the destination.
+#
+# I do not really anticipate this error condition happening much since
+# we are running as root, but if it does crop up the path of the
+# temporary blocklist should be returned to the user.
 install_new_blocklist() {
   if ! install -m 0444 -- "${tmp_blocklist}" "${blocklist}"; then
     err "Unable to install(1) ${tmp_blocklist} to ${blocklist}"
