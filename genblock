@@ -56,6 +56,8 @@ rotate_old_blocklist() {
 # $1 is a file or STDIN.
 prepare_domains() {
   tab="$(printf '\t')"
+  readonly tab
+
   grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${tab})+" "$1" \
     | grep -v -- 'localhost$'                          \
     | tr -d '\r'                                       \
