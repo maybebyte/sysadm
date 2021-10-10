@@ -50,17 +50,18 @@ rotate_old_blocklist() {
 
 # grab the lines from a file formatted like hosts(5) that begin with
 # 0.0.0.0 or 127.0.0.1 followed by a space or tab, remove localhost
-# definitions, remove carriage returns, convert spaces to tabs (since it
-# is the default delimiter for cut(1)), sort domains, and filter out
-# duplicate entries.
+# definitions, remove carriage returns, ensure the delimiter is one tab
+# for cut(1) with sed(1)), sort domains, and filter out duplicate
+# entries.
 #
 # $1 is a file or STDIN.
 prepare_domains() {
-  grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |$(printf '\t'))" "$1" \
-    | grep -v -- 'localhost$'                                 \
-    | tr -d '\r'                                              \
-    | tr ' ' '\t'                                             \
-    | sort                                                    \
+  tab="$(printf '\t')"
+  grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${tab})+" "$1" \
+    | grep -v -- 'localhost$'                          \
+    | tr -d '\r'                                       \
+    | sed -E "s/( |${tab})+/${tab}/"                   \
+    | sort                                             \
     | uniq
 }
 
