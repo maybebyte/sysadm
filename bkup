@@ -55,11 +55,7 @@ bkup() {
   bkup_target="$1"
   shift
 
-  if [ "${WRITE}" = 'yes' ]; then
-    dump -auf - "$@" -- "${bkup_target}" > "${bkup_target}-$(date '+%F').dump"
-  else
-    dump -auf - "$@" -- "${bkup_target}"
-  fi
+  dump -auf - "$@" -- "${bkup_target}"
 }
 
 # check to see that the appropriate number of arguments have been
@@ -86,4 +82,10 @@ shift $((OPTIND - 1))
 
 echo 'Dumping...'
 
-bkup "$@"
+if [ "${WRITE}" = 'yes' ]; then
+  bkup "$@" > "${bkup_target}-$(date '+%F').dump"
+
+else
+  bkup "$@"
+
+fi
