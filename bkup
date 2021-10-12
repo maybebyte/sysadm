@@ -35,54 +35,36 @@ fi
 
 usage() {
   cat >&2 <<EOF
-${0##*/} requires ${args_needed} argument(s).
+${0##*/} requires at least ${args_needed} argument(s).
 
 usage:
-${0##*/} [backup target] [destination (not filename)]
+${0##*/} [backup target] [flags] > filename
+
+with compression:
+${0##*/} [backup target] [flags] | gzip -c > filename
 EOF
 
   exit 1
 }
 
-# determine whether $2 has a trailing slash; if not, add one.
-# perform a filesystem backup with dump(8) on $1, compress it with
-# gzip(1), then save it at the destination with the basename(1) of
-# $1 (more or less), the current date, and an appropriate extension.
-#
-# bkup [backup target] [destination (not filename)]
+# perform a filesystem backup with dump(8)
 bkup() {
-  readonly extension='.dump.gz'
-
-  if [ -z "${2##*/}" ]; then
-    dest="$2"
-
-  else
-    dest="$2/"
-
-  fi
-
-  filename="${dest}${1##*/}-$(date '+%F')${extension}"
-
-  dump -0auf - -- "$1" \
-    | gzip -c \
-    > "${filename}"
+  bkup_target="$1"
+  shift
+  dump -auf - "$@" -- "${bkup_target}"
 }
 
-# TODO: add more to test validity of $1 and $2
-#
 # check to see that the appropriate number of arguments have been
-# passed, that the user is root, and that $2 is a directory.
+# passed, and that the user is root.
 prereqs() {
-  readonly args_needed=2
-  [ "$#" = "${args_needed}" ] || usage "$@"
+  readonly args_needed=1
+  [ "$#" -ge "${args_needed}" ] || usage "$@"
 
   must_be_root
-
-  [ -d "$2" ] || err 'The destination must be a directory, exiting.'
 }
 
 prereqs "$@"
 
 echo 'Dumping...'
 
-bkup "$1" "$2"
+bkup "$@"
