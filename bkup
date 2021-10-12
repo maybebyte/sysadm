@@ -83,7 +83,7 @@ shift $((OPTIND - 1))
 echo 'Dumping...'
 
 if [ "${WRITE}" = 'yes' ]; then
-  bkup "$@" > "${bkup_target}-$(date '+%F').dump"
+  bkup "$@" > ./"${bkup_target}-$(date '+%F').dump"
 
 else
   bkup "$@"
