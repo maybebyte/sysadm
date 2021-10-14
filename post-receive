@@ -41,6 +41,7 @@ readonly webdir="/var/www/htdocs/${website##*//}"
 stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')"
 readonly stagit_dir
 
+
 # if ${PWD} is in the form of 'foo-bar.git', then
 # ${bare_srcdir} equals 'foo-bar.git'.
 #
@@ -56,6 +57,7 @@ assign_bare_srcdir() {
   fi
 }
 
+
 # choose a relevant description based on which repository is being
 # interacted with.
 assign_description() {
@@ -67,15 +69,18 @@ assign_description() {
   esac
 }
 
+
 handle_tmpfiles() {
   rm -rf -- "${stagit_dir:?}"
   mkdir -p -- "${stagit_dir}"
 }
 
+
 add_metadata() {
   echo "${owner}" > "${bare_srcdir}/owner"
   echo "${description}" > "${bare_srcdir}/description"
 }
+
 
 # only called if working with website_md. delete files exclusive to
 # website_md, then clone the bare source directory. after that, render
@@ -103,6 +108,7 @@ gen_website() {
       "Newsletter - ${description}" > "${webdir}/rss.xml"
 }
 
+
 # remove ${sysadm_stage}, clone the source directory to ${sysadm_stage},
 # then synchronize changes to ${sysadm_dir} so as to minimize
 # supervision/manual intervention.
@@ -116,6 +122,7 @@ update_sysadm() {
 
   rsync -a --delete --exclude='*.git' -- "${sysadm_stage}/" "${sysadm_dir}/"
 }
+
 
 # if upstream ssg receives an update, e.g., changes to ssg7, make sure
 # to update the pathname to match!
@@ -138,6 +145,7 @@ update_ssg() {
     "${dotfiles_stage}/.local/bin/ssg6" "${bindir}/ssg6"
 }
 
+
 # clone the repo and update the server information. generate the stagit
 # page and copy some misc files.
 clone_and_stagit() {
@@ -150,6 +158,7 @@ clone_and_stagit() {
   cp -f -- "${stagit_dir}/log.html" "${stagit_dir}/index.html"
   cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
 }
+
 
 assign_bare_srcdir
 assign_description

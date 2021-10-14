@@ -33,9 +33,11 @@ EOF
 
 fi
 
+
 complain_dns() {
   err "${0##*/} only supports unwind(8) and unbound(8)."
 }
+
 
 rotate_old_blocklist() {
   # if no blocklist, just create a blank template file so mv(1) is
@@ -47,6 +49,7 @@ rotate_old_blocklist() {
 
   mv -- "${blocklist}" "${blocklist}.bak"
 }
+
 
 # grab the lines from a file formatted like hosts(5) that begin with
 # 0.0.0.0 or 127.0.0.1 followed by one or more spaces or tabs, remove
@@ -63,6 +66,7 @@ prepare_domains() {
     | tr -d '\r'                                       \
     | sed -E "s/( +|${tab}{2,})/${tab}/"
 }
+
 
 # convert prepare_domains() output so either unwind(8) or unbound(8) can
 # block those domains. sort domains and filter out duplicate entries.
@@ -103,6 +107,7 @@ format_domains() {
   esac | sort | uniq
 }
 
+
 # copy the temporary blocklist to the destination.
 #
 # I do not really anticipate this error condition happening much since
@@ -114,6 +119,7 @@ install_new_blocklist() {
   fi
 }
 
+
 # check that the configuration file is valid. if it is, restart the DNS
 # server.
 restart_dns() {
@@ -123,6 +129,7 @@ restart_dns() {
     *)         complain_dns                               ;;
   esac
 }
+
 
 # called if restart_dns() fails. restores the backup file.
 restore_backup_blocklist() {
@@ -138,6 +145,7 @@ restore_backup_blocklist() {
 For now, either the previous working blocklist or a blank blocklist was
 instated at ${blocklist} with appropriate permissions."
 }
+
 
 [ "$(uname)" = 'OpenBSD' ] || err "${0##*/} only supports OpenBSD."
 must_be_root

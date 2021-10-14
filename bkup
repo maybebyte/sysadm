@@ -33,6 +33,7 @@ EOF
 
 fi
 
+
 usage() {
   cat >&2 <<EOF
 ${0##*/} requires at least ${args_needed} argument(s).
@@ -50,6 +51,7 @@ EOF
   exit 1
 }
 
+
 # perform a filesystem backup with dump(8)
 bkup() {
   bkup_target="$1"
@@ -57,6 +59,7 @@ bkup() {
 
   dump -auf - "$@" -- "${bkup_target}"
 }
+
 
 # check to see that the appropriate number of arguments have been
 # passed, and that the user is root.
@@ -66,6 +69,7 @@ prereqs() {
 
   must_be_root
 }
+
 
 prereqs "$@"
 

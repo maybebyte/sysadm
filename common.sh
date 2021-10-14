@@ -14,6 +14,7 @@ elif [ -x "$(command -v 'sudo')" ]; then
 
 fi
 
+
 # reads from STDIN and checks that all commands needed are executable
 # and available.
 #
@@ -32,6 +33,7 @@ check_deps() {
   done
 }
 
+
 # err() is the generic way to print an error message and exit a script.
 # all of its output goes to STDERR.
 #
@@ -41,6 +43,7 @@ err() {
   printf '%s\n' "$*" >&2
   exit 1
 }
+
 
 # if the user isn't root, print an error message and exit.
 must_be_root() {

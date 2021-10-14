@@ -33,6 +33,7 @@ EOF
 
 fi
 
+
 usage() {
   cat >&2 <<EOF
 usage:
@@ -48,6 +49,7 @@ EOF
 
   exit 1
 }
+
 
 # if acme-client.conf(5) exists as a file in /etc/, run acme-client(1)
 # to refresh the TLS certificate for $1.
@@ -76,6 +78,7 @@ cert_maintenance() {
   fi
 }
 
+
 # reload daemons if enabled.
 reload_daemons() {
   for daemon in "$@"; do
@@ -87,12 +90,14 @@ reload_daemons() {
   done
 }
 
+
 # check whether there's an appropriate number of arguments and
 # whether the script has root privileges.
 prereqs() {
   [ -z "$1" ] && err "${0##*/} needs a domain name."
   must_be_root
 }
+
 
 prereqs "$@"
 
