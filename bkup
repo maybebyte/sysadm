@@ -36,13 +36,13 @@ fi
 
 usage() {
   cat >&2 <<EOF
-${0##*/} requires at least ${args_needed} argument(s).
+${0##*/} requires ${args_needed} argument.
 
 usage:
-${0##*/} [backup target] [flags] > filename
+${0##*/} [flags] [backup target] > filename
 
 with compression:
-${0##*/} [backup target] [flags] | gzip -c > filename
+${0##*/} [flags] [backup target] | gzip -c > filename
 
 flags can be:
 -w: write to current directory in '[backup target]-YYYY-MM-DD.dump' format
@@ -54,10 +54,7 @@ EOF
 
 # perform a filesystem backup with dump(8)
 bkup() {
-  bkup_target="$1"
-  shift
-
-  dump -auf - "$@" -- "${bkup_target}"
+  dump -auf - -- "$1"
 }
 
 
@@ -65,13 +62,11 @@ bkup() {
 # passed, and that the user is root.
 prereqs() {
   readonly args_needed=1
-  [ "$#" -ge "${args_needed}" ] || usage
+  [ "$#" = "${args_needed}" ] || usage
 
   must_be_root
 }
 
-
-prereqs "$@"
 
 while getopts w opt; do
 
@@ -84,12 +79,14 @@ done
 
 shift $((OPTIND - 1))
 
+prereqs "$@"
+
 echo 'Dumping...'
 
 if [ "${WRITE}" = 'yes' ]; then
-  bkup "$@" > ./"${bkup_target}-$(date '+%F').dump"
+  bkup "$1" > ./"$1-$(date '+%F').dump"
 
 else
-  bkup "$@"
+  bkup "$1"
 
 fi
