@@ -170,11 +170,11 @@ readonly blocklist_urls='/etc/sysadm/blocklist_urls'
 
 [ -r "${blocklist_urls}" ] || err "${blocklist_urls} isn't readable."
 
-xargs ftp -o - -- 2>/dev/null \
-  < "${blocklist_urls}"       \
-  | prepare_domains -         \
-  | format_domains -          \
-  > "${tmp_blocklist}"        \
+xargs -- ftp -o - -- 2>/dev/null \
+  < "${blocklist_urls}"          \
+  | prepare_domains -            \
+  | format_domains -             \
+  > "${tmp_blocklist}"           \
   || err 'Unable to create blocklist.'
 
 rotate_old_blocklist
