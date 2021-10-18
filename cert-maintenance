@@ -103,15 +103,7 @@ prereqs "$@"
 
 if cert_maintenance "$1"; then
   shift
-
-  if [ -n "$*" ]; then
-    reload_daemons "$@" >/dev/null
-
-  else
-    # no daemons to reload, simply exit
-    exit
-
-  fi
+  [ -n "$*" ] && reload_daemons "$@" >/dev/null
 
 else
   err 'Unable to perform certificate maintenance.'
