@@ -104,7 +104,7 @@ format_domains() {
 
       ;;
 
-  esac | sort | uniq
+  esac | sort -u
 }
 
 
