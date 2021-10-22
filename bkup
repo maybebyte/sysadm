@@ -15,17 +15,17 @@ set -e
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# check that the library file is readable. if it is, source it so its
+# check that LIBRARY is readable. if it is, source it so its
 # functions are available. if not, exit due to potentially unpredictable
 # behavior.
-readonly library='/etc/sysadm/common.sh'
+readonly LIBRARY='/etc/sysadm/common.sh'
 
-if [ -r "${library}" ]; then
-  . "${library}"
+if [ -r "${LIBRARY}" ]; then
+  . "${LIBRARY}"
 
 else
   cat >&2 <<EOF
-${library} doesn't exist or isn't readable.
+${LIBRARY} doesn't exist or isn't readable.
 ${0##*/} may not function correctly without it; exiting for safety.
 EOF
 
