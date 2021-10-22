@@ -36,7 +36,7 @@ fi
 
 usage() {
   cat >&2 <<EOF
-${0##*/} requires ${args_needed} argument.
+${0##*/} requires ${ARGS_NEEDED} argument.
 
 usage:
 ${0##*/} [flags] [backup target] > filename
@@ -61,8 +61,8 @@ bkup() {
 # check to see that the appropriate number of arguments have been
 # passed, and that the user is root.
 prereqs() {
-  readonly args_needed=1
-  [ "$#" = "${args_needed}" ] || usage
+  readonly ARGS_NEEDED=1
+  [ "$#" = "${ARGS_NEEDED}" ] || usage
 
   must_be_root
 }

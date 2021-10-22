@@ -34,12 +34,12 @@ EOF
 fi
 
 # change ${website} and ${owner} to suit your needs.
-readonly owner='Ashlen'
-readonly website='https://amissing.link'
-readonly webdir="/var/www/htdocs/${website##*//}"
+readonly OWNER='Ashlen'
+readonly WEBSITE='https://amissing.link'
+readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
 
-stagit_dir="${webdir}/src/$(basename -- "${PWD}" '.git')"
-readonly stagit_dir
+STAGIT_DIR="${WEBDIR}/src/$(basename -- "${PWD}" '.git')"
+readonly STAGIT_DIR
 
 
 # if ${PWD} is in the form of 'foo-bar.git', then
@@ -49,10 +49,10 @@ readonly stagit_dir
 # working directory with '/.git' appended.
 assign_bare_srcdir() {
   if [ -z "${PWD##*.git}" ]; then
-    readonly bare_srcdir="${PWD}"
+    readonly BARE_SRCDIR="${PWD}"
 
   else
-    readonly bare_srcdir="${PWD}/.git"
+    readonly BARE_SRCDIR="${PWD}/.git"
 
   fi
 }
@@ -62,23 +62,23 @@ assign_bare_srcdir() {
 # interacted with.
 assign_description() {
   case "${PWD##*/}" in
-    'website_md.git') readonly description="${website##*//}"                     ;;
-    'dotfiles.git')   readonly description='My OpenBSD configuration files.'     ;;
-    'sysadm.git')     readonly description='System Administration tools.'        ;;
+    'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}"                     ;;
+    'dotfiles.git')   readonly DESCRIPTION='My OpenBSD configuration files.'     ;;
+    'sysadm.git')     readonly DESCRIPTION='System Administration tools.'        ;;
     *)                err 'No description set for current repo.'                 ;;
   esac
 }
 
 
 handle_tmpfiles() {
-  rm -rf -- "${stagit_dir:?}"
-  mkdir -p -- "${stagit_dir}"
+  rm -rf -- "${STAGIT_DIR:?}"
+  mkdir -p -- "${STAGIT_DIR}"
 }
 
 
 add_metadata() {
-  echo "${owner}" > "${bare_srcdir}/owner"
-  echo "${description}" > "${bare_srcdir}/description"
+  echo "${OWNER}" > "${BARE_SRCDIR}/owner"
+  echo "${DESCRIPTION}" > "${BARE_SRCDIR}/description"
 }
 
 
@@ -89,23 +89,23 @@ gen_website() {
     readonly stage_dir="${HOME}/website-staging"
     readonly html_dir="${HOME}/website-final"
 
-    rm -f -- "${webdir}/.files"
+    rm -f -- "${WEBDIR}/.files"
     rm -rf -- "${stage_dir:?}" "${html_dir:?}"
 
     mkdir -p -- "${html_dir}"
 
-    git clone -- "${bare_srcdir}" "${stage_dir}"
+    git clone -- "${BARE_SRCDIR}" "${stage_dir}"
 
-    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${owner}" \
-      "${website}" >/dev/null
+    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${OWNER}" \
+      "${WEBSITE}" >/dev/null
 
     rsync -a --delete --exclude='*.git' --exclude='*src*' -- \
-      "${html_dir}/" "${webdir}/"
+      "${html_dir}/" "${WEBDIR}/"
 
-    rsync -a --exclude='*.git' -- "${html_dir}/src/" "${webdir}/src/"
+    rsync -a --exclude='*.git' -- "${html_dir}/src/" "${WEBDIR}/src/"
 
     "${HOME}/bin/rssg" "${stage_dir}/index.md" \
-      "Newsletter - ${description}" > "${webdir}/rss.xml"
+      "Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
 }
 
 
@@ -118,7 +118,7 @@ update_sysadm() {
 
   rm -rf -- "${sysadm_stage:?}"
 
-  git clone -- "${bare_srcdir}" "${sysadm_stage}"
+  git clone -- "${BARE_SRCDIR}" "${sysadm_stage}"
 
   rsync -a --delete --exclude='*.git' -- "${sysadm_stage}/" "${sysadm_dir}/"
 }
@@ -136,7 +136,7 @@ update_ssg() {
 
   rm -rf -- "${dotfiles_stage:?}"
 
-  git clone -- "${bare_srcdir}" "${dotfiles_stage}"
+  git clone -- "${BARE_SRCDIR}" "${dotfiles_stage}"
 
   install -g git -o git -m 700 -- \
     "${dotfiles_stage}/.local/bin/rssg" "${bindir}/rssg"
@@ -149,14 +149,14 @@ update_ssg() {
 # clone the repo and update the server information. generate the stagit
 # page and copy some misc files.
 clone_and_stagit() {
-  git clone --bare -- "${bare_srcdir}" "${stagit_dir}/.git"
+  git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
 
-  (cd "${stagit_dir}/.git" && git update-server-info)
+  (cd "${STAGIT_DIR}/.git" && git update-server-info)
 
-  (cd "${stagit_dir}" && stagit -- "${bare_srcdir}")
+  (cd "${STAGIT_DIR}" && stagit -- "${BARE_SRCDIR}")
 
-  cp -f -- "${stagit_dir}/log.html" "${stagit_dir}/index.html"
-  cp -- "${webdir}/stagit/style.css" "${stagit_dir}/style.css"
+  cp -f -- "${STAGIT_DIR}/log.html" "${STAGIT_DIR}/index.html"
+  cp -- "${WEBDIR}/stagit/style.css" "${STAGIT_DIR}/style.css"
 }
 
 
