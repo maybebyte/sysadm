@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 # shellcheck disable=SC1090
-set -e
 # Copyright (c) 2020-2021 Ashlen <eurydice@riseup.net>
 
 # Permission to use, copy, modify, and distribute this software for any
@@ -14,6 +13,8 @@ set -e
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+set -e
 
 # check that LIBRARY is readable. if it is, source it so its
 # functions are available. if not, exit due to potentially unpredictable
