@@ -16,9 +16,6 @@
 
 set -e
 
-# check that LIBRARY is readable. if it is, source it so its
-# functions are available. if not, exit due to potentially unpredictable
-# behavior.
 readonly LIBRARY='/etc/sysadm/common.sh'
 
 if [ -r "${LIBRARY}" ]; then
