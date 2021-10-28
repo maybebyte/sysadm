@@ -37,13 +37,10 @@ usage() {
 ${0##*/} requires ${ARGS_NEEDED} argument.
 
 usage:
-${0##*/} [flags] [backup target] > filename
+${0##*/} [backup target] > filename
 
 with compression:
-${0##*/} [flags] [backup target] | gzip -c > filename
-
-flags can be:
--w: write to current directory in '[backup target]-YYYY-MM-DD.dump' format
+${0##*/} [backup target] | gzip -c > filename
 EOF
 
   exit 1
@@ -66,25 +63,8 @@ prereqs() {
 }
 
 
-while getopts w opt; do
-
-  case "${opt}" in
-    w) readonly WRITE='yes' ;;
-    *) usage                ;;
-  esac
-
-done
-
-shift $((OPTIND - 1))
-
 prereqs "$@"
 
 echo 'Dumping...'
 
-if [ "${WRITE}" = 'yes' ]; then
-  bkup "$1" > ./"$1-$(date '+%F').dump"
-
-else
-  bkup "$1"
-
-fi
+bkup "$1"
