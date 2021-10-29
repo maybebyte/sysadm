@@ -31,7 +31,7 @@ EOF
 
 fi
 
-# change ${website} and ${owner} to suit your needs.
+# change ${WEBSITE} and ${OWNER} to suit your needs.
 readonly OWNER='Ashlen'
 readonly WEBSITE='https://amissing.link'
 readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
@@ -41,9 +41,9 @@ readonly STAGIT_DIR
 
 
 # if ${PWD} is in the form of 'foo-bar.git', then
-# ${bare_srcdir} equals 'foo-bar.git'.
+# ${BARE_SRCDIR} equals 'foo-bar.git'.
 #
-# otherwise, ${bare_srcdir} is the present
+# otherwise, ${BARE_SRCDIR} is the present
 # working directory with '/.git' appended.
 assign_bare_srcdir() {
   if [ -z "${PWD##*.git}" ]; then
