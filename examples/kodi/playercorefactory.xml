@@ -1,0 +1,29 @@
+<playercorefactory>
+
+  <players>
+
+    <player name="mpv" type="ExternalPlayer" audio="false" video="true">
+      <filename>/usr/local/bin/mpv</filename>
+      <hidexbmc>false</hidexbmc>
+    </player>
+
+  </players>
+
+  <rules action="prepend">
+
+    <!--
+       -mpv is unable to perform hardware video acceleration for HEVC,
+       -so use the default Kodi player for those videos since it does have HEVC
+       -hardware video acceleration.
+       -->
+    <rule video="true" videocodec="(hevc|HEVC)" player="VideoPlayer"/>
+
+    <!--
+       -mpv is to play any video that doesn't match the above.
+       -I prefer it as a video player.
+       -->
+    <rule video="true" player="mpv"/>
+
+  </rules>
+
+</playercorefactory>
