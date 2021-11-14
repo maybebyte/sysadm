@@ -28,6 +28,11 @@
 
   </players>
 
+  <!--
+     -this rules section is for demonstrative purposes. I like to keep the
+     -default as the default and override it in the 'Play using...' menu
+     -since it is a more intuitive interface for others.
+     -->
   <rules action="prepend">
 
     <!--
