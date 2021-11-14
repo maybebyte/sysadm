@@ -2,8 +2,27 @@
 
   <players>
 
+    <!-- add mpv as an option for both audio and video -->
     <player name="mpv" type="ExternalPlayer" audio="true" video="true">
       <filename>/usr/local/bin/mpv</filename>
+      <hidexbmc>false</hidexbmc>
+    </player>
+
+    <!-- for video only, provide rgb12 as an option in case mpv is struggling -->
+    <player name="mpv (rgb12)" type="ExternalPlayer" audio="false" video="true">
+      <filename>/usr/local/bin/mpv</filename>
+      <args>--fbo-format=rgb12 "{1}"</args>
+      <hidexbmc>false</hidexbmc>
+    </player>
+
+    <!--
+       -for video only, provide rgb10_a2 as an option in case mpv is struggling even more.
+       -
+       -below rgb10_a2, the video quality suffers too much.
+       -->
+    <player name="mpv (rgb10_a2)" type="ExternalPlayer" audio="false" video="true">
+      <filename>/usr/local/bin/mpv</filename>
+      <args>--fbo-format=rgb10_a2 "{1}"</args>
       <hidexbmc>false</hidexbmc>
     </player>
 
