@@ -37,10 +37,7 @@
        -->
     <rule video="true" videocodec="(hevc|HEVC)" player="VideoPlayer"/>
 
-    <!--
-       -mpv is to play any video that doesn't match the above.
-       -I prefer it as a video player.
-       -->
+    <!-- mpv is to play any video that doesn't match the above. -->
     <rule video="true" player="mpv"/>
 
   </rules>
