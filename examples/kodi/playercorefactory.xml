@@ -8,10 +8,10 @@
       <hidexbmc>false</hidexbmc>
     </player>
 
-    <!-- for video only, provide rgb12 as an option in case mpv is struggling -->
-    <player name="mpv (rgb12)" type="ExternalPlayer" audio="false" video="true">
+    <!-- for video only, provide rgba12 as an option in case mpv is struggling -->
+    <player name="mpv (rgba12)" type="ExternalPlayer" audio="false" video="true">
       <filename>/usr/local/bin/mpv</filename>
-      <args>--fbo-format=rgb12 "{1}"</args>
+      <args>--fbo-format=rgba12 "{1}"</args>
       <hidexbmc>false</hidexbmc>
     </player>
 
