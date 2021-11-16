@@ -24,7 +24,7 @@ if [ -r "${LIBRARY}" ]; then
 else
   cat >&2 <<EOF
 ${LIBRARY} doesn't exist or isn't readable.
-${0##*/} may not function correctly without it; exiting for safety.
+${0##*/} may not function correctly without it.
 EOF
 
   exit 1
