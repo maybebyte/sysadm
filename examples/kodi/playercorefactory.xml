@@ -8,24 +8,6 @@
       <hidexbmc>false</hidexbmc>
     </player>
 
-    <!-- for video only, provide rgba12 as an option in case mpv is struggling -->
-    <player name="mpv (rgba12)" type="ExternalPlayer" audio="false" video="true">
-      <filename>/usr/local/bin/mpv</filename>
-      <args>--fbo-format=rgba12 "{1}"</args>
-      <hidexbmc>false</hidexbmc>
-    </player>
-
-    <!--
-       -for video only, provide rgb10_a2 as an option in case mpv is struggling even more.
-       -
-       -below rgb10_a2, the video quality suffers too much.
-       -->
-    <player name="mpv (rgb10_a2)" type="ExternalPlayer" audio="false" video="true">
-      <filename>/usr/local/bin/mpv</filename>
-      <args>--fbo-format=rgb10_a2 "{1}"</args>
-      <hidexbmc>false</hidexbmc>
-    </player>
-
   </players>
 
   <!--
