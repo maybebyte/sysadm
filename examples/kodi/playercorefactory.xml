@@ -2,8 +2,8 @@
 
   <players>
 
-    <!-- add mpv as an option for both audio and video -->
-    <player name="mpv" type="ExternalPlayer" audio="true" video="true">
+    <!-- add mpv as an option for video only -->
+    <player name="mpv" type="ExternalPlayer" audio="false" video="true">
       <filename>/usr/local/bin/mpv</filename>
       <hidexbmc>false</hidexbmc>
     </player>
