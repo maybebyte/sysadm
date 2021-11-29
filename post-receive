@@ -16,20 +16,12 @@
 
 set -e
 
-readonly LIBRARY='/etc/sysadm/common.sh'
 
-if [ -r "${LIBRARY}" ]; then
-  . "${LIBRARY}"
-
-else
-  cat >&2 <<EOF
-${LIBRARY} doesn't exist or isn't readable.
-${0##*/} may not function correctly without it.
-EOF
-
+err() {
+  printf '%s\n' "$*" >&2
   exit 1
+}
 
-fi
 
 # change ${WEBSITE} and ${OWNER} to suit your needs.
 readonly OWNER='Ashlen'
