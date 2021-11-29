@@ -16,25 +16,15 @@
 
 set -e
 
-readonly LIBRARY='/etc/sysadm/common.sh'
 
-if [ -r "${LIBRARY}" ]; then
-  . "${LIBRARY}"
-
-else
-  cat >&2 <<EOF
-${LIBRARY} doesn't exist or isn't readable.
-${0##*/} may not function correctly without it.
-EOF
-
+err() {
+  printf '%s\n' "$*" >&2
   exit 1
-
-fi
+}
 
 
 usage() {
-  cat >&2 <<EOF
-usage:
+  err "usage:
 ${0##*/} [domain name] [daemon(s) to reload] ...
 
 Only the domain name is strictly necessary. If only the domain name is
@@ -42,10 +32,7 @@ given, ${0##*/} will simply perform certificate maintenance without
 reloading any daemon(s).
 
 ${0##*/} needs a valid acme-client.conf(5) and full chain certificate.
-The full chain certificate must be located at '/etc/ssl/example.com.pem'.
-EOF
-
-  exit 1
+The full chain certificate must be located at '/etc/ssl/example.com.pem'."
 }
 
 
@@ -89,15 +76,9 @@ reload_daemons() {
 }
 
 
-# check whether there's an appropriate number of arguments and
-# whether the script has root privileges.
-prereqs() {
-  [ -z "$1" ] && err "${0##*/} needs a domain name."
-  must_be_root
-}
+[ -z "$1" ] && err "${0##*/} needs a domain name."
+[ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
 
-
-prereqs "$@"
 
 if cert_maintenance "$1"; then
   shift
