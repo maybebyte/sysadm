@@ -1,7 +1,8 @@
 # shellcheck disable=SC2154 shell=sh
 # 'common.sh' is a file with frequently used functions. its purpose is
-# to be sourced in scripts for readability purposes and ease of
-# management. therefore, it has no shebang and isn't executable.
+# to be a collection of tools that can be easily referenced. keeping
+# frequently used functions in one place ensures a certain level of
+# consistency.
 
 # instead of remembering/accounting for two different forms of privilege
 # elevation, one is assigned to the alias 'priv.' doas is preferred over
