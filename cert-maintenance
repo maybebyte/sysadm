@@ -70,6 +70,12 @@ reload_daemons() {
 
     if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
       rcctl reload "${daemon}"
+
+    # We want to notify the user when a daemon wasn't reloaded.
+    else
+      printf '%s\n' "Unable to reload ${daemon} because it is not enabled." >&2
+      continue
+
     fi
 
   done
