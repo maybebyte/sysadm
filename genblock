@@ -16,20 +16,11 @@
 
 set -e
 
-readonly LIBRARY='/etc/sysadm/common.sh'
 
-if [ -r "${LIBRARY}" ]; then
-  . "${LIBRARY}"
-
-else
-  cat >&2 <<EOF
-${LIBRARY} doesn't exist or isn't readable.
-${0##*/} may not function correctly without it.
-EOF
-
+err() {
+  printf '%s\n' "$*" >&2
   exit 1
-
-fi
+}
 
 
 complain_dns() {
@@ -146,7 +137,7 @@ instated at ${BLOCKLIST} with appropriate permissions."
 
 
 [ "$(uname)" = 'OpenBSD' ] || err "${0##*/} only supports OpenBSD."
-must_be_root
+[ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
   readonly DNS='unwind'
