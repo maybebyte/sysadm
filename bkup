@@ -38,7 +38,9 @@ bkup() {
 }
 
 
-[ -z "$1" ] && usage
+case "$1" in
+  ''|'-h') usage ;;
+esac
 
 [ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
 
