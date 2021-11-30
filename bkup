@@ -38,8 +38,7 @@ bkup() {
 }
 
 
-readonly ARGS_NEEDED=1
-[ "$#" = "${ARGS_NEEDED}" ] || usage
+[ -z "$1" ] && usage
 
 [ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
 
