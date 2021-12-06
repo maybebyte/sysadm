@@ -1,0 +1,71 @@
+# These are my pf(4) rules for a router (an APU4D4 running OpenBSD).
+# https://amissing.link/openbsd-router.html
+
+table <martians> {
+  0.0.0.0/8 10.0.0.0/8 100.64.0.0/10            \
+  127.0.0.0/8 169.254.0.0/16 172.16.0.0/12      \
+  192.0.0.0/24 192.0.2.0/24 192.88.99.0/24      \
+  192.168.0.0/16 198.18.0.0/15 198.51.100.0/24  \
+  203.0.113.0/24 224.0.0.0/3 255.255.255.255/32 }
+
+dumb_access_point = "x.x.x.x"
+vpn_endpoint_ip   = "x.x.x.x"
+vpn_dns           = "x.x.x.x"
+vpn_endpoint_port = "xxx"
+ext_if            = "em0"
+int_if            = "vport0"
+icmp_types        = "{ echoreq unreach }"
+vpn_if            = "wg0"
+localnet          = $int_if:network
+
+set block-policy drop
+set loginterface $vpn_if
+set skip on lo
+
+block log
+
+# The Two-Priority Speedup Trick from The Book of PF.
+match on { $int_if $ext_if $vpn_if } set prio (5, 6)
+
+# Basic traffic queueing, assuming 40M is the maximum bandwidth (leaving
+# 5-10% headroom is a good idea).
+#queue outq on $vpn_if bandwidth 36M max 36M flows 1024 qlimit 1024 default
+
+# IP masquerading.
+match out on $vpn_if inet from ($localnet) nat-to ($vpn_if)
+
+antispoof quick for { ($int_if) ($ext_if) ($vpn_if) }
+
+# It's important to use 'block drop in' here. Omitting direction means
+# all outgoing packets from $localnet will get blocked.
+block drop in quick on $vpn_if from urpf-failed
+block drop in quick on $vpn_if from no-route
+
+block drop in quick on $vpn_if from <martians>
+block drop out quick on $vpn_if to <martians>
+
+# Letting clients use their own resolver makes the DNS sinkhole pointless.
+block return in quick log proto { tcp udp } to !($int_if) port { domain domain-s }
+
+# A subset of icmp (specified by $icmp_types) is allowed from LAN and to
+# external IPs.
+pass inet proto icmp from ($localnet) icmp-type $icmp_types
+pass inet proto icmp to { ($ext_if) ($vpn_if) } icmp-type $icmp_types
+
+# See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
+# The Book of PF, 3rd Edition.
+pass inet from ($localnet)
+
+# Allows traffic needed to obtain a DHCP lease with upstream and establish a
+# VPN connection.
+pass out on $ext_if inet proto udp from port bootpc to port bootps
+pass in on $ext_if inet proto udp from port bootps to port bootpc
+pass out on $ext_if inet proto udp to $vpn_endpoint_ip port $vpn_endpoint_port
+
+# Internet, via VPN.
+pass out on $vpn_if inet
+
+# The dumb access point should never phone home.
+# However, it can sync time using data from the router.
+block return in log on $int_if from $dumb_access_point
+pass in on $int_if inet proto udp from $dumb_access_point to ($int_if) port ntp
