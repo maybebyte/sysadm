@@ -76,41 +76,41 @@ add_metadata() {
 # website_md, then clone the bare source directory. after that, render
 # markdown to HTML, synchronize changes, and generate a news feed.
 gen_website() {
-    readonly stage_dir="${HOME}/website-staging"
-    readonly html_dir="${HOME}/website-final"
+    readonly STAGE_DIR="${HOME}/website-staging"
+    readonly HTML_DIR="${HOME}/website-final"
 
     rm -f -- "${WEBDIR}/.files"
-    rm -rf -- "${stage_dir:?}" "${html_dir:?}"
+    rm -rf -- "${STAGE_DIR:?}" "${HTML_DIR:?}"
 
-    mkdir -p -- "${html_dir}"
+    mkdir -p -- "${HTML_DIR}"
 
-    git clone -- "${BARE_SRCDIR}" "${stage_dir}"
+    git clone -- "${BARE_SRCDIR}" "${STAGE_DIR}"
 
-    "${HOME}/bin/ssg6" "${stage_dir}" "${html_dir}" "${OWNER}" \
+    "${HOME}/bin/ssg6" "${STAGE_DIR}" "${HTML_DIR}" "${OWNER}" \
       "${WEBSITE}" >/dev/null
 
     rsync -a --delete --exclude='*.git' --exclude='*src*' -- \
-      "${html_dir}/" "${WEBDIR}/"
+      "${HTML_DIR}/" "${WEBDIR}/"
 
-    rsync -a --exclude='*.git' -- "${html_dir}/src/" "${WEBDIR}/src/"
+    rsync -a --exclude='*.git' -- "${HTML_DIR}/src/" "${WEBDIR}/src/"
 
-    "${HOME}/bin/rssg" "${stage_dir}/index.md" \
+    "${HOME}/bin/rssg" "${STAGE_DIR}/index.md" \
       "Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
 }
 
 
-# remove ${sysadm_stage}, clone the source directory to ${sysadm_stage},
-# then synchronize changes to ${sysadm_dir} so as to minimize
+# remove ${SYSADM_STAGE}, clone the source directory to ${SYSADM_STAGE},
+# then synchronize changes to ${SYSADM_DIR} so as to minimize
 # supervision/manual intervention.
 update_sysadm() {
-  readonly sysadm_dir='/etc/sysadm'
-  readonly sysadm_stage="${HOME}/sysadm-staging"
+  readonly SYSADM_DIR='/etc/sysadm'
+  readonly SYSADM_STAGE="${HOME}/sysadm-staging"
 
-  rm -rf -- "${sysadm_stage:?}"
+  rm -rf -- "${SYSADM_STAGE:?}"
 
-  git clone -- "${BARE_SRCDIR}" "${sysadm_stage}"
+  git clone -- "${BARE_SRCDIR}" "${SYSADM_STAGE}"
 
-  rsync -a --delete --exclude='*.git' -- "${sysadm_stage}/" "${sysadm_dir}/"
+  rsync -a --delete --exclude='*.git' -- "${SYSADM_STAGE}/" "${SYSADM_DIR}/"
 }
 
 
@@ -121,18 +121,18 @@ update_sysadm() {
 # replacing them each time the dotfiles repo is updated. the code as it
 # is now is merely an easy solution, not a fantastic one.
 update_ssg() {
-  readonly bindir="${HOME}/bin"
-  readonly dotfiles_stage="${HOME}/dotfiles-staging"
+  readonly BINDIR="${HOME}/bin"
+  readonly DOTFILES_STAGE="${HOME}/dotfiles-staging"
 
-  rm -rf -- "${dotfiles_stage:?}"
+  rm -rf -- "${DOTFILES_STAGE:?}"
 
-  git clone -- "${BARE_SRCDIR}" "${dotfiles_stage}"
-
-  install -g git -o git -m 700 -- \
-    "${dotfiles_stage}/.local/bin/rssg" "${bindir}/rssg"
+  git clone -- "${BARE_SRCDIR}" "${DOTFILES_STAGE}"
 
   install -g git -o git -m 700 -- \
-    "${dotfiles_stage}/.local/bin/ssg6" "${bindir}/ssg6"
+    "${DOTFILES_STAGE}/.local/bin/rssg" "${BINDIR}/rssg"
+
+  install -g git -o git -m 700 -- \
+    "${DOTFILES_STAGE}/.local/bin/ssg6" "${BINDIR}/ssg6"
 }
 
 
