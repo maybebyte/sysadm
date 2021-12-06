@@ -47,13 +47,13 @@ rotate_old_blocklist() {
 #
 # $1 is a file or STDIN.
 prepare_domains() {
-  tab="$(printf '\t')"
-  readonly tab
+  TAB="$(printf '\t')"
+  readonly TAB
 
-  grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${tab})+" "$1" \
+  grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                          \
     | tr -d '\r'                                       \
-    | sed -E "s/( +|${tab}{2,})/${tab}/"
+    | sed -E "s/( +|${TAB}{2,})/${TAB}/"
 }
 
 
