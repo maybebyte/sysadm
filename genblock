@@ -103,9 +103,8 @@ format_domains() {
 # we are running as root, but if it does crop up the path of the
 # temporary blocklist should be returned to the user.
 install_new_blocklist() {
-  if ! install -m 0444 -- "${TMP_BLOCKLIST}" "${BLOCKLIST}"; then
-    err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
-  fi
+  install -m 0444 -- "${TMP_BLOCKLIST}" "${BLOCKLIST}" \
+    || err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
 }
 
 
