@@ -47,13 +47,13 @@ rotate_old_blocklist() {
 #
 # $1 is a file or STDIN.
 prepare_domains() {
-  TAB="$(printf '\t')"
+  TAB="$(printf -- '\t')"
   readonly TAB
 
   grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                          \
-    | tr -d '\r'                                       \
-    | sed -E "s/( +|${TAB}{2,})/${TAB}/"
+    | tr -d -- '\r'                                    \
+    | sed -E -- "s/( +|${TAB}{2,})/${TAB}/"
 }
 
 
@@ -74,7 +74,7 @@ format_domains() {
     # prepare_domains() means that cat(1) would need to be added to the
     # 'unwind' pattern to handle STDIN.
     'unwind')
-      cut -f 2 "$1"
+      cut -f 2 -- "$1"
 
       # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
       echo 'use-application-dns.net'
@@ -82,7 +82,7 @@ format_domains() {
       ;;
 
     'unbound')
-      cut -f 2 "$1" | sed 's/.*/local-zone: "&" always_refuse/'
+      cut -f 2 -- "$1" | sed -- 's/.*/local-zone: "&" always_refuse/'
 
       echo 'local-zone: "use-application-dns.net" always_refuse'
 
