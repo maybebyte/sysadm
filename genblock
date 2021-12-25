@@ -28,18 +28,6 @@ complain_dns() {
 }
 
 
-rotate_old_blocklist() {
-  # if no blocklist, just create a blank template file so mv(1) is
-  # guaranteed to have something to move and ${blocklist}.bak is
-  # guaranteed to exist.
-  [ -f "${BLOCKLIST}" ] || :>"${BLOCKLIST}"
-
-  chmod -- 0444 "${BLOCKLIST}"
-
-  mv -- "${BLOCKLIST}" "${BLOCKLIST}.bak"
-}
-
-
 # grab the lines from a file formatted like hosts(5) that begin with
 # 0.0.0.0 or 127.0.0.1 followed by one or more spaces or tabs, remove
 # localhost definitions, remove carriage returns, ensure the delimiter
@@ -88,50 +76,7 @@ format_domains() {
 
       ;;
 
-    *)
-      complain_dns
-
-      ;;
-
   esac | sort -u
-}
-
-
-# copy the temporary blocklist to the destination.
-#
-# I do not really anticipate this error condition happening much since
-# we are running as root, but if it does crop up the path of the
-# temporary blocklist should be returned to the user.
-install_new_blocklist() {
-  install -m 0444 -- "${TMP_BLOCKLIST}" "${BLOCKLIST}" \
-    || err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
-}
-
-
-# check that the configuration file is valid. if it is, restart the DNS
-# server.
-restart_dns() {
-  case "${DNS}" in
-    'unwind')  unwind -n         && rcctl restart unwind  ;;
-    'unbound') unbound-checkconf && rcctl restart unbound ;;
-    *)         complain_dns                               ;;
-  esac
-}
-
-
-# called if restart_dns() fails. restores the backup file.
-restore_backup_blocklist() {
-  # due to the way rotate_old_blocklist() works, ${blocklist}.bak should
-  # always be a working file with appropriate permissions, so it is safe
-  # to move ${blocklist}.bak to ${blocklist} without further checks.
-  mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
-
-  # exits immediately without removing ${tmp_blocklist} and printing the
-  # file in the error message so it can be inspected.
-  err "restart_dns() failed, which probably means ${DNS}(8) didn't like ${TMP_BLOCKLIST}.
-
-For now, either the previous working blocklist or a blank blocklist was
-instated at ${BLOCKLIST} with appropriate permissions."
 }
 
 
@@ -151,10 +96,6 @@ else
   complain_dns
 
 fi
-
-
-TMP_BLOCKLIST="$(mktemp)"
-readonly TMP_BLOCKLIST
 
 
 readonly BLOCKLIST_URLS='https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt
@@ -187,6 +128,10 @@ https://urlhaus.abuse.ch/downloads/hostfile/
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser'
 
 
+TMP_BLOCKLIST="$(mktemp)"
+readonly TMP_BLOCKLIST
+
+
 printf '%s\n' "${BLOCKLIST_URLS}"    \
   | xargs -- ftp -o - -- 2>/dev/null \
   | prepare_domains -                \
@@ -195,11 +140,36 @@ printf '%s\n' "${BLOCKLIST_URLS}"    \
   || err 'Unable to create blocklist.'
 
 
-rotate_old_blocklist
-install_new_blocklist
+# if no blocklist, just create a blank template file so mv(1) is
+# guaranteed to have something to move and ${blocklist}.bak is
+# guaranteed to exist.
+[ -f "${BLOCKLIST}" ] || :>"${BLOCKLIST}"
+chmod -- 0444 "${BLOCKLIST}"
+mv -- "${BLOCKLIST}" "${BLOCKLIST}.bak"
 
-restart_dns >/dev/null 2>&1 || restore_backup_blocklist
+install -m 0444 -- "${TMP_BLOCKLIST}" "${BLOCKLIST}" \
+  || err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
 
-# if restore_backup_blocklist() is called, it exits before the removal
+
+case "${DNS}" in
+  'unwind')  unwind -n         && rcctl restart unwind  ;;
+  'unbound') unbound-checkconf && rcctl restart unbound ;;
+esac >/dev/null 2>&1 ||
+
+  {
+    # due to the way rotate_old_blocklist() works, ${blocklist}.bak should
+    # always be a working file with appropriate permissions, so it is safe
+    # to move ${blocklist}.bak to ${blocklist} without further checks.
+    mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
+
+    # exits immediately without removing ${tmp_blocklist} and printing the
+    # file in the error message so it can be inspected.
+    err "restart_dns() failed, which probably means ${DNS}(8) didn't like ${TMP_BLOCKLIST}.
+
+For now, either the previous working blocklist or a blank blocklist was
+instated at ${BLOCKLIST} with appropriate permissions."
+  }
+
+# if the case statement above fails, the script exits before the removal
 # so the temporary blocklist is kept.
 rm -- "${TMP_BLOCKLIST}"
