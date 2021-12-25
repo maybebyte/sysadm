@@ -23,11 +23,6 @@ err() {
 }
 
 
-complain_dns() {
-  err "${0##*/} only supports unwind(8) and unbound(8)."
-}
-
-
 # grab the lines from a file formatted like hosts(5) that begin with
 # 0.0.0.0 or 127.0.0.1 followed by one or more spaces or tabs, remove
 # localhost definitions, remove carriage returns, ensure the delimiter
@@ -93,7 +88,7 @@ elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
   readonly BLOCKLIST='/etc/blocklist.unbound'
 
 else
-  complain_dns
+  err "${0##*/} only supports unwind(8) and unbound(8)."
 
 fi
 
