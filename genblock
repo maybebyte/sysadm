@@ -147,7 +147,8 @@ printf '%s\n' "${BLOCKLIST_URLS}"    \
 # if no blocklist is present, just create a blank template file so mv(1)
 # is guaranteed to have something to move and ${BLOCKLIST}.bak is
 # guaranteed to exist.
-[ -f "${BLOCKLIST}" ] || :>"${BLOCKLIST}"
+[ -e "${BLOCKLIST}" ] || :>"${BLOCKLIST}"
+[ -f "${BLOCKLIST}" ] || err "${BLOCKLIST} is not a file."
 chmod -- 0444 "${BLOCKLIST}"
 mv -- "${BLOCKLIST}" "${BLOCKLIST}.bak"
 
