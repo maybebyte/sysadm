@@ -23,6 +23,13 @@ err() {
 }
 
 
+usage() {
+  err "${0##*/} generates blocklists for unwind(8) and unbound(8) on OpenBSD.
+
+usage: ${0##*/} /path/to/save/blocklist"
+}
+
+
 # grab the lines from a file formatted like hosts(5) that begin with
 # 0.0.0.0 or 127.0.0.1 followed by one or more spaces or tabs, remove
 # localhost definitions, remove carriage returns, ensure the delimiter
@@ -75,17 +82,16 @@ format_domains() {
 }
 
 
+[ -n "$1" ]                || usage
 [ "$(uname)" = 'OpenBSD' ] || err "${0##*/} only supports OpenBSD."
-[ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
+[ "$(id -u)" = 0 ]         || err "Execute ${0##*/} with root privileges."
 
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
   readonly DNS='unwind'
-  readonly BLOCKLIST='/etc/blocklist.unwind'
 
 elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
   readonly DNS='unbound'
-  readonly BLOCKLIST='/etc/blocklist.unbound'
 
 else
   err "${0##*/} only supports unwind(8) and unbound(8)."
@@ -126,6 +132,8 @@ https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser'
 
 TMP_BLOCKLIST="$(mktemp)"
 readonly TMP_BLOCKLIST
+
+readonly BLOCKLIST="$1"
 
 
 printf '%s\n' "${BLOCKLIST_URLS}"    \
