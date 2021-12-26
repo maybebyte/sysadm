@@ -33,9 +33,9 @@ prepare_domains() {
   TAB="$(printf -- '\t')"
   readonly TAB
 
-  grep -E "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
-    | grep -v -- 'localhost$'                          \
-    | tr -d -- '\r'                                    \
+  grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
+    | grep -v -- 'localhost$'                             \
+    | tr -d -- '\r'                                       \
     | sed -E -- "s/( +|${TAB}{2,})/${TAB}/"
 }
 
