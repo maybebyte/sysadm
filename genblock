@@ -172,7 +172,7 @@ esac >/dev/null 2>&1 ||
 
   # exits immediately without removing ${TMP_BLOCKLIST} and printing the
   # file in the error message so it can be inspected.
-  err "restart_dns() failed, which probably means ${DNS}(8) didn't like ${TMP_BLOCKLIST}.
+  err "${0##*/} failed to restart ${DNS}, which probably means ${DNS} didn't like ${TMP_BLOCKLIST}.
 
 For now, either the previous working blocklist or a blank blocklist was
 instated at ${BLOCKLIST} with appropriate permissions."
