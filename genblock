@@ -152,19 +152,21 @@ case "${DNS}" in
   'unbound') unbound-checkconf && rcctl restart unbound ;;
 esac >/dev/null 2>&1 ||
 
-  {
-    # ${BLOCKLIST}.bak should always be a working file with appropriate
-    # permissions, so it is safe to move ${BLOCKLIST}.bak to
-    # ${BLOCKLIST} without further checks.
-    mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
+{
 
-    # exits immediately without removing ${TMP_BLOCKLIST} and printing the
-    # file in the error message so it can be inspected.
-    err "restart_dns() failed, which probably means ${DNS}(8) didn't like ${TMP_BLOCKLIST}.
+  # ${BLOCKLIST}.bak should always be a working file with appropriate
+  # permissions, so it is safe to move ${BLOCKLIST}.bak to
+  # ${BLOCKLIST} without further checks.
+  mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
+
+  # exits immediately without removing ${TMP_BLOCKLIST} and printing the
+  # file in the error message so it can be inspected.
+  err "restart_dns() failed, which probably means ${DNS}(8) didn't like ${TMP_BLOCKLIST}.
 
 For now, either the previous working blocklist or a blank blocklist was
 instated at ${BLOCKLIST} with appropriate permissions."
-  }
+
+}
 
 # if the case statement above fails, the script exits before the removal
 # so the temporary blocklist is kept.
