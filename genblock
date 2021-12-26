@@ -37,13 +37,13 @@ usage: ${0##*/} /path/to/save/blocklist"
 #
 # $1 is a file or STDIN.
 prepare_domains() {
+  CR="$(printf -- '\r')"
   TAB="$(printf -- '\t')"
-  readonly TAB
+  readonly CR TAB
 
   grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                             \
-    | tr -d -- '\r'                                       \
-    | sed -E -- "s/( |${TAB})+/${TAB}/"
+    | sed -E -e "s/( |${TAB})+/${TAB}/" -e "s/${CR}//g"
 }
 
 
