@@ -45,7 +45,7 @@ prepare_domains() {
   # to match the domain names that come after.
   grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                             \
-    | sed -E -e "s/( |${TAB})+/${TAB}/" -e "s/${CR}//g"
+    | sed -E -e "s/${CR}//g" -e "s/( |${TAB})+/${TAB}/"
 }
 
 
