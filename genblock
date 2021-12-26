@@ -41,6 +41,8 @@ prepare_domains() {
   TAB="$(printf -- '\t')"
   readonly CR TAB
 
+  # TODO: instead of a second grep(1), extend the first grep(1) regexp
+  # to match the domain names that come after.
   grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                             \
     | sed -E -e "s/( |${TAB})+/${TAB}/" -e "s/${CR}//g"
