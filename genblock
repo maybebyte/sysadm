@@ -41,8 +41,11 @@ prepare_domains() {
   TAB="$(printf -- '\t')"
   readonly CR TAB
 
-  # TODO: instead of a second grep(1), extend the first grep(1) regexp
-  # to match the domain names that come after.
+  # TODO: perhaps replace this section with perl or something with a
+  # more capable pattern engine. domains could be matched in the initial
+  # pattern, but would need lookaround (hyphens are a valid part of
+  # domain nodes, but not at the beginning or end). by matching exactly
+  # what we want, it should alleviate the need to filter with 'grep -v'
   grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
     | grep -v -- 'localhost$'                             \
     | sed -E -e "s/${CR}//g" -e "s/( |${TAB})+/${TAB}/"
