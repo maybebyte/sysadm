@@ -48,5 +48,5 @@ err() {
 
 # if the user isn't root, print an error message and exit.
 must_be_root() {
-  [ "$(id -u)" = 0 ] || err "Execute ${0##*/} with root privileges."
+  [ "$(id -u)" -eq 0 ] || err "Execute ${0##*/} with root privileges."
 }
