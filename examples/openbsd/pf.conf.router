@@ -53,11 +53,11 @@ pass inet proto icmp from ($localnet) icmp-type $icmp_types
 pass inet proto icmp to { ($ext_if) ($vpn_if) } icmp-type $icmp_types
 
 # See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
-# The Book of PF, 3rd Edition.
+# The Book of PF.
 pass inet from ($localnet)
 
-# Allows traffic needed to obtain a DHCP lease with upstream and establish a
-# VPN connection.
+# Allows traffic needed to obtain a DHCP lease and establish a VPN
+# connection.
 pass out on $ext_if inet proto udp from port bootpc to port bootps
 pass in on $ext_if inet proto udp from port bootps to port bootpc
 pass out on $ext_if inet proto udp to $vpn_endpoint_ip port $vpn_endpoint_port
