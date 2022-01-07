@@ -47,10 +47,8 @@ block drop out quick on $vpn_if to <martians>
 # Letting clients use their own resolver makes the DNS sinkhole pointless.
 block return in quick log proto { tcp udp } to !($int_if) port { domain domain-s }
 
-# A subset of icmp (specified by $icmp_types) is allowed from LAN and to
-# external IPs.
-pass inet proto icmp from ($localnet) icmp-type $icmp_types
-pass inet proto icmp to { ($ext_if) ($vpn_if) } icmp-type $icmp_types
+# A subset of icmp (specified by $icmp_types) is allowed.
+pass inet proto icmp icmp-type $icmp_types
 
 # See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
 # The Book of PF.
