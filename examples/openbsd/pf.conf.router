@@ -25,7 +25,7 @@ set skip on lo
 block log
 
 # The Two-Priority Speedup Trick from The Book of PF.
-match out on $vpn_if set prio (5, 6)
+match out on { $int_if $vpn_if } set prio (5, 6)
 
 # Basic traffic queueing, assuming 40M is the maximum bandwidth (leaving
 # 5-10% headroom is a good idea).
