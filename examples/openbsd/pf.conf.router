@@ -63,7 +63,7 @@ pass in on $ext_if inet proto udp from port bootps to port bootpc
 pass out on $ext_if inet proto udp to $vpn_endpoint_ip port $vpn_endpoint_port
 
 # Internet, via VPN.
-pass out on $vpn_if inet
+pass out on $vpn_if inet proto { tcp udp }
 
 # The dumb access point should never phone home.
 # However, it can sync time using data from the router.
