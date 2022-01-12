@@ -19,7 +19,7 @@ vpn_if            = "wg0"
 localnet          = $int_if:network
 
 set block-policy drop
-set loginterface $vpn_if
+set loginterface $ext_if
 set skip on lo
 
 block log
