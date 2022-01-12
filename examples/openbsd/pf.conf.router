@@ -22,7 +22,7 @@ set block-policy drop
 set loginterface $ext_if
 set skip on lo
 
-block log
+block
 
 # https://www.benzedrine.ch/ackpri.html
 #
@@ -48,7 +48,7 @@ block drop in quick on $vpn_if from <martians>
 block drop out quick on $vpn_if to <martians>
 
 # Letting clients use their own resolver makes the DNS sinkhole pointless.
-block return in quick log proto { tcp udp } to !($int_if) port { domain domain-s }
+block return in quick proto { tcp udp } to !($int_if) port { domain domain-s }
 
 # A subset of icmp (specified by $icmp_types) is allowed.
 pass inet proto icmp icmp-type $icmp_types
