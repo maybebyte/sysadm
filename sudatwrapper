@@ -25,21 +25,47 @@ err() {
 
 
 usage() {
-  err "${0##*/} [directory of videos]
+  err "${0##*/} [-t] [directory of videos]
+-t: threads (parallelization)
 
 If sudat is located somewhere else, use SUDAT=/path/to/sudat ${0##*/} ..."
 }
 
 
-NCPU="$(sysctl -n hw.ncpu)"
-NCPU="$((NCPU - 1))"
+list_video_files() {
+  find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
+}
 
-: "${SUDAT:=/etc/sysadm/sudat}"
+
+xargs_handler() {
+  if [ -n "${THREADS}" ]; then
+    xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}"
+
+  else
+    xargs -0 -n 1 -- "${SUDAT}"
+
+  fi
+}
+
+
+while getopts t: opt; do
+  case "${opt}" in
+    t) THREADS="${OPTARG}" ;;
+    *) usage               ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+case "${THREADS}" in
+  *[!0-9]*) err '-t only accepts integers.' ;;
+esac
 
 
 [ -z "$1" ] && usage
 [ -d "$1" ] || err "$1 is not a directory."
 cd "$1" || err "Unable to change directory to $1."
 
-find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0 \
-  | xargs -0 -n 1 -P "${NCPU}" -- "${SUDAT}"
+
+: "${SUDAT:=/etc/sysadm/sudat}"
+list_video_files | xargs_handler
