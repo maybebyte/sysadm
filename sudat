@@ -1,0 +1,88 @@
+#!/bin/sh
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# Sync Upload Date and Access Time
+
+
+err() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+
+usage() {
+  err "Sync Upload Date and Access Time (sudat):
+${0##*/} [file_to_be_updated]
+
+Note that sudat extracts the upload date from .info.json files provided
+by yt-dlp(1). It MUST be identically named to file_to_be_updated except for the
+extension."
+}
+
+
+check_deps() {
+  while read -r dependency; do
+
+    [ -x "$(command -v -- "${dependency}")" ] \
+      || err "${dependency} not found in PATH or not executable."
+
+  done
+}
+
+
+get_file_atime() {
+  stat -f '%Sa' -t '%Y%m%d' "$1"
+}
+
+
+handle_date() {
+  file_to_be_updated="$1"
+  [ -f "${file_to_be_updated}" ] || return 1
+  [ -r "${file_to_be_updated}" ] || return 1
+  [ -w "${file_to_be_updated}" ] || return 1
+
+
+  extension="${file_to_be_updated##*.}"
+  jsonfile="${file_to_be_updated%."${extension}"}.info.json"
+  [ -f "${jsonfile}" ] || return 1
+  [ -r "${jsonfile}" ] || return 1
+
+
+  timestamp="$(jq -er .upload_date "${jsonfile}")" || return 1
+
+  # check if the timestamp is 8 digits (YYYYMMDD).
+  case "${timestamp}" in
+    [0-9].[0-9].[0-9].[0-9].[0-9.][0-9].[0-9].[0-9]) :        ;;
+    *)                                               return 1 ;;
+  esac
+
+
+  # needed to match touch(1) format
+  timestamp="${timestamp}0000"
+
+  # update the timestamps of everything with the same naming
+  # convention.
+  touch -t "${timestamp}" "${file_to_be_updated%."${extension}"}"*
+
+}
+
+
+[ -z "$*" ] && usage
+echo 'jq' | check_deps
+
+
+for argument in "$@"; do
+  handle_date "${argument}"
+done
