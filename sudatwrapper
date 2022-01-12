@@ -68,4 +68,9 @@ cd "$1" || err "Unable to change directory to $1."
 
 
 : "${SUDAT:=/etc/sysadm/sudat}"
+[ -f "${SUDAT}" ] || err "${SUDAT} is not a file."
+[ -r "${SUDAT}" ] || err "${SUDAT} is not readable."
+[ -x "${SUDAT}" ] || err "${SUDAT} is not executable."
+
+
 list_video_files | xargs_handler
