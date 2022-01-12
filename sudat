@@ -71,7 +71,7 @@ handle_date() {
   # check if the timestamp is 8 digits (YYYYMMDD).
   case "${timestamp}" in
 
-    [0-9].[0-9].[0-9].[0-9].[0-9.][0-9].[0-9].[0-9]) :              ;;
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) :                     ;;
 
     *) soft_err "${timestamp} isn't correctly formatted; skipping." ;;
 
