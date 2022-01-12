@@ -93,5 +93,5 @@ echo 'jq' | check_deps
 
 
 for argument in "$@"; do
-  handle_date "${argument}"
+  handle_date "${argument}" &
 done
