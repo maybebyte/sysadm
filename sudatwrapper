@@ -31,7 +31,6 @@ If sudat is located somewhere else, use SUDAT=/path/to/sudat ${0##*/} ..."
 }
 
 
-NCPU="$(sysctl -n hw.ncpu)"
 : "${SUDAT:=/etc/sysadm/sudat}"
 
 
@@ -39,4 +38,4 @@ NCPU="$(sysctl -n hw.ncpu)"
 [ -d "$1" ] || err "$1 is not a directory."
 cd "$1" || err "Unable to change directory to $1."
 
-find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0 | xargs -0 -P "${NCPU}" -- "${SUDAT}"
+find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0 | xargs -0 -- "${SUDAT}"
