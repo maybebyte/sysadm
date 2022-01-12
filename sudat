@@ -22,6 +22,12 @@ err() {
 }
 
 
+soft_err() {
+  printf '%s\n' "$*" >&2
+  return 1
+}
+
+
 usage() {
   err "Sync Upload Date and Access Time (sudat):
 ${0##*/} [file_to_be_updated]
@@ -42,30 +48,33 @@ check_deps() {
 }
 
 
-get_file_atime() {
-  stat -f '%Sa' -t '%Y%m%d' "$1"
-}
-
-
 handle_date() {
   file_to_be_updated="$1"
-  [ -f "${file_to_be_updated}" ] || return 1
-  [ -r "${file_to_be_updated}" ] || return 1
-  [ -w "${file_to_be_updated}" ] || return 1
-
-
   extension="${file_to_be_updated##*.}"
+  for file in "${file_to_be_updated%."${extension}"}"*; do
+
+    [ -f "${file}" ] || soft_err "${file} isn't a file; skipping."
+    [ -w "${file}" ] || soft_err "${file} isn't writable; skipping."
+
+  done
+
+
   jsonfile="${file_to_be_updated%."${extension}"}.info.json"
-  [ -f "${jsonfile}" ] || return 1
-  [ -r "${jsonfile}" ] || return 1
+  [ -f "${jsonfile}" ] || soft_err "${jsonfile} isn't a file; skipping."
+  [ -r "${jsonfile}" ] || soft_err "${jsonfile} isn't readable; skipping."
 
 
-  timestamp="$(jq -er .upload_date "${jsonfile}")" || return 1
+  timestamp="$(jq -er .upload_date "${jsonfile}")" \
+    || soft_err "jq(1) failed on ${jsonfile}; skipping."
+
 
   # check if the timestamp is 8 digits (YYYYMMDD).
   case "${timestamp}" in
-    [0-9].[0-9].[0-9].[0-9].[0-9.][0-9].[0-9].[0-9]) :        ;;
-    *)                                               return 1 ;;
+
+    [0-9].[0-9].[0-9].[0-9].[0-9.][0-9].[0-9].[0-9]) :              ;;
+
+    *) soft_err "${timestamp} isn't correctly formatted; skipping." ;;
+
   esac
 
 
