@@ -82,7 +82,22 @@ handle_date() {
 }
 
 
-[ -z "$1" ] && usage
+while getopts q opt; do
+  case "${opt}" in
+    q) QUIET='yes' ;;
+    *) usage       ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+
+
+[ -z "$1" ] && case "${QUIET}" in
+  'yes') exit  ;;
+  *)     usage ;;
+esac
+
+
 echo 'jq' | check_deps
 
 

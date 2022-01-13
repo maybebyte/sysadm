@@ -45,10 +45,10 @@ list_video_files() {
 
 xargs_handler() {
   if [ -n "${THREADS}" ]; then
-    xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}"
+    xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}" -q
 
   else
-    xargs -0 -n 1 -- "${SUDAT}"
+    xargs -0 -n 1 -- "${SUDAT}" -q
 
   fi
 }
