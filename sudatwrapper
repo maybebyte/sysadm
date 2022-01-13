@@ -33,7 +33,13 @@ If sudat is located somewhere else, use SUDAT=/path/to/sudat ${0##*/} ..."
 
 
 list_video_files() {
-  find . -type f -newer './.last_updated' \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
+  if [ -f './.last_updated' ]; then
+    find . -type f -newer './.last_updated' \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
+
+  else
+    find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
+
+  fi
 }
 
 
