@@ -54,7 +54,6 @@ handle_date() {
 
 
   jsonfile="${file_to_be_updated%."${extension}"}.info.json"
-  [ -f "${jsonfile}" ] || err "${jsonfile} isn't a file."
   [ -r "${jsonfile}" ] || err "${jsonfile} isn't readable."
 
 
