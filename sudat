@@ -42,7 +42,7 @@ check_deps() {
 }
 
 
-handle_date() {
+sudat() {
   file_extension="${1##*.}"
   file_template="${1%."${file_extension}"}"
 
@@ -100,4 +100,4 @@ esac
 echo 'jq' | check_deps
 
 
-handle_date "$1"
+sudat "$1"
