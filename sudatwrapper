@@ -33,7 +33,7 @@ If sudat is located somewhere else, use SUDAT=/path/to/sudat ${0##*/} ..."
 
 
 list_video_files() {
-  find . -type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
+  find . -type f -newer './.last_updated' \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0
 }
 
 
@@ -64,6 +64,7 @@ esac
 
 [ -z "$1" ] && usage
 [ -d "$1" ] || err "$1 is not a directory."
+[ -w "$1" ] || err "$1 is not writable."
 cd "$1" || err "Unable to change directory to $1."
 
 
@@ -74,3 +75,5 @@ cd "$1" || err "Unable to change directory to $1."
 
 
 list_video_files | xargs_handler
+
+touch './.last_updated'
