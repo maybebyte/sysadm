@@ -65,9 +65,9 @@ handle_date() {
   # check if the timestamp is 8 digits (YYYYMMDD).
   case "${timestamp}" in
 
-    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) :      ;;
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) :                  ;;
 
-    *) err "${timestamp} isn't correctly formatted." ;;
+    *) err "${timestamp} isn't a correctly formatted timestamp." ;;
 
   esac
 
@@ -78,7 +78,6 @@ handle_date() {
   # update the timestamps of everything with the same naming
   # convention.
   touch -t "${timestamp}" "${file_template}"*
-
 }
 
 
