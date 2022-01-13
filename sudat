@@ -43,9 +43,10 @@ check_deps() {
 
 
 handle_date() {
-  file_to_be_updated="$1"
-  extension="${file_to_be_updated##*.}"
-  for file in "${file_to_be_updated%."${extension}"}"*; do
+  file_extension="${1##*.}"
+  file_template="${1%."${file_extension}"}"
+
+  for file in "${file_template}"*; do
 
     [ -f "${file}" ] || err "${file} isn't a file."
     [ -w "${file}" ] || err "${file} isn't writable."
@@ -53,7 +54,7 @@ handle_date() {
   done
 
 
-  jsonfile="${file_to_be_updated%."${extension}"}.info.json"
+  jsonfile="${file_template}.info.json"
   [ -r "${jsonfile}" ] || err "${jsonfile} isn't readable."
 
 
@@ -76,7 +77,7 @@ handle_date() {
 
   # update the timestamps of everything with the same naming
   # convention.
-  touch -t "${timestamp}" "${file_to_be_updated%."${extension}"}"*
+  touch -t "${timestamp}" "${file_template}"*
 
 }
 
