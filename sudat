@@ -99,5 +99,4 @@ esac
 
 echo 'jq' | check_deps
 
-
 sudat "$1"
