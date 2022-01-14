@@ -43,6 +43,12 @@ check_deps() {
 
 
 sudat() {
+  # file_extension parameter expansion will not work on files that have
+  # two extensions.
+  #
+  # however, since sudat-wrapper only points sudat at files with one
+  # extension, and since sudat handles the .info.json file separately,
+  # it's OK.
   file_extension="${1##*.}"
   file_template="${1%."${file_extension}"}"
 
