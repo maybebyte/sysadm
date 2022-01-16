@@ -1,0 +1,162 @@
+#!/bin/sh
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# update graphs with rrdtool(1)
+
+
+err() {
+  printf '%s\n' "$*" >&2
+  exit 1
+}
+
+
+usage() {
+  err "${PROGRAM_NAME} [type] [period] [rrddir] [savedir]
+
+[type] can be: pf
+[period] can be: day week month
+[rrddir] is where the rrd files are found.
+[savedir] is where the graphs are saved.
+
+${PROGRAM_NAME} is meant to be a frontend for rrdtool(1) for rrd files
+maintained by symux(1). ${PROGRAM_NAME} assumes that the rrd files in rrddir for a
+particular type are named the same way that the 'datadir' statement in
+symux.conf would name them."
+}
+
+
+gen_pf_graphs() {
+  for graphname in 'pf-bits' 'pf-passed-packets' 'pf-dropped-packets' 'pf-state-inserts-removals' 'pf-state-searches'; do
+
+
+    BASE_CMD="rrdtool graph "${SAVEDIR}/${graphname}-${PERIOD}.png" -s -${HOURS}hours"
+
+    case "${graphname}" in
+
+
+      'pf-bits')
+        REST_OF_CMD="-t 'pf bits in/out (IPv4)' \
+--vertical-label 'bits/s' \
+'DEF:bytes_v4_in=${RRDDIR}/${TYPE}.rrd:bytes_v4_in:MAX' \
+'DEF:bytes_v4_out=${RRDDIR}/${TYPE}.rrd:bytes_v4_out:MAX' \
+'CDEF:bps_in=bytes_v4_in,8,*' \
+'CDEF:bps_out=bytes_v4_out,8,*' \
+'AREA:bps_in${GREEN}:in' \
+'LINE1:bps_out${BLUE}:out'"
+
+        ;;
+
+
+      'pf-passed-packets')
+        REST_OF_CMD="-t 'pf passed packets in/out (IPv4)' \
+--vertical-label 'packets/s' \
+'DEF:packets_v4_in_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_in_pass:MAX' \
+'DEF:packets_v4_out_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_out_pass:MAX' \
+'AREA:packets_v4_in_pass${GREEN}:in' \
+'AREA:packets_v4_out_pass${BLUE}:out'"
+
+        ;;
+
+
+      'pf-dropped-packets')
+        REST_OF_CMD="-t 'pf dropped packets in/out (IPv4)' \
+--vertical-label 'packets/s' \
+'DEF:packets_v4_in_drop=${RRDDIR}/${TYPE}.rrd:packets_v4_in_drop:MAX' \
+'DEF:packets_v4_out_drop=${RRDDIR}/${TYPE}.rrd:packets_v4_out_drop:MAX' \
+'AREA:packets_v4_in_drop${RED}:in' \
+'AREA:packets_v4_out_drop${YELLOW}:out'"
+
+        ;;
+
+
+      'pf-state-inserts-removals')
+        REST_OF_CMD="-t 'pf state inserts/removals' \
+--vertical-label 'states/s' \
+'DEF:states_inserts=${RRDDIR}/${TYPE}.rrd:states_inserts:MAX' \
+'DEF:states_removals=${RRDDIR}/${TYPE}.rrd:states_removals:MAX' \
+'AREA:states_inserts${GREEN}:inserts' \
+'AREA:states_removals${RED}:removals'"
+
+        ;;
+
+
+      'pf-state-searches')
+        REST_OF_CMD="-t 'pf state searches' \
+--vertical-label 'states/s' \
+'DEF:states_searches=${RRDDIR}/${TYPE}.rrd:states_searches:MAX' \
+'AREA:states_searches${RED}:searches'"
+
+        ;;
+
+
+      *)
+        err 'This should never happen.'
+
+        ;;
+
+
+    esac
+
+    eval "${BASE_CMD} ${REST_OF_CMD}"
+
+
+  done
+}
+
+
+[ -x "$(command -v -- 'rrdtool')" ] \
+  || err "rrdtool not found in PATH or not executable."
+
+
+readonly PROGRAM_NAME="${0##*/}"
+[ -z "$*" ] && usage
+
+
+readonly TYPE="$1"
+readonly PERIOD="$2"
+readonly RRDDIR="$3"
+readonly SAVEDIR="$4"
+
+
+case "${PERIOD}" in
+  'day')   readonly HOURS=24                                           ;;
+  'week')  readonly HOURS=168                                          ;;
+  'month') readonly HOURS=672                                          ;;
+  *)       err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
+esac
+
+
+[ -n "${RRDDIR}" ] || err "${PROGRAM_NAME} needs a directory containing rrd files."
+[ -d "${RRDDIR}" ] || err "\"${RRDDIR}\" isn't a directory."
+[ -r "${RRDDIR}" ] || err "\"${RRDDIR}\" isn't readable."
+
+[ -n "${SAVEDIR}" ] || err "${PROGRAM_NAME} needs a directory to save graphs in."
+[ -d "${SAVEDIR}" ] || err "\"${SAVEDIR}\" isn't a directory."
+[ -w "${SAVEDIR}" ] || err "\"${SAVEDIR}\" isn't writable."
+
+[ -f "${RRDDIR}/${TYPE}.rrd" ] || err "\"${RRDDIR}/${TYPE}.rrd\" isn't a file."
+[ -r "${RRDDIR}/${TYPE}.rrd" ] || err "\"${RRDDIR}/${TYPE}.rrd\" isn't readable."
+
+
+readonly RED='#FF0000'
+readonly GREEN='#00FF00'
+readonly YELLOW='#FFFF00'
+readonly BLUE='#0000FF'
+
+
+case "${TYPE}" in
+  'pf') gen_pf_graphs "$1" "$2" "$3" "$4"                           ;;
+  *)    err "\"${TYPE}\" isn't a valid type of statistic to graph." ;;
+esac
