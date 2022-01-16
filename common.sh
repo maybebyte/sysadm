@@ -23,13 +23,8 @@ fi
 check_deps() {
   while read -r dependency; do
 
-    if [ -x "$(command -v -- "${dependency}")" ]; then
-      continue
-
-    else
-      err "${dependency} not found in PATH or not executable."
-
-    fi
+    [ -x "$(command -v -- "${dependency}")" ] \
+      || err "${dependency} not found in PATH or not executable."
 
   done
 }
