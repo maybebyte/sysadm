@@ -23,7 +23,12 @@ err() {
 
 
 usage() {
-  err "${PROGRAM_NAME} [type] [period] [rrddir] [savedir]
+  err "${PROGRAM_NAME} [-s] [type] [period] [rrddir] [savedir]
+
+-s: swap colors for allowed incoming and outgoing traffic (by default,
+    incoming traffic is green and outgoing traffic is blue). These defaults
+    work for a router, but are inappropriate for a public-facing server that
+    sends out data more than it receives it.
 
 [type] can be: pf
 [period] can be: day week month
@@ -38,6 +43,12 @@ symux.conf would name them."
 
 
 gen_pf_graphs() {
+  [ "${SWAPCOLORS}" = 'yes' ] && INCOLOR="${BLUE}" OUTCOLOR="${GREEN}"
+
+  : "${INCOLOR:=${GREEN}}"
+  : "${OUTCOLOR:=${BLUE}}"
+
+
   for graphname in 'pf-bits' 'pf-passed-packets' 'pf-dropped-packets' 'pf-state-inserts-removals' 'pf-state-searches'; do
 
 
@@ -53,8 +64,8 @@ gen_pf_graphs() {
 'DEF:bytes_v4_out=${RRDDIR}/${TYPE}.rrd:bytes_v4_out:MAX' \
 'CDEF:bps_in=bytes_v4_in,8,*' \
 'CDEF:bps_out=bytes_v4_out,8,*' \
-'AREA:bps_in${GREEN}:in' \
-'LINE1:bps_out${BLUE}:out'"
+'AREA:bps_in${INCOLOR}:in' \
+'LINE1:bps_out${OUTCOLOR}:out'"
 
         ;;
 
@@ -64,8 +75,8 @@ gen_pf_graphs() {
 --vertical-label 'packets/s' \
 'DEF:packets_v4_in_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_in_pass:MAX' \
 'DEF:packets_v4_out_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_out_pass:MAX' \
-'AREA:packets_v4_in_pass${GREEN}:in' \
-'AREA:packets_v4_out_pass${BLUE}:out'"
+'AREA:packets_v4_in_pass${INCOLOR}:in' \
+'AREA:packets_v4_out_pass${OUTCOLOR}:out'"
 
         ;;
 
@@ -118,6 +129,16 @@ gen_pf_graphs() {
 
 [ -x "$(command -v -- 'rrdtool')" ] \
   || err "rrdtool not found in PATH or not executable."
+
+
+while getopts s opt; do
+  case "${opt}" in
+    's') SWAPCOLORS='yes' ;;
+    *)   usage            ;;
+  esac
+done
+
+shift $((OPTIND - 1))
 
 
 readonly PROGRAM_NAME="${0##*/}"
