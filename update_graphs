@@ -151,6 +151,12 @@ readonly RRDDIR="$3"
 readonly SAVEDIR="$4"
 
 
+case "${TYPE}" in
+  'pf') :                                                           ;;
+  *)    err "\"${TYPE}\" isn't a valid type of statistic to graph." ;;
+esac
+
+
 case "${PERIOD}" in
   'day')   readonly HOURS=24                                           ;;
   'week')  readonly HOURS=168                                          ;;
@@ -178,6 +184,5 @@ readonly BLUE='#0000FF'
 
 
 case "${TYPE}" in
-  'pf') gen_pf_graphs "$1" "$2" "$3" "$4"                           ;;
-  *)    err "\"${TYPE}\" isn't a valid type of statistic to graph." ;;
+  'pf') gen_pf_graphs "$1" "$2" "$3" "$4" ;;
 esac
