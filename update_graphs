@@ -65,7 +65,7 @@ gen_pf_graphs() {
 'CDEF:bps_in=bytes_v4_in,8,*' \
 'CDEF:bps_out=bytes_v4_out,8,*' \
 'AREA:bps_in${INCOLOR}:in' \
-'LINE1:bps_out${OUTCOLOR}:out'"
+'AREA:bps_out${OUTCOLOR}:out'"
 
         ;;
 
