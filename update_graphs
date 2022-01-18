@@ -36,9 +36,9 @@ usage() {
 [savedir] is where the graphs are saved.
 
 ${PROGRAM_NAME} is meant to be a frontend for rrdtool(1) for rrd files
-maintained by symux(1). ${PROGRAM_NAME} assumes that the rrd files in rrddir for a
-particular type are named the same way that the 'datadir' statement in
-symux.conf would name them."
+maintained by symux(1). ${PROGRAM_NAME} assumes that the rrd files in
+rrddir for a particular type are named the same way that the 'datadir'
+statement in symux.conf would name them."
 }
 
 
