@@ -167,11 +167,12 @@ case "${TYPE}" in
 esac
 
 
+# shellcheck disable=SC2086
 case "${PERIOD}" in
   'day')   readonly HOURS=24                                           ;;
   'week')  readonly HOURS=168                                          ;;
   'month') readonly HOURS=672                                          ;;
-  [0-9]*)  check_period_length; readonly HOURS="${PERIOD}"             ;;
+  [0-9]*)  check_period_length; readonly HOURS=${PERIOD}               ;;
   *)       err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
 esac
 
