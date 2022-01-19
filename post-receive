@@ -14,6 +14,8 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# post-receive for personal use, see githooks(5)
+
 set -e
 
 
@@ -114,7 +116,6 @@ else
 fi
 
 
-# Change these to suit your needs.
 readonly OWNER='Ashlen'
 readonly WEBSITE='https://amissing.link'
 readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
