@@ -68,7 +68,6 @@ assign_description() {
 handle_tmpfiles() {
   rm -rf -- "${CLONE_DIR}"
   rm -rf -- "${HTML_DIR}"
-  rm -rf -- "${STAGIT_DIR}"
 }
 
 
@@ -137,6 +136,7 @@ update_ssg() {
 # clone the repo and update the server information. generate the stagit
 # page and copy some misc files.
 clone_and_stagit() {
+  rm -rf -- "${STAGIT_DIR}"
   mkdir -p -- "${STAGIT_DIR}"
   git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
 
