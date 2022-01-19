@@ -137,7 +137,7 @@ update_ssg() {
 # page and copy some misc files.
 clone_and_stagit() {
   rm -rf -- "${STAGIT_DIR}"
-  mkdir -p -- "${STAGIT_DIR}"
+  mkdir -p -- "${STAGIT_DIR}/${BARE_SRCDIR}"
   git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
 
   (cd "${STAGIT_DIR}/.git" && git update-server-info)
