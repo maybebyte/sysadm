@@ -138,6 +138,7 @@ esac
 # For metadata purposes.
 echo "${OWNER}" > "${BARE_SRCDIR}/owner"
 echo "${DESCRIPTION}" > "${BARE_SRCDIR}/description"
+echo "${WEBSITE}/src/${STAGIT_DIR##*/}/.git" > "${BARE_SRCDIR}/url"
 
 
 case "${PWD##*/}" in
