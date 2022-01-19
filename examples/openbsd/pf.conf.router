@@ -37,7 +37,7 @@ match on { $int_if $vpn_if } set prio (3, 7)
 # IP masquerading.
 match out on $vpn_if inet from ($localnet) nat-to ($vpn_if)
 
-antispoof quick for { ($int_if) ($ext_if) ($vpn_if) }
+antispoof quick for { ($int_if) ($ext_if) }
 
 # It's important to use 'block drop in' here. Omitting direction means
 # all outgoing packets from $localnet will get blocked.
