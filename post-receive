@@ -53,6 +53,11 @@ gen_website() {
 
     "${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
       "Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
+
+    # Temporary directories have 700 permissions by default. Without a
+    # chmod(1) here, the whole site will return 403 Forbidden after an
+    # rsync(1).
+    chmod 755 "${WEBDIR}"
 }
 
 
