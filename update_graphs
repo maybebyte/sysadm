@@ -47,7 +47,7 @@ statement in symux.conf would name them."
 
 # Restrict PERIOD length as to avoid too large an integer. 99999 hours is
 # roughly 11 years which is more than enough for my use case.
-assign_hours_for_int() {
+check_period_length() {
   [ ${#PERIOD} -gt 5 ] || err 'PERIOD is restricted to five characters or less.'
 }
 
@@ -171,7 +171,7 @@ case "${PERIOD}" in
   'day')   readonly HOURS=24                                           ;;
   'week')  readonly HOURS=168                                          ;;
   'month') readonly HOURS=672                                          ;;
-  [0-9]*)  assign_hours_for_int; readonly HOURS="${PERIOD}"            ;;
+  [0-9]*)  check_period_length; readonly HOURS="${PERIOD}"             ;;
   *)       err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
 esac
 
