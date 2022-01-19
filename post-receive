@@ -28,52 +28,8 @@ complain_tmpdir() {
 }
 
 
-# change ${WEBSITE} and ${OWNER} to suit your needs.
-readonly OWNER='Ashlen'
-readonly WEBSITE='https://amissing.link'
-readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
-
-STAGIT_DIR="${WEBDIR}/src/$(basename -- "${PWD}" '.git')"
-readonly STAGIT_DIR
-
-
-# if ${PWD} is in the form of 'foo-bar.git', then
-# ${BARE_SRCDIR} equals 'foo-bar.git'.
-#
-# otherwise, ${BARE_SRCDIR} is the present
-# working directory with '/.git' appended.
-assign_bare_srcdir() {
-  if [ -z "${PWD##*.git}" ]; then
-    readonly BARE_SRCDIR="${PWD}"
-
-  else
-    readonly BARE_SRCDIR="${PWD}/.git"
-
-  fi
-}
-
-
-# choose a relevant description based on which repository is being
-# interacted with.
-assign_description() {
-  case "${PWD##*/}" in
-    'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}"                     ;;
-    'dotfiles.git')   readonly DESCRIPTION='My OpenBSD configuration files.'     ;;
-    'sysadm.git')     readonly DESCRIPTION='System Administration tools.'        ;;
-    *)                err 'No description set for current repo.'                 ;;
-  esac
-}
-
-
 handle_tmpfiles() {
-  rm -rf -- "${CLONE_DIR}"
-  rm -rf -- "${HTML_DIR}"
-}
-
-
-add_metadata() {
-  echo "${OWNER}" > "${BARE_SRCDIR}/owner"
-  echo "${DESCRIPTION}" > "${BARE_SRCDIR}/description"
+  rm -rf -- "${CLONE_DIR}" "${HTML_DIR}"
 }
 
 
@@ -137,7 +93,7 @@ update_ssg() {
 # page and copy some misc files.
 clone_and_stagit() {
   rm -rf -- "${STAGIT_DIR}"
-  mkdir -p -- "${STAGIT_DIR}/${BARE_SRCDIR}"
+  mkdir -p -- "${STAGIT_DIR}"
   git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
 
   (cd "${STAGIT_DIR}/.git" && git update-server-info)
@@ -149,11 +105,39 @@ clone_and_stagit() {
 }
 
 
+if [ -z "${PWD##*.git}" ]; then
+  readonly BARE_SRCDIR="${PWD}"
+
+else
+  readonly BARE_SRCDIR="${PWD}/.git"
+
+fi
+
+
+# Change these to suit your needs.
+readonly OWNER='Ashlen'
+readonly WEBSITE='https://amissing.link'
+readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
+
+STAGIT_DIR="${WEBDIR}/src/${PWD##*/}"
+readonly STAGIT_DIR="${STAGIT_DIR%\.git}"
+
+
 trap 'handle_tmpfiles' EXIT INT QUIT TERM
 
-assign_bare_srcdir
-assign_description
-add_metadata
+
+case "${PWD##*/}" in
+  'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}"                     ;;
+  'sysadm.git')     readonly DESCRIPTION='System Administration tools.'        ;;
+  'dotfiles.git')   readonly DESCRIPTION='My OpenBSD configuration files.'     ;;
+  *)                err 'No description set for current repo.'                 ;;
+esac
+
+
+# For metadata purposes.
+echo "${OWNER}" > "${BARE_SRCDIR}/owner"
+echo "${DESCRIPTION}" > "${BARE_SRCDIR}/description"
+
 
 case "${PWD##*/}" in
   'website_md.git') gen_website                                         ;;
@@ -161,5 +145,6 @@ case "${PWD##*/}" in
   'dotfiles.git')   update_ssg                                          ;;
   *)                # if unrecognized, perform no repo specific actions ;;
 esac
+
 
 clone_and_stagit
