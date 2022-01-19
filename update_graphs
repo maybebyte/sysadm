@@ -31,7 +31,10 @@ usage() {
     sends out data more than it receives it.
 
 [type] can be: pf
+
 [period] can be: day week month
+Note that [period] can also take a number of hours as an integer.
+
 [rrddir] is where the rrd files are found.
 [savedir] is where the graphs are saved.
 
@@ -39,6 +42,13 @@ ${PROGRAM_NAME} is meant to be a frontend for rrdtool(1) for rrd files
 maintained by symux(1). ${PROGRAM_NAME} assumes that the rrd files in
 rrddir for a particular type are named the same way that the 'datadir'
 statement in symux.conf would name them."
+}
+
+
+# Restrict PERIOD length as to avoid too large an integer. 99999 hours is
+# roughly 11 years which is more than enough for my use case.
+assign_hours_for_int() {
+  [ ${#PERIOD} -gt 5 ] || err 'PERIOD is restricted to five characters or less.'
 }
 
 
@@ -161,6 +171,7 @@ case "${PERIOD}" in
   'day')   readonly HOURS=24                                           ;;
   'week')  readonly HOURS=168                                          ;;
   'month') readonly HOURS=672                                          ;;
+  [0-9]*)  assign_hours_for_int; readonly HOURS="${PERIOD}"            ;;
   *)       err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
 esac
 
