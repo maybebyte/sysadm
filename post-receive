@@ -61,8 +61,11 @@ assign_description() {
 
 
 handle_tmpfiles() {
-  rm -rf -- "${STAGIT_DIR:?}"
-  mkdir -p -- "${STAGIT_DIR}"
+  rm -f -- "${WEBDIR}/.files"
+  rm -rf -- "${STAGE_DIR}" "${HTML_DIR}"
+  rm -rf -- "${SYSADM_STAGE}"
+  rm -rf -- "${STAGIT_DIR}"
+  rm -rf -- "${DOTFILES_STAGE}"
 }
 
 
@@ -78,9 +81,6 @@ add_metadata() {
 gen_website() {
     readonly STAGE_DIR="${HOME}/website-staging"
     readonly HTML_DIR="${HOME}/website-final"
-
-    rm -f -- "${WEBDIR}/.files"
-    rm -rf -- "${STAGE_DIR:?}" "${HTML_DIR:?}"
 
     mkdir -p -- "${HTML_DIR}"
 
@@ -106,8 +106,6 @@ update_sysadm() {
   readonly SYSADM_DIR='/etc/sysadm'
   readonly SYSADM_STAGE="${HOME}/sysadm-staging"
 
-  rm -rf -- "${SYSADM_STAGE:?}"
-
   git clone -- "${BARE_SRCDIR}" "${SYSADM_STAGE}"
 
   rsync -a --delete --exclude='*.git' -- "${SYSADM_STAGE}/" "${SYSADM_DIR}/"
@@ -124,8 +122,6 @@ update_ssg() {
   readonly BINDIR="${HOME}/bin"
   readonly DOTFILES_STAGE="${HOME}/dotfiles-staging"
 
-  rm -rf -- "${DOTFILES_STAGE:?}"
-
   git clone -- "${BARE_SRCDIR}" "${DOTFILES_STAGE}"
 
   install -g git -o git -m 700 -- \
@@ -139,6 +135,7 @@ update_ssg() {
 # clone the repo and update the server information. generate the stagit
 # page and copy some misc files.
 clone_and_stagit() {
+  mkdir -p -- "${STAGIT_DIR}"
   git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
 
   (cd "${STAGIT_DIR}/.git" && git update-server-info)
@@ -150,9 +147,10 @@ clone_and_stagit() {
 }
 
 
+trap 'handle_tmpfiles' EXIT INT QUIT TERM
+
 assign_bare_srcdir
 assign_description
-handle_tmpfiles
 add_metadata
 
 case "${PWD##*/}" in
