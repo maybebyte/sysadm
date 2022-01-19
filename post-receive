@@ -133,10 +133,10 @@ trap 'handle_tmpfiles' EXIT INT QUIT TERM
 
 
 case "${PWD##*/}" in
-  'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}"                     ;;
-  'sysadm.git')     readonly DESCRIPTION='System Administration tools.'        ;;
-  'dotfiles.git')   readonly DESCRIPTION='My OpenBSD configuration files.'     ;;
-  *)                err 'No description set for current repo.'                 ;;
+  'website_md.git') readonly DESCRIPTION="Markdown and other source files for ${WEBSITE##*//}" ;;
+  'sysadm.git')     readonly DESCRIPTION='System Administration tools.'                        ;;
+  'dotfiles.git')   readonly DESCRIPTION='My OpenBSD configuration files.'                     ;;
+  *)                err 'No description set for current repo.'                                 ;;
 esac
 
 
