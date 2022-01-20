@@ -1,5 +1,16 @@
 # These are my pf(4) rules for a router (an APU4D4 running OpenBSD).
 # https://amissing.link/openbsd-router.html
+#
+# Note that I make use of 'quick' a lot in this file. After some testing
+# without 'quick' in the places where it wasn't required, I found it
+# didn't harm readability to rewrite things so they were in the order
+# 'ruleset-optimization basic' spits out. Which means I can save some
+# rule evaluation for free by adding 'quick' where appropriate. In an
+# established (relatively unchanging configuration that's been deployed
+# successfully for a while) and well-understood pf.conf(5), this is not
+# a bad thing. Otherwise I'd say it's ill-advised, as 'quick' usually
+# interferes with ruleset optimization and may come with unexpected
+# results.
 
 table <martians> {
   0.0.0.0/8 10.0.0.0/8 100.64.0.0/10            \
