@@ -33,14 +33,6 @@ set block-policy drop
 set loginterface $ext_if
 set skip on lo
 
-block
-
-# https://www.benzedrine.ch/ackpri.html
-#
-# normal packets get default priority, TCP ACKs with no data payload and
-# packets with TOS of lowdelay get the max priority.
-match on { $int_if $vpn_if } set prio (3, 7)
-
 # Basic traffic queueing, assuming 40M is the maximum bandwidth (leaving
 # 5-10% headroom is a good idea).
 #queue outq on $vpn_if bandwidth 36M max 36M flows 1024 qlimit 1024 default
@@ -60,6 +52,14 @@ block drop out log quick on $vpn_if to <martians>
 
 # Letting clients use their own resolver makes the DNS sinkhole pointless.
 block return in log quick proto { tcp udp } to !($int_if) port { domain domain-s }
+
+block
+
+# https://www.benzedrine.ch/ackpri.html
+#
+# normal packets get default priority, TCP ACKs with no data payload and
+# packets with TOS of lowdelay get the max priority.
+match on { $int_if $vpn_if } set prio (3, 7)
 
 # Allows traffic needed for the VPN and DHCP.
 pass out quick on $ext_if inet proto udp from port bootpc to port bootps
