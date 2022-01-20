@@ -72,6 +72,7 @@ update_sysadm() {
   git clone -- "${BARE_SRCDIR}" "${CLONE_DIR}"
 
   rsync -a --delete --exclude='*.git' -- "${CLONE_DIR}/" "${SYSADM_DIR}/"
+  chmod 755 "${SYSADM_DIR}"
 }
 
 
