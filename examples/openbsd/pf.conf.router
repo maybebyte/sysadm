@@ -50,23 +50,21 @@ block drop out log quick on $vpn_if to <martians>
 # Letting clients use their own resolver makes the DNS sinkhole pointless.
 block return in log quick proto { tcp udp } to !($int_if) port { domain domain-s }
 
-# Allows traffic needed for the VPN.
+# Allows traffic needed for the VPN and DHCP.
+pass out quick on $ext_if inet proto udp from port bootpc to port bootps
 pass out quick on $ext_if inet proto udp to $vpn_endpoint_ip port $vpn_endpoint_port
+pass in quick on $ext_if inet proto udp from port bootps to port bootpc
 
 # Internet, via VPN.
 pass out quick on $vpn_if inet proto tcp to port ssh set prio (5, 7)
 pass out quick on $vpn_if inet proto { tcp udp }
 
-# See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
-# The Book of PF.
-pass inet from ($localnet)
-
 # A subset of icmp (specified by $icmp_types) is allowed.
 pass inet proto icmp icmp-type $icmp_types
 
-# DHCP
-pass out on $ext_if inet proto udp from port bootpc to port bootps
-pass in on $ext_if inet proto udp from port bootps to port bootpc
+# See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
+# The Book of PF.
+pass inet from ($localnet)
 
 # The dumb access point should never phone home.
 # However, it can sync time using data from the router.
