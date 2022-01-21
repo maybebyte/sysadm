@@ -40,8 +40,6 @@ set skip on lo
 # IP masquerading.
 match out on $vpn_if inet from ($localnet) nat-to ($vpn_if)
 
-antispoof quick for { ($int_if) ($ext_if) }
-
 # Allows traffic needed for DHCP, serving as an exception to the
 # martians rules below since those offering DHCP will usually be in those
 # ranges.
@@ -50,8 +48,8 @@ pass in quick on $ext_if inet proto udp from port bootps to port bootpc
 
 # It's important to use 'block drop in' here. Omitting direction means
 # all outgoing packets from $localnet will get blocked.
-block drop in log quick on { $ext_if $vpn_if } from urpf-failed
-block drop in log quick on { $ext_if $vpn_if } from no-route
+block drop in log quick from urpf-failed
+block drop in log quick from no-route
 
 block drop in log quick on { $ext_if $vpn_if } from <martians>
 block drop out log quick on { $ext_if $vpn_if } to <martians>
