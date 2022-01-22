@@ -64,7 +64,7 @@ pass inet proto icmp icmp-type $icmp_types
 
 # See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
 # The Book of PF.
-pass inet from ($localnet)
+pass inet proto { tcp udp } from ($localnet)
 
 # The dumb access point should never phone home.
 # However, it can sync time using data from the router.
