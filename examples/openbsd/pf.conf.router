@@ -62,9 +62,7 @@ pass out on $vpn_if inet proto { tcp udp }
 # A subset of icmp (specified by $icmp_types) is allowed.
 pass inet proto icmp icmp-type $icmp_types
 
-# See "Keep It Simple: Avoid the Pitfalls of in, out, and on" from
-# The Book of PF.
-pass inet proto { tcp udp } from ($localnet)
+pass in on $int_if inet
 
 # The dumb access point should never phone home.
 # However, it can sync time using data from the router.
