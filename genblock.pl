@@ -99,8 +99,8 @@ sub format_blocklist {
 
   # https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s15.html
   #
-  # Somewhat malformed URLs (hyphens, underscores, uppercase, and
-  # numbers in places they shouldn't be) are accepted to catch those
+  # Somewhat malformed domain names (hyphens, underscores, uppercase,
+  # and numbers in places they shouldn't be) are accepted to catch those
   # using resolvable out-of-spec domain names to evade regular
   # expressions.
   my $domain_regexp = '\b((?=[a-zA-Z0-9-_]+\.)[a-zA-Z0-9-_]+([a-zA-Z0-9-_]+)*\.)+[a-zA-Z0-9-_]+\b';
