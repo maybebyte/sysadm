@@ -118,7 +118,7 @@ sub format_blocklist {
         #
         # This is needed since our domain regexp was necessarily bent to
         # catch ne'er-do-wells, and it has lost some sanity as a result.
-        next if ($& =~ m/^([0-9]{1,3}\.)+([0-9]{1,3})$/);
+        next if ($& =~ m/^[\d\.]$/);
 
         # Convert any accepted uppercase to lowercase, since DNS is
         # case-insensitive anyway.
