@@ -134,13 +134,13 @@ sub format_blocklist {
   my @unique_domains = uniq(@domains);
 
   if ($format =~ m/^unbound$/) {
-    print($ofh "local-zone: \"$_\" always_refuse\n") for (sort(values(@unique_domains)));
     print($ofh "local-zone: \"use-application-dns.net\" always_refuse\n");
+    print($ofh "local-zone: \"$_\" always_refuse\n") for (sort(values(@unique_domains)));
   }
 
   elsif ($format =~ m/^plain$/) {
-    print($ofh "$_\n") for (sort(values(@unique_domains)));
     print($ofh "use-application-dns.net\n");
+    print($ofh "$_\n") for (sort(values(@unique_domains)));
   }
 
 
