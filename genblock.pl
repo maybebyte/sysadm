@@ -82,20 +82,18 @@ sub uniq {
 
 sub fetch_blocklists {
   my $ua = HTTP::Tiny->new;
-  my $fh;
-  open($fh, '>>', $tmp_file) or die("Can't open $fh");
+  open(my $fh, '>>', $tmp_file) or die("Can't open $tmp_file");
 
   for (@_) {
     print($fh $ua->get($_)->{content}) or print(STDERR "Failed to download from $_");
   }
 
-  close($fh) or die("Can't close $fh");
+  close($fh) or die("Can't close $tmp_file");
 }
 
 
 sub format_blocklist {
-  my $fh;
-  open($fh, '<', $tmp_file) or die("Can't open $fh");
+  open(my $fh, '<', $tmp_file) or die("Can't open $tmp_file");
 
   # https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s15.html
   #
@@ -129,11 +127,10 @@ sub format_blocklist {
     }
   }
 
-  close($fh) or die("Can't close $fh");
+  close($fh) or die("Can't close $tmp_file");
 
 
-  my $ofh;
-  open($ofh, '>', $out_file) or die("Can't open $ofh");
+  open(my $ofh, '>', $out_file) or die("Can't open $out_file");
   my @unique_domains = uniq(@domains);
 
   if ($format =~ m/^unbound$/) {
@@ -147,7 +144,7 @@ sub format_blocklist {
   }
 
 
-  close($ofh) or die("Can't close $ofh");
+  close($ofh) or die("Can't close $out_file");
 }
 
 
