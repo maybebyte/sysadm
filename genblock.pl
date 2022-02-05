@@ -32,6 +32,8 @@ usage: $0 [-h] [-t type]
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
+
+$0 reads from STDIN and writes to STDOUT.
 EOT
 }
 
