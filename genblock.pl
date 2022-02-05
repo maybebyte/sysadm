@@ -23,7 +23,7 @@ our $opt_t = 'plain';
 
 sub usage {
   die <<EOT;
-$0 generates blocklists for unwind(8) and unbound(8) on OpenBSD.
+$0 generates blocklists.
 
 usage: $0 [-h] [-o outfile] [-t type]
 
