@@ -97,7 +97,7 @@ getopts('ht:o:');
 
 usage if $opt_h;
 
-die "$opt_t is not a valid type" if ($opt_t !~ m/^(plain|unbound)$/);
+die "$opt_t is not a valid type." if ($opt_t !~ m/^(plain|unbound)$/);
 
 if ($opt_o) {
   open(my $fh, '>', $opt_o) or die "Couldn't open $opt_o for writing.";
