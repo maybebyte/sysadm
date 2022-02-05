@@ -15,26 +15,25 @@
 
 use strict;
 use warnings;
+use Getopt::Std;
+
+our $opt_h;
+our $opt_t = 'plain';
 
 
 sub usage {
   die <<EOT;
 $0 generates blocklists for unwind(8) and unbound(8) on OpenBSD.
 
-usage: $0 [format] /path/to/save/blocklist
+usage: $0 [-h] [-t type]
 
-formats can be: plain unbound
+-h: help.
 
-plain: Saves one domain per line.
-unbound: Same as above, but formatted as 'local-zone: \"[domain]\" always_refuse'
+-t: type of format, 'plain' by default.
+    'plain' extracts one domain per line and does no other formatting.
+    'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
 EOT
 }
-
-
-my $format = shift or usage;
-my $out_file = shift or usage;
-
-die "$format is not a valid format" if ($format !~ m/^(plain|unbound)$/);
 
 
 sub uniq {
@@ -76,23 +75,24 @@ sub format_blocklist {
     }
   }
 
-
-  open(my $ofh, '>', $out_file) or die("Can't open $out_file");
   my @unique_domains = uniq(@domains);
 
-  if ($format =~ m/^unbound$/) {
-    print($ofh "local-zone: \"use-application-dns.net\" always_refuse\n");
-    print($ofh "local-zone: \"$_\" always_refuse\n") for (sort(values(@unique_domains)));
+  if ($opt_t =~ m/^plain$/) {
+    print("use-application-dns.net\n");
+    print("$_\n") for (sort(values(@unique_domains)));
   }
 
-  elsif ($format =~ m/^plain$/) {
-    print($ofh "use-application-dns.net\n");
-    print($ofh "$_\n") for (sort(values(@unique_domains)));
+  elsif ($opt_t =~ m/^unbound$/) {
+    print("local-zone: \"use-application-dns.net\" always_refuse\n");
+    print("local-zone: \"$_\" always_refuse\n") for (sort(values(@unique_domains)));
   }
-
-
-  close($ofh) or die("Can't close $out_file");
 }
 
+
+getopts('ht:');
+
+usage if $opt_h;
+
+die "$opt_t is not a valid type" if ($opt_t !~ m/^(plain|unbound)$/);
 
 format_blocklist;
