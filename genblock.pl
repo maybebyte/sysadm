@@ -149,4 +149,7 @@ sub format_blocklist {
 
 
 fetch_blocklists @BLOCKLIST_URLS;
+
+-e $out_file and rename($out_file, "$out_file.bak");
+
 format_blocklist;
