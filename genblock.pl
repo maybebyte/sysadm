@@ -13,6 +13,9 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# TODO: add the ability to give input files through arguments after
+# flags (think cat(1) or grep(1)).
+
 use strict;
 use warnings;
 use Getopt::Std;
@@ -82,6 +85,7 @@ sub format_blocklist {
   my @unique_domains = uniq(@domains);
 
   if ($opt_t =~ m/^plain$/) {
+    # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
     print("use-application-dns.net\n");
     print("$_\n") for (sort(values(@unique_domains)));
   }
