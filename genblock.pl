@@ -17,7 +17,7 @@ use strict;
 use warnings;
 use Getopt::Std;
 
-our $opt_h;
+our($opt_h, $opt_o);
 our $opt_t = 'plain';
 
 
@@ -25,9 +25,11 @@ sub usage {
   die <<EOT;
 $0 generates blocklists for unwind(8) and unbound(8) on OpenBSD.
 
-usage: $0 [-h] [-t type]
+usage: $0 [-h] [-o outfile] [-t type]
 
 -h: help.
+
+-o: write to the given output file.
 
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
@@ -91,10 +93,19 @@ sub format_blocklist {
 }
 
 
-getopts('ht:');
+getopts('ht:o:');
 
 usage if $opt_h;
 
 die "$opt_t is not a valid type" if ($opt_t !~ m/^(plain|unbound)$/);
 
-format_blocklist;
+if ($opt_o) {
+  open(my $fh, '>', $opt_o) or die "Couldn't open $opt_o for writing.";
+  select($fh);
+  format_blocklist;
+  close($fh);
+}
+
+else {
+  format_blocklist;
+}
