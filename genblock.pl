@@ -29,13 +29,13 @@ usage: $0 [-h] [-o outfile] [-t type]
 
 -h: help.
 
--o: write to the given output file.
+-o: write to the given output file instead of STDOUT.
 
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
 
-$0 reads from STDIN and writes to STDOUT.
+$0 reads from STDIN.
 EOT
 }
 
