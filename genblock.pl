@@ -61,24 +61,23 @@ sub format_blocklist {
 
   while (<>) {
     # Don't process commented or blank lines.
-    unless (m/^(#|$)/) {
-      # Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
-      # will technically match $domain_regexp. We want to do this
-      # *before* the match, as "$&" entirely depends on what's matched.
-      s/(127\.0\.0\.1|0\.0\.0\.0)//g;
+    next if (m/^(#|$)/);
+    # Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
+    # will technically match $domain_regexp. We want to do this
+    # *before* the match, as "$&" entirely depends on what's matched.
+    s/(127\.0\.0\.1|0\.0\.0\.0)//g;
 
-      if (m/$domain_regexp/) {
-        # If there are only integers and dots in the match, don't count
-        # it as a valid domain.
-        #
-        # This is needed since our domain regexp was necessarily bent to
-        # catch ne'er-do-wells, and it has lost some sanity as a result.
-        next if ($& =~ m/^[\d\.]+$/);
+    if (m/$domain_regexp/) {
+      # If there are only integers and dots in the match, don't count
+      # it as a valid domain.
+      #
+      # This is needed since our domain regexp was necessarily bent to
+      # catch ne'er-do-wells, and it has lost some sanity as a result.
+      next if ($& =~ m/^[\d\.]+$/);
 
-        # Convert any accepted uppercase to lowercase, since DNS is
-        # case-insensitive anyway.
-        $domains[++$#domains] = lc($&);
-      }
+      # Convert any accepted uppercase to lowercase, since DNS is
+      # case-insensitive anyway.
+      $domains[++$#domains] = lc($&);
     }
   }
 
