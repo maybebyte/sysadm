@@ -43,7 +43,7 @@ gen_website() {
 
     git clone -- "${BARE_SRCDIR}" "${CLONE_DIR}"
 
-    "${HOME}/bin/ssg6" "${CLONE_DIR}" "${HTML_DIR}" "${OWNER}" \
+    "${HOME}/bin/ssg6" "${CLONE_DIR}" "${HTML_DIR}" "${WEBSITE##*//}" \
       "${WEBSITE}" >/dev/null
 
     rsync -a --delete --exclude='*.git' --exclude='*src*' \
