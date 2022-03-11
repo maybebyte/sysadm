@@ -56,7 +56,7 @@ sub format_blocklist {
   # and numbers in places they shouldn't be) are accepted to catch those
   # using resolvable out-of-spec domain names to evade regular
   # expressions.
-  my $domain_regexp = '\b((?=[a-zA-Z0-9-_]+\.)[a-zA-Z0-9-_]+([a-zA-Z0-9-_]+)*\.)+[a-zA-Z0-9-_]+\b';
+  my $domain_regexp = '\b((?=[\w-]+\.)[\w-]+([\w-]+)*\.)+[\w-]+\b';
   my @domains;
 
   while (<>) {
