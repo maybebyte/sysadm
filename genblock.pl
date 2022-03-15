@@ -13,9 +13,6 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# TODO: add the ability to give input files through arguments after
-# flags (think cat(1) or grep(1)).
-
 use strict;
 use warnings;
 use Getopt::Std;
@@ -28,7 +25,7 @@ sub usage {
   die <<EOT;
 $0 generates blocklists.
 
-usage: $0 [-h] [-o outfile] [-t type]
+usage: $0 [-h] [-o outfile] [-t type] [file (optional)]
 
 -h: help.
 
@@ -38,7 +35,7 @@ usage: $0 [-h] [-o outfile] [-t type]
     'plain' extracts one domain per line and does no other formatting.
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
 
-$0 reads from STDIN.
+$0 reads from STDIN or a given file.
 EOT
 }
 
