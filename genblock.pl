@@ -42,7 +42,7 @@ EOT
 
 sub uniq {
   my %seen;
-  grep !$seen{$_}++, @_;
+  grep { ! $seen{$_}++ } @_;
 }
 
 
