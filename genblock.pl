@@ -25,7 +25,7 @@ sub usage {
   die <<EOT;
 $0 generates blocklists.
 
-usage: $0 [-h] [-o outfile] [-t type] [file (optional)]
+usage: $0 [-h] [-o outfile] [-t type] [file (optional)] ...
 
 -h: help.
 
