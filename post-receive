@@ -46,7 +46,7 @@ gen_website() {
     "${HOME}/bin/ssg6" "${CLONE_DIR}" "${HTML_DIR}" "${WEBSITE##*//}" \
       "${WEBSITE}" >/dev/null
 
-    rsync -a --delete --exclude='*.git' --exclude='*src*' \
+    rsync -a --delete --exclude='*.git' --exclude='*src/*' \
       --exclude='.files' -- "${HTML_DIR}/" "${WEBDIR}/"
 
     "${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
