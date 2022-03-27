@@ -25,7 +25,7 @@ sub usage {
   die <<EOT;
 $0 generates blocklists.
 
-usage: $0 [-h] [-o outfile] [-t type] [file (optional)]
+usage: $0 [-h] [-o outfile] [-t type] [file (optional)] ...
 
 -h: help.
 
@@ -42,7 +42,7 @@ EOT
 
 sub uniq {
   my %seen;
-  grep !$seen{$_}++, @_;
+  return grep {! $seen{$_}++} @_;
 }
 
 
