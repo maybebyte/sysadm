@@ -49,8 +49,6 @@ gen_website() {
     rsync -a --delete --exclude='*.git' --exclude='*src*' \
       --exclude='.files' -- "${HTML_DIR}/" "${WEBDIR}/"
 
-    rsync -a --exclude='*.git' -- "${HTML_DIR}/src/" "${WEBDIR}/src/"
-
     "${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
       "Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
 
