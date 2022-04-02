@@ -1,14 +1,14 @@
 # upgrade.site(5)
-	/bin/cat <<'EOF' >>/etc/rc.firsttime
-/usr/sbin/pkg_add -Iu
+/bin/cat <<-'EOF' >>/etc/rc.firsttime
+	/usr/sbin/pkg_add -Iu
 
-/bin/rm -f /etc/fonts/conf.d/10-hinting-slight.conf \
-	/etc/fonts/conf.d/10-scale-bitmap-fonts.conf \
-	/etc/fonts/conf.d/11-lcdfilter-default.conf \
-	/etc/fonts/conf.d/70-yes-bitmaps.conf
+	/bin/rm -f /etc/fonts/conf.d/10-hinting-slight.conf \
+		/etc/fonts/conf.d/10-scale-bitmap-fonts.conf \
+		/etc/fonts/conf.d/11-lcdfilter-default.conf \
+		/etc/fonts/conf.d/70-yes-bitmaps.conf
 
-/bin/ln -sf /etc/fonts/conf.avail/10-hinting-none.conf \
-	/etc/fonts/conf.avail/10-unhinted.conf \
-	/etc/fonts/conf.avail/70-no-bitmaps.conf \
-	/etc/fonts/conf.d/
+	/bin/ln -sf /etc/fonts/conf.avail/10-hinting-none.conf \
+		/etc/fonts/conf.avail/10-unhinted.conf \
+		/etc/fonts/conf.avail/70-no-bitmaps.conf \
+		/etc/fonts/conf.d/
 EOF
