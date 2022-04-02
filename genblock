@@ -18,13 +18,13 @@ set -e
 
 
 err() {
-  printf '%s\n' "$*" >&2
-  exit 1
+	printf '%s\n' "$*" >&2
+	exit 1
 }
 
 
 usage() {
-  err "${0##*/} generates blocklists for unwind(8) and unbound(8) on OpenBSD.
+	err "${0##*/} generates blocklists for unwind(8) and unbound(8) on OpenBSD.
 
 usage: ${0##*/} /path/to/save/blocklist"
 }
@@ -37,18 +37,18 @@ usage: ${0##*/} /path/to/save/blocklist"
 #
 # $1 is a file or STDIN.
 prepare_domains() {
-  CR="$(printf -- '\r')"
-  TAB="$(printf -- '\t')"
-  readonly CR TAB
+	CR="$(printf -- '\r')"
+	TAB="$(printf -- '\t')"
+	readonly CR TAB
 
-  # TODO: perhaps replace this section with perl or something with a
-  # more capable pattern engine. domains could be matched in the initial
-  # pattern, but would need lookaround (hyphens are a valid part of
-  # domain nodes, but not at the beginning or end). by matching exactly
-  # what we want, it should alleviate the need to filter with 'grep -v'
-  grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
-    | grep -v -- 'localhost$'                             \
-    | sed -E -e "s/${CR}//g" -e "s/( |${TAB})+/${TAB}/"
+	# TODO: perhaps replace this section with perl or something with a
+	# more capable pattern engine. domains could be matched in the initial
+	# pattern, but would need lookaround (hyphens are a valid part of
+	# domain nodes, but not at the beginning or end). by matching exactly
+	# what we want, it should alleviate the need to filter with 'grep -v'
+	grep -E -- "^(0\.0\.0\.0|127\.0\.0\.1)( |${TAB})+" "$1" \
+		| grep -v -- 'localhost$' \
+		| sed -E -e "s/${CR}//g" -e "s/( |${TAB})+/${TAB}/"
 }
 
 
@@ -62,44 +62,44 @@ prepare_domains() {
 #
 # $1 is a file or STDIN.
 format_domains() {
-  case "${DNS}" in
+	case "${DNS}" in
 
-    # there are two identical cut(1) invocations in the 'unwind' and
-    # 'unbound' patterns, but refactoring and moving them up into
-    # prepare_domains() means that cat(1) would need to be added to the
-    # 'unwind' pattern to handle STDIN.
-    'unwind')
-      cut -f 2 -- "$1"
+		# there are two identical cut(1) invocations in the 'unwind' and
+		# 'unbound' patterns, but refactoring and moving them up into
+		# prepare_domains() means that cat(1) would need to be added to the
+		# 'unwind' pattern to handle STDIN.
+		'unwind')
+			cut -f 2 -- "$1"
 
-      # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-      echo 'use-application-dns.net'
+			# https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+			echo 'use-application-dns.net'
 
-      ;;
+			;;
 
-    'unbound')
-      cut -f 2 -- "$1" | sed -- 's/.*/local-zone: "&" always_refuse/'
+		'unbound')
+			cut -f 2 -- "$1" | sed -- 's/.*/local-zone: "&" always_refuse/'
 
-      echo 'local-zone: "use-application-dns.net" always_refuse'
+			echo 'local-zone: "use-application-dns.net" always_refuse'
 
-      ;;
+			;;
 
-  esac | sort -u
+	esac | sort -u
 }
 
 
-[ -n "$1" ]                || usage
+[ -n "$1" ] || usage
 [ "$(uname)" = 'OpenBSD' ] || err "${0##*/} only supports OpenBSD."
-[ "$(id -u)" -eq 0 ]       || err "Execute ${0##*/} with root privileges."
+[ "$(id -u)" -eq 0 ] || err "Execute ${0##*/} with root privileges."
 
 
 if [ "$(rcctl get unwind flags)" != 'NO' ]; then
-  readonly DNS='unwind'
+	readonly DNS='unwind'
 
 elif [ "$(rcctl get unbound flags)" != 'NO' ]; then
-  readonly DNS='unbound'
+	readonly DNS='unbound'
 
 else
-  err "${0##*/} only supports unwind(8) and unbound(8)."
+	err "${0##*/} only supports unwind(8) and unbound(8)."
 
 fi
 
@@ -141,12 +141,12 @@ readonly TMP_BLOCKLIST
 readonly BLOCKLIST="$1"
 
 
-printf '%s\n' "${BLOCKLIST_URLS}"    \
-  | xargs -- ftp -o - -- 2>/dev/null \
-  | prepare_domains -                \
-  | format_domains -                 \
-  > "${TMP_BLOCKLIST}"               \
-  || err 'Unable to create blocklist.'
+printf '%s\n' "${BLOCKLIST_URLS}" \
+	| xargs -- ftp -o - -- 2>/dev/null \
+	| prepare_domains - \
+	| format_domains - \
+	> "${TMP_BLOCKLIST}" \
+	|| err 'Unable to create blocklist.'
 
 
 # if no blocklist is present, just create a blank template file so mv(1)
@@ -158,28 +158,25 @@ chmod -- 0444 "${BLOCKLIST}"
 mv -- "${BLOCKLIST}" "${BLOCKLIST}.bak"
 
 install -m 0444 -- "${TMP_BLOCKLIST}" "${BLOCKLIST}" \
-  || err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
+	|| err "Unable to install(1) ${TMP_BLOCKLIST} to ${BLOCKLIST}"
 
 
 case "${DNS}" in
-  'unwind')  unwind -n         && rcctl restart unwind  ;;
-  'unbound') unbound-checkconf && rcctl restart unbound ;;
-esac >/dev/null 2>&1 ||
+	'unwind') unwind -n && rcctl restart unwind ;;
+	'unbound') unbound-checkconf && rcctl restart unbound ;;
+esac >/dev/null 2>&1 || {
 
-{
+	# ${BLOCKLIST}.bak should always be a working file with appropriate
+	# permissions, so it is safe to move ${BLOCKLIST}.bak to
+	# ${BLOCKLIST} without further checks.
+	mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
 
-  # ${BLOCKLIST}.bak should always be a working file with appropriate
-  # permissions, so it is safe to move ${BLOCKLIST}.bak to
-  # ${BLOCKLIST} without further checks.
-  mv -- "${BLOCKLIST}.bak" "${BLOCKLIST}"
-
-  # exits immediately without removing ${TMP_BLOCKLIST} and printing the
-  # file in the error message so it can be inspected.
-  err "${0##*/} failed to restart ${DNS}, which probably means ${DNS} didn't like ${TMP_BLOCKLIST}.
+	# exits immediately without removing ${TMP_BLOCKLIST} and printing the
+	# file in the error message so it can be inspected.
+	err "${0##*/} failed to restart ${DNS}, which probably means ${DNS} didn't like ${TMP_BLOCKLIST}.
 
 For now, either the previous working blocklist or a blank blocklist was
 instated at ${BLOCKLIST} with appropriate permissions."
-
 }
 
 # if the case statement above fails, the script exits before the removal

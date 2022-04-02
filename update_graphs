@@ -17,13 +17,13 @@
 
 
 err() {
-  printf '%s\n' "$*" >&2
-  exit 1
+	printf '%s\n' "$*" >&2
+	exit 1
 }
 
 
 usage() {
-  err "${PROGRAM_NAME} [-s] [type] [period] [rrddir] [savedir]
+	err "${PROGRAM_NAME} [-s] [type] [period] [rrddir] [savedir]
 
 -s: swap colors for allowed incoming and outgoing traffic (by default,
     incoming traffic is green and outgoing traffic is blue). These defaults
@@ -48,27 +48,33 @@ statement in symux.conf would name them."
 # Restrict PERIOD length as to avoid too large an integer. 99999 hours is
 # roughly 11 years which is more than enough for my use case.
 check_period_length() {
-  [ ${#PERIOD} -gt 5 ] || err 'PERIOD is restricted to five characters or less.'
+	[ ${#PERIOD} -gt 5 ] || err 'PERIOD is restricted to five characters or less.'
 }
 
 
 gen_pf_graphs() {
-  [ "${SWAPCOLORS}" = 'yes' ] && INCOLOR="${BLUE}" OUTCOLOR="${GREEN}"
+	GRAPHS='pf-bits
+pf-passed-packets
+pf-dropped-packets
+pf-state-inserts-removals
+pf-state-searches'
 
-  : "${INCOLOR:=${GREEN}}"
-  : "${OUTCOLOR:=${BLUE}}"
+	[ "${SWAPCOLORS}" = 'yes' ] && INCOLOR="${BLUE}" OUTCOLOR="${GREEN}"
 
-
-  for graphname in 'pf-bits' 'pf-passed-packets' 'pf-dropped-packets' 'pf-state-inserts-removals' 'pf-state-searches'; do
-
-
-    BASE_CMD="rrdtool graph "${SAVEDIR}/${graphname}-${PERIOD}.png" -s -${HOURS}hours"
-
-    case "${graphname}" in
+	: "${INCOLOR:=${GREEN}}"
+	: "${OUTCOLOR:=${BLUE}}"
 
 
-      'pf-bits')
-        REST_OF_CMD="-t 'pf bits in/out (IPv4)' \
+	for graphname in ${GRAPHS}; do
+
+
+		BASE_CMD="rrdtool graph "${SAVEDIR}/${graphname}-${PERIOD}.png" -s -${HOURS}hours"
+
+		case "${graphname}" in
+
+
+			'pf-bits')
+				REST_OF_CMD="-t 'pf bits in/out (IPv4)' \
 --vertical-label 'bits/s' \
 'DEF:bytes_v4_in=${RRDDIR}/${TYPE}.rrd:bytes_v4_in:MAX' \
 'DEF:bytes_v4_out=${RRDDIR}/${TYPE}.rrd:bytes_v4_out:MAX' \
@@ -77,75 +83,75 @@ gen_pf_graphs() {
 'AREA:bps_in${INCOLOR}:in' \
 'AREA:bps_out${OUTCOLOR}:out'"
 
-        ;;
+				;;
 
 
-      'pf-passed-packets')
-        REST_OF_CMD="-t 'pf passed packets in/out (IPv4)' \
+			'pf-passed-packets')
+				REST_OF_CMD="-t 'pf passed packets in/out (IPv4)' \
 --vertical-label 'packets/s' \
 'DEF:packets_v4_in_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_in_pass:MAX' \
 'DEF:packets_v4_out_pass=${RRDDIR}/${TYPE}.rrd:packets_v4_out_pass:MAX' \
 'AREA:packets_v4_in_pass${INCOLOR}:in' \
 'AREA:packets_v4_out_pass${OUTCOLOR}:out'"
 
-        ;;
+				;;
 
 
-      'pf-dropped-packets')
-        REST_OF_CMD="-t 'pf dropped packets in/out (IPv4)' \
+			'pf-dropped-packets')
+				REST_OF_CMD="-t 'pf dropped packets in/out (IPv4)' \
 --vertical-label 'packets/s' \
 'DEF:packets_v4_in_drop=${RRDDIR}/${TYPE}.rrd:packets_v4_in_drop:MAX' \
 'DEF:packets_v4_out_drop=${RRDDIR}/${TYPE}.rrd:packets_v4_out_drop:MAX' \
 'AREA:packets_v4_in_drop${RED}:in' \
 'AREA:packets_v4_out_drop${YELLOW}:out'"
 
-        ;;
+				;;
 
 
-      'pf-state-inserts-removals')
-        REST_OF_CMD="-t 'pf state inserts/removals' \
+			'pf-state-inserts-removals')
+				REST_OF_CMD="-t 'pf state inserts/removals' \
 --vertical-label 'states/s' \
 'DEF:states_inserts=${RRDDIR}/${TYPE}.rrd:states_inserts:MAX' \
 'DEF:states_removals=${RRDDIR}/${TYPE}.rrd:states_removals:MAX' \
 'AREA:states_inserts${GREEN}:inserts' \
 'AREA:states_removals${RED}:removals'"
 
-        ;;
+				;;
 
 
-      'pf-state-searches')
-        REST_OF_CMD="-t 'pf state searches' \
+			'pf-state-searches')
+				REST_OF_CMD="-t 'pf state searches' \
 --vertical-label 'states/s' \
 'DEF:states_searches=${RRDDIR}/${TYPE}.rrd:states_searches:MAX' \
 'AREA:states_searches${RED}:searches'"
 
-        ;;
+				;;
 
 
-      *)
-        err 'This should never happen.'
+			*)
+				err 'This should never happen.'
 
-        ;;
-
-
-    esac
-
-    eval "${BASE_CMD} ${REST_OF_CMD}"
+				;;
 
 
-  done
+		esac
+
+		eval "${BASE_CMD} ${REST_OF_CMD}"
+
+
+	done
 }
 
 
 [ -x "$(command -v -- 'rrdtool')" ] \
-  || err "rrdtool not found in PATH or not executable."
+	|| err "rrdtool not found in PATH or not executable."
 
 
 while getopts s opt; do
-  case "${opt}" in
-    's') SWAPCOLORS='yes' ;;
-    *)   usage            ;;
-  esac
+	case "${opt}" in
+		's') SWAPCOLORS='yes' ;;
+		*) usage ;;
+	esac
 done
 
 shift $((OPTIND - 1))
@@ -162,18 +168,18 @@ readonly SAVEDIR="$4"
 
 
 case "${TYPE}" in
-  'pf') :                                                           ;;
-  *)    err "\"${TYPE}\" isn't a valid type of statistic to graph." ;;
+	'pf') :	;;
+	*) err "\"${TYPE}\" isn't a valid type of statistic to graph." ;;
 esac
 
 
 # shellcheck disable=SC2086
 case "${PERIOD}" in
-  'day')   readonly HOURS=24                                           ;;
-  'week')  readonly HOURS=168                                          ;;
-  'month') readonly HOURS=672                                          ;;
-  [0-9]*)  check_period_length; readonly HOURS=${PERIOD}               ;;
-  *)       err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
+	'day') readonly HOURS=24 ;;
+	'week')	readonly HOURS=168 ;;
+	'month') readonly HOURS=672 ;;
+	[0-9]*)	check_period_length; readonly HOURS=${PERIOD} ;;
+	*) err "\"${PERIOD}\" isn't a valid time period for graphing." ;;
 esac
 
 
@@ -196,5 +202,5 @@ readonly BLUE='#0000FF'
 
 
 case "${TYPE}" in
-  'pf') gen_pf_graphs "$1" "$2" "$3" "$4" ;;
+	'pf') gen_pf_graphs "$1" "$2" "$3" "$4" ;;
 esac

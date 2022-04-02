@@ -19,54 +19,56 @@
 
 
 err() {
-  printf '%s\n' "$*" >&2
-  exit 1
+	printf '%s\n' "$*" >&2
+	exit 1
 }
 
 
 usage() {
-  err "${0##*/} [-t] [directory of videos]
+	err "${0##*/} [-t] [directory of videos]
+
 -t: threads (parallelization)
 
-If sudat is located somewhere else, use SUDAT=/path/to/sudat ${0##*/} ..."
+If sudat is located somewhere other than /etc/sysadm/sudat, use
+SUDAT=/path/to/sudat ${0##*/} ..."
 }
 
 
 list_video_files() {
-  BASE_ARGS="-type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0"
+	BASE_ARGS="-type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0"
 
-  if [ -f './.last_updated' ]; then
-    eval "find . -newer './.last_updated' ${BASE_ARGS}"
+	if [ -f './.last_updated' ]; then
+		eval "find . -newer './.last_updated' ${BASE_ARGS}"
 
-  else
-    eval "find . ${BASE_ARGS}"
+	else
+		eval "find . ${BASE_ARGS}"
 
-  fi
+	fi
 }
 
 
 xargs_handler() {
-  if [ -n "${THREADS}" ]; then
-    xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}" -q
+	if [ -n "${THREADS}" ]; then
+		xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}" -q
 
-  else
-    xargs -0 -n 1 -- "${SUDAT}" -q
+	else
+		xargs -0 -n 1 -- "${SUDAT}" -q
 
-  fi
+	fi
 }
 
 
 while getopts t: opt; do
-  case "${opt}" in
-    t) THREADS="${OPTARG}" ;;
-    *) usage               ;;
-  esac
+	case "${opt}" in
+		t) THREADS="${OPTARG}" ;;
+		*) usage ;;
+	esac
 done
 
 shift $((OPTIND - 1))
 
 case "${THREADS}" in
-  *[!0-9]*) err '-t only accepts integers.' ;;
+	*[!0-9]*) err '-t only accepts integers.' ;;
 esac
 
 

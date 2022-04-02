@@ -18,13 +18,13 @@ set -e
 
 
 err() {
-  printf '%s\n' "$*" >&2
-  exit 1
+	printf '%s\n' "$*" >&2
+	exit 1
 }
 
 
 usage() {
-  err "usage:
+	err "usage:
 ${0##*/} [backup target] > filename
 
 with compression:
@@ -34,12 +34,12 @@ ${0##*/} [backup target] | gzip -c > filename"
 
 # perform a filesystem backup with dump(8)
 bkup() {
-  dump -auf - -- "$1"
+	dump -auf - -- "$1"
 }
 
 
 case "$1" in
-  ''|'-h') usage ;;
+	''|'-h') usage ;;
 esac
 
 [ "$(id -u)" -eq 0 ] || err "Execute ${0##*/} with root privileges."

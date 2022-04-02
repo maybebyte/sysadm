@@ -1,33 +1,33 @@
 <playercorefactory>
 
-  <players>
+	<players>
 
-    <!-- add mpv as an option for video only -->
-    <player name="mpv" type="ExternalPlayer" audio="false" video="true">
-      <filename>/usr/local/bin/mpv</filename>
-      <hidexbmc>false</hidexbmc>
-    </player>
+		<!-- add mpv as an option for video only -->
+		<player name="mpv" type="ExternalPlayer" audio="false" video="true">
+			<filename>/usr/local/bin/mpv</filename>
+			<hidexbmc>false</hidexbmc>
+		</player>
 
-  </players>
+	</players>
 
-  <!--
-     -this rules section is for demonstrative purposes. If others use
-     -Kodi, consider keeping the default as the default and overriding the
-     -video player in the 'Play using...' menu since the default player is
-     -a more intuitive interface for others.
-     -->
-  <rules action="prepend">
+	<!--
+		 -this rules section is for demonstrative purposes. If others use
+		 -Kodi, consider keeping the default as the default and overriding the
+		 -video player in the 'Play using...' menu since the default player is
+		 -a more intuitive interface for others.
+	 -->
+	<rules action="prepend">
 
-    <!--
-       -mpv is unable to perform hardware video acceleration for HEVC,
-       -so use the default Kodi player for those videos since it does have HEVC
-       -hardware video acceleration.
-       -->
-    <rule video="true" videocodec="(hevc|HEVC)" player="VideoPlayer"/>
+		<!--
+			-mpv is unable to perform hardware video acceleration for HEVC,
+			-so use the default Kodi player for those videos since it does have HEVC
+			-hardware video acceleration.
+		-->
+		<rule video="true" videocodec="(hevc|HEVC)" player="VideoPlayer"/>
 
-    <!-- mpv is to play any video that doesn't match the above. -->
-    <rule video="true" player="mpv"/>
+		<!-- mpv is to play any video that doesn't match the above. -->
+		<rule video="true" player="mpv"/>
 
-  </rules>
+	</rules>
 
 </playercorefactory>
