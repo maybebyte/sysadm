@@ -23,7 +23,7 @@ our $opt_t = 'plain';
 
 sub usage {
 	die <<EOT;
-$0 generates blocklists.
+$0 extracts unique domains. Useful for generating blocklists.
 
 usage: $0 [-h] [-o outfile] [-t type] [file (optional)] ...
 
