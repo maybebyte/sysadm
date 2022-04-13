@@ -1,7 +1,7 @@
 # For genblock.pl. Does blocklist handling so the script doesn't have
 # to. Generates blocklist from content of URLs and reloads daemons.
 /bin/test -e /etc/blocklist.txt && /bin/mv /etc/blocklist.txt /etc/blocklist.txt.bak
-/usr/bin/xargs -- /usr/bin/ftp -o - -- < /etc/sysadm/blocklist_urls | /etc/sysadm/genblock.pl -t unbound -o /etc/blocklist.txt
+/usr/bin/xargs -- /usr/bin/ftp -o - < /etc/sysadm/blocklist_urls | /etc/sysadm/genblock.pl -t unbound -o /etc/blocklist.txt
 
 if /usr/sbin/unbound-checkconf; then
 	/bin/chmod 0444 /etc/blocklist.txt
