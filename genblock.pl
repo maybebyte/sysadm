@@ -81,13 +81,10 @@ sub format_blocklist {
 	my @unique_domains = uniq @domains;
 
 	if ($opt_t =~ m/^plain$/) {
-		# https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-		print "use-application-dns.net\n";
 		print "$_\n" for values @unique_domains;
 	}
 
 	elsif ($opt_t =~ m/^unbound$/) {
-		print "local-zone: \"use-application-dns.net\" always_refuse\n";
 		print "local-zone: \"$_\" always_refuse\n" for values @unique_domains;
 	}
 }
