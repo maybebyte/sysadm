@@ -6,6 +6,7 @@
 /usr/bin/xargs -- /usr/bin/ftp -o - < /etc/sysadm/blocklist_urls \
 	| /etc/sysadm/genblock.pl -t unbound -o /etc/blocklist.txt
 
+# https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
 echo 'local-zone: "use-application-dns.net" always_refuse' >> /etc/blocklist.txt
 
 if /usr/sbin/unbound-checkconf; then

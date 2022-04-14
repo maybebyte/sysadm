@@ -58,6 +58,7 @@ sub format_blocklist {
 
 	while (<>) {
 		# Don't process commented or blank lines.
+		# TODO: what about lines that start with ' #' or '  #' or...?
 		next if m/^(#|$)/;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
