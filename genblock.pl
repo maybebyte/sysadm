@@ -62,7 +62,7 @@ sub format_blocklist {
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "$&" entirely depends on what's matched.
-		s/127\.0\.0\.1|0\.0\.0\.0//g;
+		s/^(127\.0\.0\.1|0\.0\.0\.0)//;
 
 		if (m/$domain_regexp/) {
 			# If there are only integers and dots in the match, don't count
