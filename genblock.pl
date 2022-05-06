@@ -25,11 +25,9 @@ sub usage {
 	die <<EOT;
 $0 extracts unique domains. Useful for generating blocklists.
 
-usage: $0 [-h] [-o outfile] [-t type] [file (optional)] ...
+usage: $0 [-h] [-t type] [file (optional)] ...
 
 -h: help.
-
--o: write to the given output file instead of STDOUT.
 
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
@@ -98,19 +96,10 @@ sub format_blocklist {
 }
 
 
-getopts 'ht:o:';
+getopts 'ht:';
 
 usage if $opt_h;
 
 die "$opt_t is not a valid type." if $opt_t !~ m/^(plain|unbound)$/;
 
-if ($opt_o) {
-	open my $fh, '>', $opt_o or die "Couldn't open $opt_o for writing.";
-	select $fh;
-	format_blocklist;
-	close $fh;
-}
-
-else {
-	format_blocklist;
-}
+format_blocklist;
