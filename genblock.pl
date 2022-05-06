@@ -60,7 +60,7 @@ sub format_blocklist {
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "$&" entirely depends on what's matched.
-		s/^(127\.0\.0\.1|0\.0\.0\.0)//;
+		s/^(?:127\.0\.0\.1|0\.0\.0\.0)//;
 
 		if (m/$domain_regexp/p) {
 			# If there are only integers and dots in the match, don't count
@@ -100,6 +100,6 @@ getopts 'ht:';
 
 usage if $opt_h;
 
-die "$opt_t is not a valid type." if $opt_t !~ m/^(plain|unbound)$/;
+die "$opt_t is not a valid type." if $opt_t !~ m/^(?:plain|unbound)$/;
 
 format_blocklist;
