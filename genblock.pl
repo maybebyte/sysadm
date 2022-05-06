@@ -17,7 +17,7 @@ use strict;
 use warnings;
 use Getopt::Std;
 
-our($opt_h, $opt_o);
+our $opt_h;
 our $opt_t = 'plain';
 
 
