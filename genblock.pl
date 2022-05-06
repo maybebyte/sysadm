@@ -64,17 +64,17 @@ sub format_blocklist {
 		# *before* the match, as "$&" entirely depends on what's matched.
 		s/^(127\.0\.0\.1|0\.0\.0\.0)//;
 
-		if (m/$domain_regexp/) {
+		if (m/$domain_regexp/p) {
 			# If there are only integers and dots in the match, don't count
 			# it as a valid domain.
 			#
 			# This is needed since our domain regexp was necessarily bent to
 			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if $& =~ m/^[\d\.]+$/;
+			next if ${^MATCH} =~ m/^[\d\.]+$/;
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
-			$domains[++$#domains] = lc $&;
+			$domains[++$#domains] = lc ${^MATCH};
 		}
 	}
 
