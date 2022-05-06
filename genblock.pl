@@ -81,12 +81,20 @@ sub format_blocklist {
 	my @unique_domains = uniq @domains;
 
 	if ($opt_t =~ m/^plain$/) {
-		print "$_\n" for values @unique_domains;
+		for (values @unique_domains) {
+			print "$_\n";
+		}
+		return;
 	}
 
 	elsif ($opt_t =~ m/^unbound$/) {
-		print "local-zone: \"$_\" always_refuse\n" for values @unique_domains;
+		for (values @unique_domains) {
+			print "local-zone: \"$_\" always_refuse\n";
+		}
+		return;
 	}
+
+	return;
 }
 
 
