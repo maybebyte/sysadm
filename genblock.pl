@@ -17,19 +17,17 @@ use strict;
 use warnings;
 use Getopt::Std;
 
-our($opt_h, $opt_o);
+our $opt_h;
 our $opt_t = 'plain';
 
 
 sub usage {
-	die <<EOT;
+	die <<"EOT";
 $0 extracts unique domains. Useful for generating blocklists.
 
-usage: $0 [-h] [-o outfile] [-t type] [file (optional)] ...
+usage: $0 [-h] [-t type] [file (optional)] ...
 
 -h: help.
-
--o: write to the given output file instead of STDOUT.
 
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
@@ -62,47 +60,46 @@ sub format_blocklist {
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "$&" entirely depends on what's matched.
-		s/^(127\.0\.0\.1|0\.0\.0\.0)//;
+		s/^(?:127\.0\.0\.1|0\.0\.0\.0)//;
 
-		if (m/$domain_regexp/) {
+		if (m/$domain_regexp/p) {
 			# If there are only integers and dots in the match, don't count
 			# it as a valid domain.
 			#
 			# This is needed since our domain regexp was necessarily bent to
 			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if $& =~ m/^[\d\.]+$/;
+			next if ${^MATCH} =~ m/^[\d\.]+$/;
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
-			$domains[++$#domains] = lc $&;
+			$domains[++$#domains] = lc ${^MATCH};
 		}
 	}
 
 	my @unique_domains = uniq @domains;
 
 	if ($opt_t =~ m/^plain$/) {
-		print "$_\n" for values @unique_domains;
+		for (values @unique_domains) {
+			print "$_\n";
+		}
+		return;
 	}
 
 	elsif ($opt_t =~ m/^unbound$/) {
-		print "local-zone: \"$_\" always_refuse\n" for values @unique_domains;
+		for (values @unique_domains) {
+			print "local-zone: \"$_\" always_refuse\n";
+		}
+		return;
 	}
+
+	return;
 }
 
 
-getopts 'ht:o:';
+getopts 'ht:';
 
 usage if $opt_h;
 
-die "$opt_t is not a valid type." if $opt_t !~ m/^(plain|unbound)$/;
+die "$opt_t is not a valid type." if $opt_t !~ m/^(?:plain|unbound)$/;
 
-if ($opt_o) {
-	open my $fh, '>', $opt_o or die "Couldn't open $opt_o for writing.";
-	select $fh;
-	format_blocklist;
-	close $fh;
-}
-
-else {
-	format_blocklist;
-}
+format_blocklist;
