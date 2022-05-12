@@ -35,6 +35,22 @@ handle_tmpfiles() {
 }
 
 
+# TODO: make this less expensive--only new files should be regenerated.
+gzip_site() {
+	[ -d "$1" ] || err "$1 is not a directory."
+	[ -r "$1" ] || err "$1 is not readable."
+	[ -w "$1" ] || err "$1 is not writable."
+	[ -x "$1" ] || err "$1 is not executable."
+
+	find "$1" -type f ! -path '*/.git*' \( \
+		-name '*.html' \
+		-o -name '*.css' \
+		-o -name '*.txt' \
+		-o -name '*.xml' \
+		-o -name '*.key' \
+	\) -exec gzip -k -- '{}' +
+}
+
 # only called if working with website_md.
 gen_website() {
 	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
@@ -51,6 +67,8 @@ gen_website() {
 
 	"${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
 		"Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
+
+	gzip_site "${WEBDIR}"
 
 	# Temporary directories have 700 permissions by default. Without a
 	# chmod(1) here, the whole site will return 403 Forbidden after an
