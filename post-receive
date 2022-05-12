@@ -36,7 +36,7 @@ handle_tmpfiles() {
 
 
 # TODO: make this less expensive--only new files should be regenerated.
-gzip_site() {
+gzip_text_files() {
 	[ -d "$1" ] || err "$1 is not a directory."
 	[ -r "$1" ] || err "$1 is not readable."
 	[ -w "$1" ] || err "$1 is not writable."
@@ -73,7 +73,7 @@ gen_website() {
 	"${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
 		"Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
 
-	gzip_site "${WEBDIR}"
+	gzip_text_files "${WEBDIR}"
 }
 
 
@@ -126,6 +126,8 @@ clone_and_stagit() {
 
 	cp -f -- "${STAGIT_DIR}/log.html" "${STAGIT_DIR}/index.html"
 	cp -- "${WEBDIR}/stagit/style.css" "${STAGIT_DIR}/style.css"
+
+	gzip_text_files "${STAGIT_DIR}"
 }
 
 
