@@ -94,10 +94,6 @@ update_sysadm() {
 
 # if upstream ssg receives an update, e.g., changes to ssg7, make sure
 # to update the pathname to match!
-#
-# TODO: this should really check if the files have changed instead of
-# replacing them each time the dotfiles repo is updated. the code as it
-# is now is merely an easy solution, not a fantastic one.
 update_ssg() {
 	readonly BINDIR="${HOME}/bin"
 	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
