@@ -47,7 +47,7 @@ gzip_text_files() {
 		-o -name '*.css' \
 		-o -name '*.txt' \
 		-o -name '*.xml' \
-		-o -name '*.key' \
+		-o -name '*.asc' \
 	\) -exec gzip -k -- '{}' +
 }
 
