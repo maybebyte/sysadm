@@ -34,6 +34,22 @@ handle_tmpfiles() {
 }
 
 
+# TODO: make this less expensive--only new files should be regenerated.
+gzip_text_files() {
+	[ -d "$1" ] || err "$1 is not a directory."
+	[ -r "$1" ] || err "$1 is not readable."
+	[ -w "$1" ] || err "$1 is not writable."
+	[ -x "$1" ] || err "$1 is not executable."
+
+	find "$1" -type f ! -path '*/.git*' \( \
+		-name '*.html' \
+		-o -name '*.css' \
+		-o -name '*.txt' \
+		-o -name '*.xml' \
+		-o -name '*.asc' \
+	\) -exec gzip -k -- '{}' +
+}
+
 # only called if working with website_md.
 gen_website() {
 	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
@@ -48,13 +64,15 @@ gen_website() {
 	rsync -a --delete --exclude='*.git' --exclude='*src/*' \
 		--exclude='.files' -- "${HTML_DIR}/" "${WEBDIR}/"
 
-	"${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
-		"Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
-
 	# Temporary directories have 700 permissions by default. Without a
 	# chmod(1) here, the whole site will return 403 Forbidden after an
 	# rsync(1).
 	chmod 755 "${WEBDIR}"
+
+	"${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
+		"Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
+
+	gzip_text_files "${WEBDIR}"
 }
 
 
@@ -75,10 +93,6 @@ update_sysadm() {
 
 # if upstream ssg receives an update, e.g., changes to ssg7, make sure
 # to update the pathname to match!
-#
-# TODO: this should really check if the files have changed instead of
-# replacing them each time the dotfiles repo is updated. the code as it
-# is now is merely an easy solution, not a fantastic one.
 update_ssg() {
 	readonly BINDIR="${HOME}/bin"
 	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
@@ -107,6 +121,8 @@ clone_and_stagit() {
 
 	cp -f -- "${STAGIT_DIR}/log.html" "${STAGIT_DIR}/index.html"
 	cp -- "${WEBDIR}/stagit/style.css" "${STAGIT_DIR}/style.css"
+
+	gzip_text_files "${STAGIT_DIR}"
 }
 
 
