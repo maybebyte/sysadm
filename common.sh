@@ -1,4 +1,4 @@
-# shellcheck disable=SC2154 shell=sh
+# shellcheck shell=sh
 # 'common.sh' is a file with frequently used functions. its purpose is
 # to be a collection of tools that can be easily referenced. keeping
 # frequently used functions in one place ensures a certain level of

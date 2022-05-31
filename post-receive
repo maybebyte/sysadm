@@ -1,5 +1,4 @@
 #!/bin/sh
-# shellcheck disable=SC1090
 # Copyright (c) 2020-2022 Ashlen <eurydice@riseup.net>
 
 # Permission to use, copy, modify, and distribute this software for any
