@@ -100,6 +100,6 @@ getopts 'ht:';
 
 usage if $opt_h;
 
-die "$opt_t is not a valid type." if $opt_t !~ m/^(?:plain|unbound)$/;
+($opt_t =~ m/^(?:plain|unbound)$/) || die "$opt_t is not a valid type.";
 
 format_blocklist;
