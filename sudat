@@ -91,22 +91,8 @@ sudat() {
 }
 
 
-while getopts q opt; do
-	case "${opt}" in
-		q) QUIET='yes' ;;
-		*) usage ;;
-	esac
-done
-
-shift $((OPTIND - 1))
-
-
-[ -z "$1" ] && case "${QUIET}" in
-	'yes') exit ;;
-	*) usage ;;
-esac
-
-
+[ -z "$1" ] && usage
 echo 'jq' | check_deps
+
 
 sudat "$1"
