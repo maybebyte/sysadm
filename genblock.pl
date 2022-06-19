@@ -44,7 +44,7 @@ sub uniq {
 }
 
 
-sub format_blocklist {
+sub unique_domains {
 	# https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s15.html
 	#
 	# Somewhat malformed domain names (hyphens, underscores, uppercase,
@@ -76,30 +76,21 @@ sub format_blocklist {
 		}
 	}
 
-	my @unique_domains = uniq @domains;
-
-	if ($opt_t =~ m/^plain$/) {
-		for (values @unique_domains) {
-			print "$_\n";
-		}
-		return;
-	}
-
-	elsif ($opt_t =~ m/^unbound$/) {
-		for (values @unique_domains) {
-			print "local-zone: \"$_\" always_refuse\n";
-		}
-		return;
-	}
-
-	return;
+	return uniq @domains;
 }
 
 
 getopts 'ht:';
-
 usage if $opt_h;
-
 ($opt_t =~ m/^(?:plain|unbound)$/) || die "$opt_t is not a valid type.";
 
-format_blocklist;
+
+if ($opt_t =~ m/^plain$/) {
+	for (unique_domains) {
+		print "$_\n";
+	}
+} elsif ($opt_t =~ m/^unbound$/) {
+	for (unique_domains) {
+		print "local-zone: \"$_\" always_refuse\n";
+	}
+}
