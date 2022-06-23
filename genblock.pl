@@ -72,7 +72,7 @@ sub unique_domains {
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
-			$domains[++$#domains] = lc ${^MATCH};
+			push @domains, lc ${^MATCH};
 		}
 	}
 
