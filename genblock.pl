@@ -59,7 +59,7 @@ sub unique_domains {
 		next if m/^(\s)*(#|$)/;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
-		# *before* the match, as "$&" entirely depends on what's matched.
+		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
 		s/^(?:127\.0\.0\.1|0\.0\.0\.0)//;
 
 		if (m/$domain_regexp/p) {
