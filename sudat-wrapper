@@ -27,7 +27,7 @@ err() {
 usage() {
 	err "${0##*/} [directory of videos]
 
-If sudat is located somewhere other than /etc/sysadm/sudat.pl, use
+If sudat.pl is located somewhere other than /etc/sysadm/sudat.pl, use
 SUDAT=/path/to/sudat.pl ${0##*/} ..."
 }
 
