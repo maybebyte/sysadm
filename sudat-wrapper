@@ -15,7 +15,7 @@
 
 # Sync Upload Date and Access Time
 #
-# This is a wrapper script for sudat.
+# This is a wrapper script for sudat.pl.
 
 
 err() {
@@ -25,51 +25,24 @@ err() {
 
 
 usage() {
-	err "${0##*/} [-t] [directory of videos]
+	err "${0##*/} [directory of videos]
 
--t: threads (parallelization)
-
-If sudat is located somewhere other than /etc/sysadm/sudat, use
-SUDAT=/path/to/sudat ${0##*/} ..."
+If sudat is located somewhere other than /etc/sysadm/sudat.pl, use
+SUDAT=/path/to/sudat.pl ${0##*/} ..."
 }
 
 
-list_video_files() {
-	BASE_ARGS="-type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \) -print0"
+exec_sudat() {
+	BASE_ARGS="-type f \( -name '*.webm' -o -name '*.mp4' -o -name '*.mkv' \)"
 
 	if [ -f './.last_updated' ]; then
-		eval "find . -newer './.last_updated' ${BASE_ARGS}"
+		eval "find . -newer './.last_updated' ${BASE_ARGS} -exec ${SUDAT} '{}' +"
 
 	else
-		eval "find . ${BASE_ARGS}"
+		eval "find . ${BASE_ARGS} -exec ${SUDAT} '{}' +"
 
 	fi
 }
-
-
-xargs_handler() {
-	if [ -n "${THREADS}" ]; then
-		xargs -0 -n 1 -P "${THREADS}" -- "${SUDAT}"
-
-	else
-		xargs -0 -n 1 -- "${SUDAT}"
-
-	fi
-}
-
-
-while getopts t: opt; do
-	case "${opt}" in
-		t) THREADS="${OPTARG}" ;;
-		*) usage ;;
-	esac
-done
-
-shift $((OPTIND - 1))
-
-case "${THREADS}" in
-	*[!0-9]*) err '-t only accepts integers.' ;;
-esac
 
 
 [ -z "$1" ] && usage
@@ -78,12 +51,12 @@ esac
 cd "$1" || err "Unable to change directory to $1."
 
 
-: "${SUDAT:=/etc/sysadm/sudat}"
+: "${SUDAT:=/etc/sysadm/sudat.pl}"
 [ -f "${SUDAT}" ] || err "${SUDAT} is not a file."
 [ -r "${SUDAT}" ] || err "${SUDAT} is not readable."
 [ -x "${SUDAT}" ] || err "${SUDAT} is not executable."
 
 
-list_video_files | xargs_handler
+exec_sudat
 
 touch './.last_updated'
