@@ -82,7 +82,7 @@ sub unique_domains {
 
 getopts 'ht:';
 usage if $opt_h;
-($opt_t =~ m/^(?:plain|unbound)$/) || die "$opt_t is not a valid type.";
+$opt_t =~ m/^(?:plain|unbound)$/ or die "$opt_t is not a valid type.";
 
 
 if ($opt_t =~ m/^plain$/) {
