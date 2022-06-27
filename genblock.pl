@@ -16,6 +16,7 @@
 use strict;
 use warnings;
 use Getopt::Std;
+use v5.14; # character interpretation
 
 our $opt_h;
 our $opt_t = 'plain';
@@ -56,19 +57,19 @@ sub unique_domains {
 
 	while (<>) {
 		# Don't process commented or blank lines.
-		next if m/^(\s)*(#|$)/;
+		next if /^\s*(#|$)/a;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
-		s/^(?:127\.0\.0\.1|0\.0\.0\.0)//;
+		s/^(?:127\.0\.0\.1|0\.0\.0\.0)//a;
 
-		if (m/$domain_regexp/p) {
+		if (/$domain_regexp/pa) {
 			# If there are only integers and dots in the match, don't count
 			# it as a valid domain.
 			#
 			# This is needed since our domain regexp was necessarily bent to
 			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if ${^MATCH} =~ m/^[\d\.]+$/;
+			next if ${^MATCH} =~ /^[\d.]+$/a;
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
@@ -82,14 +83,14 @@ sub unique_domains {
 
 getopts 'ht:';
 usage if $opt_h;
-$opt_t =~ m/^(?:plain|unbound)$/ or die "$opt_t is not a valid type.";
+$opt_t =~ /^(?:plain|unbound)$/ or die "$opt_t is not a valid type.";
 
 
-if ($opt_t =~ m/^plain$/) {
+if ($opt_t =~ /^plain$/) {
 	for (unique_domains) {
 		print "$_\n";
 	}
-} elsif ($opt_t =~ m/^unbound$/) {
+} elsif ($opt_t =~ /^unbound$/) {
 	for (unique_domains) {
 		print "local-zone: \"$_\" always_refuse\n";
 	}
