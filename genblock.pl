@@ -57,7 +57,7 @@ sub unique_domains {
 
 	while (<>) {
 		# Don't process commented or blank lines.
-		next if /\A\s*(#|\Z)/a;
+		next if /\A\s*(#|\z)/a;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
@@ -69,7 +69,7 @@ sub unique_domains {
 			#
 			# This is needed since our domain regexp was necessarily bent to
 			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if ${^MATCH} =~ /\A[\d.]+\Z/a;
+			next if ${^MATCH} =~ /\A[\d.]+\z/a;
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
@@ -83,14 +83,14 @@ sub unique_domains {
 
 getopts 'ht:';
 usage if $opt_h;
-$opt_t =~ /\A(?:plain|unbound)\Z/ or die "$opt_t is not a valid type.";
+$opt_t =~ /\A(?:plain|unbound)\z/ or die "$opt_t is not a valid type.";
 
 
-if ($opt_t =~ /\Aplain\Z/) {
+if ($opt_t =~ /\Aplain\z/) {
 	for (unique_domains) {
 		print "$_\n";
 	}
-} elsif ($opt_t =~ /\Aunbound\Z/) {
+} elsif ($opt_t =~ /\Aunbound\z/) {
 	for (unique_domains) {
 		print "local-zone: \"$_\" always_refuse\n";
 	}
