@@ -56,7 +56,6 @@ sub make_file_template {
 sub get_upload_date {
 	my $file_to_process = shift;
 	my $file_template = make_file_template $file_to_process;
-
 	my $info_json_file = "$file_template.info.json";
 
 	open my $info_json_fh, '<', $info_json_file or die "Could not open $info_json_file: $!";
