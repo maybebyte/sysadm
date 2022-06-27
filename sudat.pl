@@ -47,7 +47,7 @@ sub make_file_template {
 	# complexity.
 	my $extension_regexp = "(webm|mkv|mp4|info\.json|description)";
 
-	$file_with_extensions =~ s/\.$extension_regexp$//g;
+	$file_with_extensions =~ s/\.$extension_regexp\Z//g;
 	my $file_without_extensions = $file_with_extensions;
 
 	return $file_without_extensions;
