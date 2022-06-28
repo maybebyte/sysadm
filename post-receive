@@ -150,6 +150,7 @@ case "${PWD##*/}" in
 	'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}" ;;
 	'sysadm.git') readonly DESCRIPTION='System Administration tools.' ;;
 	'dotfiles.git') readonly DESCRIPTION='My OpenBSD configuration files.' ;;
+	'learning_perl_exercises.git') readonly DESCRIPTION='Learning Perl exercises.' ;;
 	*) err 'No description set for current repo.' ;;
 esac
 
