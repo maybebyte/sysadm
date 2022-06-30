@@ -87,11 +87,7 @@ $opt_t =~ /\A(?:plain|unbound)\z/ or die "$opt_t is not a valid type.";
 
 
 if ($opt_t =~ /\Aplain\z/) {
-	for (unique_domains) {
-		print "$_\n";
-	}
+	print "$_\n" for (unique_domains);
 } elsif ($opt_t =~ /\Aunbound\z/) {
-	for (unique_domains) {
-		print "local-zone: \"$_\" always_refuse\n";
-	}
+	print "local-zone: \"$_\" always_refuse\n" for (unique_domains);
 }
