@@ -83,11 +83,12 @@ sub unique_domains {
 
 getopts 'ht:';
 usage if $opt_h;
-$opt_t =~ /\A(?:plain|unbound)\z/ or die "$opt_t is not a valid type.";
 
 
 if ($opt_t =~ /\Aplain\z/) {
 	print "$_\n" for (unique_domains);
 } elsif ($opt_t =~ /\Aunbound\z/) {
 	print "local-zone: \"$_\" always_refuse\n" for (unique_domains);
+} else {
+	die "$opt_t is not a valid type.\n";
 }
