@@ -15,18 +15,25 @@
 
 use strict;
 use warnings;
+
+# Parse command line options.
 use Getopt::Std;
+
+# Extract file name.
+use File::Basename;
 use v5.14; # character interpretation
 
 our $opt_h;
 our $opt_t = 'plain';
 
+my $program_name = fileparse $0;
+
 
 sub usage {
 	die <<"EOT";
-$0 extracts unique domains. Useful for generating blocklists.
+$program_name extracts unique domains. Useful for generating blocklists.
 
-usage: $0 [-h] [-t type] [file (optional)] ...
+usage: $program_name [-h] [-t type] [file (optional)] ...
 
 -h: help.
 
@@ -34,7 +41,7 @@ usage: $0 [-h] [-t type] [file (optional)] ...
     'plain' extracts one domain per line and does no other formatting.
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
 
-$0 reads from STDIN or a given file.
+$program_name reads from STDIN or a given file.
 EOT
 }
 

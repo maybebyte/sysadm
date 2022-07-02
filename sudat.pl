@@ -19,21 +19,25 @@ use strict;
 use warnings;
 use v5.14; # character interpretation
 
+# Extract file name.
+use File::Basename;
+
 # Decode JSON and manipulate it with Perl.
 use JSON::MaybeXS;
 
 # Convert a given date to seconds since the epoch.
 use Time::Local;
 
+my $program_name = fileparse $0;
 
 sub usage {
 	die <<"EOT";
 Sync Upload Date and Access Time (sudat):
-$0 [file_to_update] [...]
+$program_name [file_to_update] [...]
 
-Note that sudat extracts the upload date from .info.json files provided
-by yt-dlp(1). It MUST be identically named to file_to_update except for the
-extension.
+Note that $program_name extracts the upload date from .info.json files
+provided by yt-dlp(1). .info.json files MUST be identically named to
+file_to_update except for the extension.
 EOT
 }
 
