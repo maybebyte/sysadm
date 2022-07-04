@@ -93,9 +93,9 @@ usage if $opt_h;
 
 
 if ($opt_t =~ /\Aplain\z/) {
-	print "$_\n" for (unique_domains);
+	say $_ for (unique_domains);
 } elsif ($opt_t =~ /\Aunbound\z/) {
-	print "local-zone: \"$_\" always_refuse\n" for (unique_domains);
+	say "local-zone: \"$_\" always_refuse" for (unique_domains);
 } else {
 	die "$opt_t is not a valid type.\n";
 }
