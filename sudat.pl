@@ -95,7 +95,11 @@ while (@ARGV) {
 	my $file_template = make_file_template $file_to_process;
 	my $since_the_epoch = upload_date_to_epoch $file_to_process;
 
-	for ($file_to_process, "$file_template.info.json", "$file_template.description") {
-		utime $since_the_epoch, $since_the_epoch, $_;
-	}
+	my @files_to_modify = (
+		$file_to_process,
+		"$file_template.info.json",
+		"$file_template.description",
+	);
+
+	utime $since_the_epoch, $since_the_epoch, @files_to_modify;
 }
