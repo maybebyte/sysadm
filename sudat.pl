@@ -77,7 +77,7 @@ sub upload_date_to_epoch {
 	my $file_to_process = shift;
 	my $upload_date = get_upload_date $file_to_process;
 
-	$upload_date =~ /\A\d{8}\z/a or die "Upload date is not eight digits long\n";
+	$upload_date =~ /\A \d{8} \z/ax or die "Upload date is not eight digits long\n";
 
 	my $year = substr $upload_date, 0, 4;
 	my $month = substr $upload_date, 4, 2;

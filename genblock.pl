@@ -64,7 +64,7 @@ sub unique_domains {
 
 	while (<>) {
 		# Don't process commented or blank lines.
-		next if /\A\s*#?\z/a;
+		next if /\A \s* [#]? \z/ax;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
@@ -77,7 +77,7 @@ sub unique_domains {
 			#
 			# This is needed since our domain regexp was necessarily bent to
 			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if ${^MATCH} =~ /\A[\d.]+\z/a;
+			next if ${^MATCH} =~ /\A [\d.]+ \z/ax;
 
 			# Convert any accepted uppercase to lowercase, since DNS is
 			# case-insensitive anyway.
