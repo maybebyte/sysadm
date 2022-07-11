@@ -92,9 +92,9 @@ getopts 'ht:';
 usage if $opt_h;
 
 
-if ($opt_t =~ /\Aplain\z/) {
+if ($opt_t eq 'plain') {
 	say $_ for (unique_domains);
-} elsif ($opt_t =~ /\Aunbound\z/) {
+} elsif ($opt_t eq 'unbound') {
 	say "local-zone: \"$_\" always_refuse" for (unique_domains);
 } else {
 	die "$opt_t is not a valid type.\n";
