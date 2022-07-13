@@ -64,12 +64,12 @@ sub unique_domains {
 
 	while (<>) {
 		# Don't process commented or blank lines.
-		next if /\A \s* [#]? \z/ax;
+		next if /\A \s* (?:[#]|\z)/ax;
 		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
 		# will technically match $domain_regexp. We want to do this
 		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
-		s/127\.0\.0\.1//g;
-		s/0\.0\.0\.0//g;
+		s/(?: \b 127\.0\.0\.1 | 127\.0\.0\.1 \b)//gax;
+		s/(?: \b 0\.0\.0\.0 | 0\.0\.0\.0 \b)//gax;
 
 		if (/$domain_regexp/pa) {
 			# If there are only integers and dots in the match, don't count
