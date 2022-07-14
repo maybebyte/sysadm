@@ -28,7 +28,6 @@ our $opt_t = 'plain';
 
 my $program_name = fileparse $0;
 
-
 sub usage {
 	die <<"EOT";
 $program_name extracts unique domains. Useful for generating blocklists.
@@ -45,12 +44,10 @@ $program_name reads from STDIN or a given file.
 EOT
 }
 
-
 sub uniq {
 	my %seen;
 	return grep {! $seen{$_}++} @_;
 }
-
 
 sub unique_domains {
 	my @domains;
@@ -121,7 +118,6 @@ sub unique_domains {
 
 getopts 'ht:';
 usage if $opt_h;
-
 
 if ($opt_t eq 'plain') {
 	say $_ for (sort &unique_domains);
