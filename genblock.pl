@@ -53,38 +53,68 @@ sub uniq {
 
 
 sub unique_domains {
-	# https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch08s15.html
-	#
-	# Somewhat malformed domain names (hyphens, underscores, uppercase,
-	# and numbers in places they shouldn't be) are accepted to catch those
-	# using resolvable out-of-spec domain names to evade regular
-	# expressions.
-	my $domain_regexp = '\b((?=[\w-]+\.)[\w-]+([\w-]+)*\.)+[\w-]+\b';
 	my @domains;
 
 	while (<>) {
 		# Don't process commented or blank lines.
-		next if /\A \s* (?:[#]|\z)/ax;
-		# Fixes bogus entries like "0.0.0.0adobeflashplayerb.xyz" that
-		# will technically match $domain_regexp. We want to do this
-		# *before* the match, as "${^MATCH}" entirely depends on what's matched.
-		s/(?: \b 127\.0\.0\.1 | 127\.0\.0\.1 \b)//gax;
-		s/(?: \b 0\.0\.0\.0 | 0\.0\.0\.0 \b)//gax;
+		next if /\A \s*? [#]/ax;
+		next if /\A \s* \z/ax;
 
-		if (/$domain_regexp/pa) {
-			# If there are only integers and dots in the match, don't count
-			# it as a valid domain.
-			#
-			# This is needed since our domain regexp was necessarily bent to
-			# catch ne'er-do-wells, and it has lost some sanity as a result.
-			next if ${^MATCH} =~ /\A [\d.]+ \z/ax;
+		# Get rid of these common leading IP addresses in hosts(5)
+		# formatted blocklists.
+		s/\A \s*? 127\.1\.0\.1 \s*?//ax;
+		s/\A \s*? 0\.0\.0\.0 \s*?//ax;
 
-			# Convert any accepted uppercase to lowercase, since DNS is
-			# case-insensitive anyway.
-			push @domains, lc ${^MATCH};
+		# Lines with these IP addresses at the tail end of a word
+		# (likely caused by maintainer typos) can't be trusted. Messing
+		# with them is likely to mangle the line and give a bogus
+		# result; accepting them is also likely to give a bogus result.
+		#
+		# Here are two examples of lines that match:
+		# zy16eoat1w.com0.0.0.0 102.112.2o7.net
+		# vungle.com0.0.0.0adminer.com
+		next if /\B 127\.0\.0\.1/ax;
+		next if /\B 0\.0\.0\.0/ax;
+
+		# Lowercase vs uppercase doesn't matter for DNS.
+		$_ = lc $_;
+
+		if (/
+			\b # word boundary
+
+			### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+			(?: # begin noncapturing group
+			[a-z0-9]+ # one or more lowercase or number characters
+
+			### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+			(?: # begin noncapturing group
+			[-_]+ # one or more hyphens or underscores
+			[a-z0-9]+ # one or more lowercase or number characters
+			)* # end of noncapturing group, matches zero or more times
+			### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+
+			\. # period
+			)+ # end noncapturing group, matches one or more times
+			### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+
+			### TOP-LEVEL DOMAIN ###
+			(?: # begin noncapturing group
+
+			(?:xn-- # begin noncapturing group, punycode prefix
+			[a-z0-9]+ # one or more lowercase or number characters
+			) # end the punycode noncapturing group
+
+			| # OR
+
+			[a-z]{2,} # two or more lowercase characters
+			) # end noncapturing group
+			### END TOP-LEVEL DOMAIN ###
+
+			\b # word boundary
+		/axp) {
+			push @domains, ${^MATCH};
 		}
 	}
-
 	return uniq @domains;
 }
 
@@ -94,9 +124,9 @@ usage if $opt_h;
 
 
 if ($opt_t eq 'plain') {
-	say $_ for (unique_domains);
+	say $_ for (sort &unique_domains);
 } elsif ($opt_t eq 'unbound') {
-	say "local-zone: \"$_\" always_refuse" for (unique_domains);
+	say "local-zone: \"$_\" always_refuse" for (sort &unique_domains);
 } else {
 	die "$opt_t is not a valid type.\n";
 }
