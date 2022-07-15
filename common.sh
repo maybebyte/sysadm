@@ -7,10 +7,10 @@
 # instead of remembering/accounting for two different forms of privilege
 # elevation, one is assigned to the alias 'priv.' doas is preferred over
 # sudo.
-if [ -x "$(command -v 'doas')" ]; then
+if command -v 'doas' >/dev/null 2>&1; then
 	alias priv='doas '
 
-elif [ -x "$(command -v 'sudo')" ]; then
+elif command -v 'sudo' >/dev/null 2>&1; then
 	alias priv='sudo '
 
 fi
@@ -23,7 +23,7 @@ fi
 check_deps() {
 	while read -r dependency; do
 
-		[ -x "$(command -v -- "${dependency}")" ] \
+		command -v -- "${dependency}" \
 			|| err "${dependency} not found in PATH or not executable."
 
 	done
