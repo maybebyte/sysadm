@@ -46,16 +46,9 @@ exec_sudat() {
 
 
 [ -z "$1" ] && usage
-[ -d "$1" ] || err "$1 is not a directory."
-[ -w "$1" ] || err "$1 is not writable."
 cd "$1" || err "Unable to change directory to $1."
 
-
 : "${SUDAT:=/etc/sysadm/sudat.pl}"
-[ -f "${SUDAT}" ] || err "${SUDAT} is not a file."
-[ -r "${SUDAT}" ] || err "${SUDAT} is not readable."
-[ -x "${SUDAT}" ] || err "${SUDAT} is not executable."
-
 
 exec_sudat
 
