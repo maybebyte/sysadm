@@ -20,13 +20,13 @@ use warnings;
 use v5.14; # character interpretation
 
 # Extract file name.
-use File::Basename;
+use File::Basename 'fileparse';
 
 # Decode JSON and manipulate it with Perl.
-use JSON::MaybeXS;
+use JSON::MaybeXS 'decode_json';
 
 # Convert a given date to seconds since the epoch.
-use Time::Local;
+use Time::Local 'timelocal_modern';
 
 my $program_name = fileparse $0;
 
@@ -63,9 +63,10 @@ sub get_upload_date {
 	my $file_template = make_file_template $file_to_process;
 	my $info_json_file = "$file_template.info.json";
 
-	open my $info_json_fh, '<', $info_json_file or die "Could not open $info_json_file: $!";
+	open my $info_json_fh, '<', $info_json_file
+		or die "Could not open $info_json_file: $!\n";
 	my $info_json = <$info_json_fh>;
-	close $info_json_fh;
+	close $info_json_fh or die "Could not close $info_json_file: $!\n";
 
 	my $decoded_json = decode_json $info_json;
 	my $upload_date = ${$decoded_json}{'upload_date'};
@@ -77,14 +78,14 @@ sub upload_date_to_epoch {
 	my $file_to_process = shift;
 	my $upload_date = get_upload_date $file_to_process;
 
-	$upload_date =~ /\A \d{8} \z/ax or die "Upload date is not eight digits long\n";
+	$upload_date =~ /\A \d{8} \z/ax or die "Upload date is not eight digits long.\n";
 
 	my $year = substr $upload_date, 0, 4;
 	my $month = substr $upload_date, 4, 2;
 	my $day = substr $upload_date, 6, 2;
 
 	# The month field is the number of months since January, from 0-11.
-	return timelocal 0, 0, 0, $day, $month - 1, $year;
+	return timelocal_modern 0, 0, 0, $day, $month - 1, $year;
 }
 
 
