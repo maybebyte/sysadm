@@ -15,7 +15,7 @@
 
 # Sync Upload Date and Access Time
 #
-# This is a wrapper script for sudat.pl.
+# This is a wrapper script for sudat.
 
 
 err() {
@@ -27,8 +27,8 @@ err() {
 usage() {
 	err "${0##*/} [directory of videos]
 
-If sudat.pl is located somewhere other than /etc/sysadm/sudat.pl, use
-SUDAT=/path/to/sudat.pl ${0##*/} ..."
+If sudat is located somewhere other than /etc/sysadm/sudat, use
+SUDAT=/path/to/sudat ${0##*/} ..."
 }
 
 
@@ -48,7 +48,7 @@ exec_sudat() {
 [ -z "$1" ] && usage
 cd "$1" || err "Unable to change directory to $1."
 
-: "${SUDAT:=/etc/sysadm/sudat.pl}"
+: "${SUDAT:=/etc/sysadm/sudat}"
 
 exec_sudat
 
