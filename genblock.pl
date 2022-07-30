@@ -20,7 +20,7 @@ use warnings;
 use Getopt::Std;
 
 # Extract file name.
-use File::Basename;
+use File::Basename 'fileparse';
 use v5.14; # character interpretation
 
 our $opt_h;
