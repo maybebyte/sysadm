@@ -120,10 +120,14 @@ sub unique_domains {
 getopts 'ht:';
 usage if $opt_h;
 
-if ($opt_t eq 'plain') {
-	say $_ for (sort &unique_domains);
-} elsif ($opt_t eq 'unbound') {
-	say "local-zone: \"$_\" always_refuse" for (sort &unique_domains);
-} else {
+unless ($opt_t eq 'plain' || $opt_t eq 'unbound') {
 	die "$opt_t is not a valid type.\n";
+}
+
+my @sorted_domains = sort &unique_domains;
+
+if ($opt_t eq 'plain') {
+	say join "\n", @sorted_domains;
+} elsif ($opt_t eq 'unbound') {
+	say join "\n", map { "local-zone: \"$_\" always_refuse" } @sorted_domains;
 }
