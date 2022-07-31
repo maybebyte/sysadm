@@ -15,6 +15,7 @@
 
 use strict;
 use warnings;
+use autodie;
 
 # Parse command line options.
 use Getopt::Std;
