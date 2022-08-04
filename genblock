@@ -17,6 +17,8 @@ use strict;
 use warnings;
 use autodie;
 
+no warnings 'experimental::smartmatch';
+
 # Parse command line options.
 use Getopt::Std;
 
