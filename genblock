@@ -24,8 +24,16 @@ use Getopt::Std;
 use File::Basename 'fileparse';
 use v5.14; # character interpretation
 
+# uniq
+use List::Util 'uniq';
+
 our $opt_h;
 our $opt_t = 'plain';
+
+my @formats = (
+	'plain',
+	'unbound',
+);
 
 my $program_name = fileparse $0;
 
@@ -43,11 +51,6 @@ usage: $program_name [-h] [-t type] [file (optional)] ...
 
 $program_name reads from STDIN or a given file.
 EOT
-}
-
-sub uniq {
-	my %seen;
-	return grep {! $seen{$_}++} @_;
 }
 
 sub unique_domains {
@@ -120,10 +123,7 @@ sub unique_domains {
 getopts 'ht:';
 usage if $opt_h;
 
-unless ($opt_t eq 'plain' || $opt_t eq 'unbound') {
-	die "$opt_t is not a valid type.\n";
-}
-
+$opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 my @sorted_domains = sort &unique_domains;
 
 if ($opt_t eq 'plain') {
