@@ -13,17 +13,18 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+use autodie;
+use feature 'say';
 use strict;
 use warnings;
-use autodie;
-use experimental 'smartmatch';
 
-# Parse command line options.
-use Getopt::Std;
+use experimental 'smartmatch';
 
 # Extract file name.
 use File::Basename 'fileparse';
-use v5.14; # character interpretation
+
+# Parse command line options.
+use Getopt::Std;
 
 # uniq
 use List::Util 'uniq';
@@ -64,7 +65,7 @@ sub unique_domains {
 
 		# Get rid of these common leading IP addresses in hosts(5)
 		# formatted blocklists.
-		s/\A \s*? 127\.1\.0\.1 \s*?//ax;
+		s/\A \s*? 127\.0\.0\.1 \s*?//ax;
 		s/\A \s*? 0\.0\.0\.0 \s*?//ax;
 
 		# Lines with these IP addresses at the tail end of a word
