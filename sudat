@@ -15,10 +15,9 @@
 
 # Sync Upload Date and Access Time
 
+use autodie;
 use strict;
 use warnings;
-use autodie;
-use v5.14; # character interpretation
 
 # Extract file name.
 use File::Basename 'fileparse';
