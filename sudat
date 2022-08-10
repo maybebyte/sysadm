@@ -105,19 +105,14 @@ sub modify_utime {
 	utime $since_the_epoch, $since_the_epoch, @files_to_modify;
 }
 
-sub wanted_first_time {
+sub wanted {
 	/\.(?:mkv|mp4|webm)\z/a or return;
 	-f or return;
+	if (defined $last_updated_time) {
+		(-M _) < $last_updated_time or return;
+	}
 
-	push @found_files, $_;
-}
-
-sub wanted_not_first_time {
-	/\.(?:mkv|mp4|webm)\z/a or return;
-	-f or return;
-	(-M) < $last_updated_time or return;
-
-	push @found_files, $_;
+	push @found_files, $File::Find::name;
 }
 
 
@@ -131,12 +126,7 @@ for (@ARGV) {
 		chdir $_;
 
 		$last_updated_time = -M '.sudat_last_update';
-		if (defined $last_updated_time) {
-			find({wanted => \&wanted_not_first_time, no_chdir => 1}, '.');
-		} else {
-			find({wanted => \&wanted_first_time, no_chdir => 1}, '.');
-		}
-
+		find({wanted => \&wanted}, '.');
 
 		for (@found_files) { modify_utime $_; }
 
