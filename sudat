@@ -133,9 +133,9 @@ for (@ARGV) {
 
 		$last_updated_time = -M '.sudat_last_update';
 		if (defined $last_updated_time) {
-			find({wanted => \&wanted_not_first_time}, '.');
+			find({wanted => \&wanted_not_first_time, no_chdir => 1}, '.');
 		} else {
-			find({wanted => \&wanted_first_time}, '.');
+			find({wanted => \&wanted_first_time, no_chdir => 1}, '.');
 		}
 
 
