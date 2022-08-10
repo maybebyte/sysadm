@@ -19,23 +19,23 @@ use autodie;
 use strict;
 use warnings;
 
-# Extract file name.
+# Included modules.
 use File::Basename 'fileparse';
-
 use File::Find;
 use Cwd;
-
-# Decode JSON and manipulate it with Perl.
-use JSON::MaybeXS 'decode_json';
-
-# Convert a given date to seconds since the epoch.
 use Time::Local 'timelocal_modern';
 
+# External modules.
+use JSON::MaybeXS 'decode_json';
+
+# Global variables.
+my $last_updated_time;
 my @found_files;
-my $program_name = fileparse $0;
 
 
 sub usage {
+	my $program_name = fileparse $0;
+
 	die <<"EOT";
 Sync Upload Date and Access Time (sudat):
 $program_name [file or directory] [...]
@@ -104,9 +104,14 @@ sub modify_utime {
 }
 
 sub wanted {
-	if (-f && /\.(?:mkv|mp4|webm)\z/a) {
-		push @found_files, $_;
+	/\.(?:mkv|mp4|webm)\z/a or return;
+	-f or return;
+
+	if (defined $last_updated_time) {
+		(-M _) < $last_updated_time or return;
 	}
+
+	push @found_files, $_;
 }
 
 
@@ -115,13 +120,22 @@ my $old_pwd = cwd;
 
 for (@ARGV) {
 	if (-f) { modify_utime $_; }
+
 	elsif (-d _) {
 		chdir $_;
+
+		$last_updated_time = -M '.sudat_last_update';
 		find({wanted => \&wanted}, '.');
 		for (@found_files) { modify_utime $_; }
+
+		open my $last_update_fh, '>', '.sudat_last_update';
+		close $last_update_fh;
+		utime undef, undef, '.sudat_last_update';
+
 		@found_files = ();
+		$last_updated_time = undef;
 		chdir $old_pwd;
-	} else {
-		warn "'$_' isn't a file or directory, skipping.\n";
 	}
+
+	else { warn "'$_' isn't a file or directory, skipping.\n"; }
 }
