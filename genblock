@@ -58,7 +58,7 @@ EOT
 sub unique_domains {
 	my @domains;
 
-	while (<>) {
+	while (<<>>) {
 		# Don't process commented or blank lines.
 		next if /\A \s*? [#]/ax;
 		next if /\A \s* \z/ax;
