@@ -22,25 +22,29 @@ use warnings;
 # Extract file name.
 use File::Basename 'fileparse';
 
+use File::Find;
+use Cwd;
+
 # Decode JSON and manipulate it with Perl.
 use JSON::MaybeXS 'decode_json';
 
 # Convert a given date to seconds since the epoch.
 use Time::Local 'timelocal_modern';
 
+my @found_files;
 my $program_name = fileparse $0;
+
 
 sub usage {
 	die <<"EOT";
 Sync Upload Date and Access Time (sudat):
-$program_name [file_to_update] [...]
+$program_name [file or directory] [...]
 
 Note that $program_name extracts the upload date from .info.json files
 provided by yt-dlp(1). .info.json files MUST be identically named to
 file_to_update except for the extension.
 EOT
 }
-
 
 sub make_file_template {
 	my $file_with_extensions = shift // die "make_file_template needs a file.\n";
@@ -57,7 +61,6 @@ sub make_file_template {
 	return $file_without_extensions;
 }
 
-
 sub get_upload_date {
 	my $file_to_process = shift // "get_upload_date needs a file.\n";
 	my $file_template = make_file_template $file_to_process;
@@ -71,7 +74,6 @@ sub get_upload_date {
 	my $upload_date = ${$decoded_json}{'upload_date'};
 	return $upload_date;
 }
-
 
 sub upload_date_to_epoch {
 	my $file_to_process = shift // "upload_date_to_epoch needs a file.\n";
@@ -87,10 +89,7 @@ sub upload_date_to_epoch {
 	return timelocal_modern 0, 0, 0, $day, $month - 1, $year;
 }
 
-
-@ARGV or usage;
-
-while (@ARGV) {
+sub modify_utime {
 	my $file_to_process = shift;
 	my $file_template = make_file_template $file_to_process;
 	my $since_the_epoch = upload_date_to_epoch $file_to_process;
@@ -102,4 +101,27 @@ while (@ARGV) {
 	);
 
 	utime $since_the_epoch, $since_the_epoch, @files_to_modify;
+}
+
+sub wanted {
+	if (-f && /\.(?:mkv|mp4|webm)\z/a) {
+		push @found_files, $_;
+	}
+}
+
+
+@ARGV or usage;
+my $old_pwd = cwd;
+
+for (@ARGV) {
+	if (-f) { modify_utime $_; }
+	elsif (-d _) {
+		chdir $_;
+		find({wanted => \&wanted}, '.');
+		for (@found_files) { modify_utime $_; }
+		@found_files = ();
+		chdir $old_pwd;
+	} else {
+		warn "'$_' isn't a file or directory, skipping.\n";
+	}
 }
