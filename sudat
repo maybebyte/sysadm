@@ -66,12 +66,11 @@ sub get_upload_date {
 	my $file_template = make_file_template $file_to_process;
 	my $info_json_file = "$file_template.info.json";
 
-	my $info_json;
-	{
+	my $info_json = do {
 		local $/;
 		open my $info_json_fh, '<', $info_json_file;
-		$info_json = <$info_json_fh>;
-	}
+		<$info_json_fh>;
+	};
 
 	my $decoded_json = decode_json $info_json;
 	my $upload_date = ${$decoded_json}{'upload_date'};
