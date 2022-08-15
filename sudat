@@ -62,7 +62,7 @@ sub make_file_template {
 }
 
 sub get_upload_date {
-	my $file_to_process = shift or "get_upload_date needs a file.\n";
+	my $file_to_process = shift or die "get_upload_date needs a file.\n";
 	my $file_template = make_file_template $file_to_process;
 	my $info_json_file = "$file_template.info.json";
 
@@ -78,7 +78,7 @@ sub get_upload_date {
 }
 
 sub upload_date_to_epoch {
-	my $file_to_process = shift or "upload_date_to_epoch needs a file.\n";
+	my $file_to_process = shift or die "upload_date_to_epoch needs a file.\n";
 	my $upload_date = get_upload_date $file_to_process;
 
 	$upload_date =~ /\A \d{8} \z/ax or die "Upload date is not eight digits long.\n";
