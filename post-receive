@@ -1,5 +1,5 @@
-#!/bin/sh
-# Copyright (c) 2020-2022 Ashlen <eurydice@riseup.net>
+#!/usr/bin/env perl
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
 
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -13,161 +13,254 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-# post-receive for personal use, see githooks(5)
+# post-receive hook, see githooks(5)
 
-set -e
+# TODO: Add verbosity toggle.
+# Can this be generalized?
+# Can this be made more readable?
+
+use autodie ':all';
+use strict;
+use warnings;
+
+use feature 'say';
+
+# Base modules.
+use Cwd 'cwd';
+use File::Basename 'fileparse';
+use File::Copy qw(copy move);
+use File::Find;
+use File::Spec::Functions qw(catdir catfile rootdir);
+use File::Temp 'tempdir';
+use IO::Compress::Gzip qw(gzip $GzipError);
+use IPC::Open3;
+
+# External modules.
+use IPC::System::Simple;
+
+sub check_dependencies {
+	open my $which_fh, '-|', 'which', '--', @_;
+
+	my @dependency_checks;
+	while (<$which_fh>) {
+		chomp;
+		push @dependency_checks, $_;
+	}
+
+	if (scalar @_ != scalar @dependency_checks) {
+		my $count = 0;
+		while (<@_>) {
+			$dependency_checks[$count] // '' =~ /$_/
+				or die "$_ is not installed!\n";
+			$count++;
+		}
+	}
+
+	# Placing this before the comparison loop masks the real error.
+	close $which_fh;
+
+	return scalar @dependency_checks;
+}
+
+my @dependencies = qw(stagit git);
+check_dependencies @dependencies;
 
 
-err() {
-	printf '%s\n' "$*" >&2
-	exit 1
+# NOTE: MUST be pushing to a bare git repository.
+my $repo_location = cwd;
+my $repo_name = fileparse $repo_location;
+my $repo_name_no_dot_git = $repo_name =~ s/\.git\z//r;
+
+my $home = (getpwuid $<)[7];
+my $bindir = catdir $home, qw(.local bin);
+my $bin_ssg = catdir $bindir, 'ssg6';
+my $bin_rssg = catdir $bindir, 'rssg';
+
+# $owner is written to $repo_location/owner
+my ($owner, $domain_with_schema) = qw(Ashlen https://amissing.link);
+my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
+
+my $web_server_dir = catfile &rootdir, qw(var www htdocs), $domain_without_schema;
+
+my ($src_dir, $src_page) = qw(src src.html);
+my $stagit_dir = catdir $web_server_dir, $src_dir, $repo_name_no_dot_git;
+
+my ($website_repo_name, $sysadm_repo_name, $dotfiles_repo_name) =
+	qw(website_md sysadm dotfiles);
+
+# The key for the repo in use is written to $repo_location/description
+my %repo_descriptions = (
+	$website_repo_name => "Source for $domain_without_schema",
+	$sysadm_repo_name => 'System Administration Tools',
+	$dotfiles_repo_name => 'OpenBSD configuration files',
+	'learning_perl_exercises' => 'Learning Perl exercises',
+);
+
+
+# Takes an anon function and a list of arguments. Returns a closure
+# which will call the anon function with those arguments prepended to
+# the argument list.
+#
+# https://www.perlmonks.org/?node_id=109068
+sub make_wanted {
+	my ($sub, @args) = @_;
+	return sub { $sub->(@args, @_); };
+}
+
+sub gzip_files {
+	# Patterns are evaluated before file tests because it's less
+	# expensive.
+	return if $File::Find::name =~ /\.git/;
+	return unless /\.(?:html|css|txt|xml|asc)\z/;
+
+	my $src_toggle = shift // '';
+	if ($src_toggle eq 'no-src') {
+		if ($File::Find::name =~ /$src_dir/) { return unless $_ eq $src_page; }
+	}
+
+	return unless -f;
+
+	unless (eval { gzip $_ => "$_.gz" or die "gzip failed: $GzipError\n"; }) {
+		print STDERR "Couldn't compress file: $@" if $@;
+	}
+}
+
+sub generate_website {
+	my $clone_dir = tempdir(CLEANUP => 1);
+	system qw(git clone --), $repo_location, $clone_dir;
+
+	my $ssg_pid = open3(undef, my $ssg_out, '>&STDERR', $bin_ssg,
+		$clone_dir, $web_server_dir, $domain_without_schema,
+		$domain_with_schema) or die "Could not open ssg: $!\n";
+
+	waitpid $ssg_pid, 0;
+	# NOTE: This MUST come after waitpid; otherwise, ssg won't generate
+	# the website.
+	close $ssg_out;
+
+
+	my $rss_title = "Newsletter - $domain_without_schema";
+	my $rss_file_path = catdir $web_server_dir, 'rss.xml';
+	my $rssg_index_name = 'index.md';
+
+	# NOTE: For whatever reason, rssg doesn't play nice with sending its
+	# STDOUT to a file handle. It hangs indefinitely.
+	my $rssg_pid = open3(undef, my $rssg_out, '>&STDERR', $bin_rssg,
+		catfile($clone_dir, $rssg_index_name), $rss_title)
+		or die "Could not open rssg: $!\n";
+
+	open my $rss_feed_fh, '>', $rss_file_path;
+	while (<$rssg_out>) { print $rss_feed_fh $_; }
+
+	waitpid $rssg_pid, 0;
+	# Does the order in which filehandles are closed matter here?
+	close $rssg_out;
+	close $rss_feed_fh;
+}
+
+sub update_sysadm {
+	my $clone_dir = tempdir(CLEANUP => 1);
+	system qw(git clone --), $repo_location, $clone_dir;
+
+	my $sysadm_dir = catdir &rootdir, 'etc', $sysadm_repo_name;
+	# Clear out $sysadm_dir.
+	my @files_to_delete;
+	opendir(my $sysadm_dir_fh, $sysadm_dir);
+	while (my $file = readdir $sysadm_dir_fh) {
+		next if $file eq '.';
+		next if $file eq '..';
+		$file = catfile $sysadm_dir, $file;
+		push @files_to_delete, $file;
+	}
+	closedir $sysadm_dir_fh;
+	system qw(rm -rf --), @files_to_delete;
+
+	# Move files from $clone_dir to $sysadm_dir.
+	my @files_to_copy;
+	opendir(my $clone_dir_fh, $clone_dir);
+	while (my $file = readdir $clone_dir_fh) {
+		next if $file eq '.';
+		next if $file eq '..';
+		next if $file eq '.git';
+		$file = catfile $clone_dir, $file;
+		push @files_to_copy, $file;
+	}
+	closedir $clone_dir_fh;
+	system qw(mv --), @files_to_copy, $sysadm_dir;
+}
+
+sub update_ssg {
+	my $clone_dir = tempdir(CLEANUP => 1);
+	system qw(git clone --), $repo_location, $clone_dir;
+
+	my $clone_bin = catdir $clone_dir, qw(.local bin);
+	my $clone_ssg = catdir $clone_bin, 'ssg6';
+	my $clone_rssg = catdir $clone_bin, 'rssg';
+
+	move $clone_ssg, $bin_ssg;
+	move $clone_rssg, $bin_rssg;
+
+	chmod 0700, $bin_ssg, $bin_rssg;
+}
+
+sub clone_and_stagit {
+	my $stagit_git_dir = catdir $stagit_dir, '.git';
+	system qw(git clone --bare --), $repo_location, $stagit_git_dir;
+
+	chdir $stagit_git_dir;
+	system qw(git update-server-info);
+	chdir $stagit_dir;
+	system qw(stagit --), $repo_location;
 }
 
 
-complain_tmpdir() {
-	err "Unable to create temporary directory at $1."
+unless (eval {
+	open my $repo_owner_fh, '>', catfile($repo_location, 'owner');
+	say $repo_owner_fh $owner;
+	close $repo_owner_fh;
+}) {
+	print STDERR "Couldn't write to $repo_location/owner $@" if $@;
+}
+
+unless (eval {
+	open my $repo_description_fh, '>', catfile($repo_location, 'description');
+	say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
+	close $repo_description_fh;
+}) {
+	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
 }
 
 
-handle_tmpfiles() {
-	rm -rf -- "${CLONE_DIR}" "${HTML_DIR}"
+system qw(rm -rf --), $stagit_dir;
+system qw(mkdir -p --), $stagit_dir;
+
+if ($repo_name_no_dot_git eq $website_repo_name) {
+	opendir(my $web_server_dir_fh, $web_server_dir);
+	my @files_to_delete;
+	while (my $file = readdir $web_server_dir_fh) {
+		next if $file eq '.';
+		next if $file eq '..';
+		next if $file eq $src_dir;
+		$file = catdir $web_server_dir, $file;
+		push @files_to_delete, $file;
+	}
+	closedir $web_server_dir_fh;
+	system qw(rm -rf --), @files_to_delete;
+
+	generate_website;
+
+	find make_wanted(\&gzip_files, 'no-src'), $web_server_dir;
+} elsif ($repo_name_no_dot_git eq $sysadm_repo_name) {
+	update_sysadm;
+} elsif ($repo_name_no_dot_git eq $dotfiles_repo_name) {
+	update_ssg;
 }
 
 
-# TODO: make this less expensive--only new files should be regenerated.
-gzip_text_files() {
-	[ -d "$1" ] || err "$1 is not a directory."
-	[ -r "$1" ] || err "$1 is not readable."
-	[ -w "$1" ] || err "$1 is not writable."
-	[ -x "$1" ] || err "$1 is not executable."
+clone_and_stagit;
 
-	find "$1" -type f ! -path '*/.git*' \( \
-		-name '*.html' \
-		-o -name '*.css' \
-		-o -name '*.txt' \
-		-o -name '*.xml' \
-		-o -name '*.asc' \
-	\) -exec gzip -k -- '{}' +
-}
+copy catfile($stagit_dir, 'log.html'), catfile($stagit_dir, 'index.html');
+copy catfile($web_server_dir, qw(stagit style.css)),
+	catfile($stagit_dir, 'style.css');
 
-# only called if working with website_md.
-gen_website() {
-	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
-	HTML_DIR="$(mktemp -d)" || complain_tmpdir "${HTML_DIR}"
-	readonly CLONE_DIR HTML_DIR
-
-	git clone -- "${BARE_SRCDIR}" "${CLONE_DIR}"
-
-	"${HOME}/bin/ssg6" "${CLONE_DIR}" "${HTML_DIR}" "${WEBSITE##*//}" \
-		"${WEBSITE}" >/dev/null
-
-	rsync -a --delete --exclude='*.git' --exclude='*src/*' \
-		--exclude='.files' -- "${HTML_DIR}/" "${WEBDIR}/"
-
-	# Temporary directories have 700 permissions by default. Without a
-	# chmod(1) here, the whole site will return 403 Forbidden after an
-	# rsync(1).
-	chmod 755 "${WEBDIR}"
-
-	"${HOME}/bin/rssg" "${CLONE_DIR}/index.md" \
-		"Newsletter - ${DESCRIPTION}" > "${WEBDIR}/rss.xml"
-
-	gzip_text_files "${WEBDIR}"
-}
-
-
-# remove ${SYSADM_STAGE}, clone the source directory to ${SYSADM_STAGE},
-# then synchronize changes to ${SYSADM_DIR} so as to minimize
-# supervision/manual intervention.
-update_sysadm() {
-	readonly SYSADM_DIR='/etc/sysadm'
-	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
-	readonly CLONE_DIR
-
-	git clone -- "${BARE_SRCDIR}" "${CLONE_DIR}"
-
-	rsync -a --delete --exclude='*.git' -- "${CLONE_DIR}/" "${SYSADM_DIR}/"
-	chmod 755 "${SYSADM_DIR}"
-}
-
-
-# if upstream ssg receives an update, e.g., changes to ssg7, make sure
-# to update the pathname to match!
-update_ssg() {
-	readonly BINDIR="${HOME}/bin"
-	CLONE_DIR="$(mktemp -d)" || complain_tmpdir "${CLONE_DIR}"
-	readonly CLONE_DIR
-
-	git clone -- "${BARE_SRCDIR}" "${CLONE_DIR}"
-
-	install -g git -o git -m 700 -- \
-		"${CLONE_DIR}/.local/bin/rssg" "${BINDIR}/rssg"
-
-	install -g git -o git -m 700 -- \
-		"${CLONE_DIR}/.local/bin/ssg6" "${BINDIR}/ssg6"
-}
-
-
-# clone the repo and update the server information. generate the stagit
-# page and copy some misc files.
-clone_and_stagit() {
-	rm -rf -- "${STAGIT_DIR}"
-	mkdir -p -- "${STAGIT_DIR}"
-	git clone --bare -- "${BARE_SRCDIR}" "${STAGIT_DIR}/.git"
-
-	(cd "${STAGIT_DIR}/.git" && git update-server-info)
-
-	(cd "${STAGIT_DIR}" && stagit -- "${BARE_SRCDIR}")
-
-	cp -f -- "${STAGIT_DIR}/log.html" "${STAGIT_DIR}/index.html"
-	cp -- "${WEBDIR}/stagit/style.css" "${STAGIT_DIR}/style.css"
-
-	gzip_text_files "${STAGIT_DIR}"
-}
-
-
-if [ -z "${PWD##*.git}" ]; then
-	readonly BARE_SRCDIR="${PWD}"
-
-else
-	readonly BARE_SRCDIR="${PWD}/.git"
-
-fi
-
-
-readonly OWNER='Ashlen'
-readonly WEBSITE='https://amissing.link'
-readonly WEBDIR="/var/www/htdocs/${WEBSITE##*//}"
-
-STAGIT_DIR="${WEBDIR}/src/${PWD##*/}"
-readonly STAGIT_DIR="${STAGIT_DIR%\.git}"
-
-
-trap 'handle_tmpfiles' EXIT INT QUIT TERM
-
-
-case "${PWD##*/}" in
-	'website_md.git') readonly DESCRIPTION="${WEBSITE##*//}" ;;
-	'sysadm.git') readonly DESCRIPTION='System Administration tools.' ;;
-	'dotfiles.git') readonly DESCRIPTION='My OpenBSD configuration files.' ;;
-	'learning_perl_exercises.git') readonly DESCRIPTION='Learning Perl exercises.' ;;
-	*) err 'No description set for current repo.' ;;
-esac
-
-
-# For metadata purposes.
-echo "${OWNER}" > "${BARE_SRCDIR}/owner"
-echo "${DESCRIPTION}" > "${BARE_SRCDIR}/description"
-echo "${WEBSITE}/src/${STAGIT_DIR##*/}/.git" > "${BARE_SRCDIR}/url"
-
-
-case "${PWD##*/}" in
-	'website_md.git') gen_website ;;
-	'sysadm.git') update_sysadm ;;
-	'dotfiles.git') update_ssg ;;
-	# if unrecognized, perform no repo specific actions
-	*) ;;
-esac
-
-
-clone_and_stagit
+find make_wanted(\&gzip_files), $stagit_dir;
