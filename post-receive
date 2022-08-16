@@ -248,7 +248,6 @@ if ($repo_name_no_dot_git eq $website_repo_name) {
 	system qw(rm -rf --), @files_to_delete;
 
 	generate_website;
-
 	find make_wanted(\&gzip_files, 'no-src'), $web_server_dir;
 } elsif ($repo_name_no_dot_git eq $sysadm_repo_name) {
 	update_sysadm;
