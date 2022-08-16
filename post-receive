@@ -186,7 +186,7 @@ sub update_sysadm {
 		push @files_to_copy, $file;
 	}
 	closedir $clone_dir_fh;
-	system qw(mv --), @files_to_copy, $sysadm_dir;
+	system qw(mv -f --), @files_to_copy, $sysadm_dir;
 }
 
 sub update_ssg {
