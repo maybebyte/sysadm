@@ -15,12 +15,10 @@
 
 set -e
 
-
 err() {
 	printf '%s\n' "$*" >&2
 	exit 1
 }
-
 
 usage() {
 	err "usage:
@@ -34,7 +32,6 @@ ${0##*/} needs a valid acme-client.conf(5) and full chain certificate.
 The full chain certificate must be located at '/etc/ssl/example.com.pem'."
 }
 
-
 # if acme-client.conf(5) exists as a file in /etc/, run acme-client(1)
 # to refresh the TLS certificate for $1.
 #
@@ -45,54 +42,41 @@ The full chain certificate must be located at '/etc/ssl/example.com.pem'."
 # $1 is a chosen domain name.
 cert_maintenance() {
 	if [ -f '/etc/acme-client.conf' ]; then
-		acme-client -- "$1" >/dev/null
-
+		acme-client -- "$1" > /dev/null
 	else
 		err "acme-client.conf(5) wasn't found."
-
 	fi
 
 	if [ -f "/etc/ssl/$1.pem" ]; then
 		# if your provider supports the use of OCSP nonces, don't use -N
-		ocspcheck -No "/etc/ssl/$1.ocsp" -- "/etc/ssl/$1.pem" >/dev/null
-
+		ocspcheck -No "/etc/ssl/$1.ocsp" -- "/etc/ssl/$1.pem" > /dev/null
 	else
 		err "/etc/ssl/$1.pem wasn't found."
-
 	fi
 }
-
 
 # reload daemons if enabled.
 reload_daemons() {
 	for daemon in "$@"; do
-
 		if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
 			rcctl reload "${daemon}"
-
 		# We want to notify the user when a daemon wasn't reloaded.
 		else
 			printf '%s\n' "Unable to reload ${daemon} because it is not enabled." >&2
 			continue
-
 		fi
-
 	done
 }
 
-
 case "$1" in
-	''|'-h') usage ;;
+	'' | '-h') usage ;;
 esac
 
 [ "$(id -u)" -eq 0 ] || err "Execute ${0##*/} with root privileges."
 
-
 if cert_maintenance "$1"; then
 	shift
-	[ -n "$*" ] && reload_daemons "$@" >/dev/null
-
+	[ -n "$*" ] && reload_daemons "$@" > /dev/null
 else
 	err 'Unable to perform certificate maintenance.'
-
 fi

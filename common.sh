@@ -7,14 +7,11 @@
 # instead of remembering/accounting for two different forms of privilege
 # elevation, one is assigned to the alias 'priv.' doas is preferred over
 # sudo.
-if command -v 'doas' >/dev/null 2>&1; then
+if command -v 'doas' > /dev/null 2>&1; then
 	alias priv='doas '
-
-elif command -v 'sudo' >/dev/null 2>&1; then
+elif command -v 'sudo' > /dev/null 2>&1; then
 	alias priv='sudo '
-
 fi
-
 
 # reads from STDIN and checks that all commands needed are executable
 # and available.
@@ -22,13 +19,10 @@ fi
 # note that I only check executables that aren't accounted for in dotfiles.
 check_deps() {
 	while read -r dependency; do
-
-		command -v -- "${dependency}" \
-			|| err "${dependency} not found in PATH or not executable."
-
+		command -v -- "${dependency}" ||
+			err "${dependency} not found in PATH or not executable."
 	done
 }
-
 
 # err() is the generic way to print an error message and exit a script.
 # all of its output goes to STDERR.
@@ -39,7 +33,6 @@ err() {
 	printf '%s\n' "$*" >&2
 	exit 1
 }
-
 
 # if the user isn't root, print an error message and exit.
 must_be_root() {
