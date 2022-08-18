@@ -32,7 +32,6 @@ use JSON::MaybeXS 'decode_json';
 my $last_updated_time;
 my @found_files;
 
-
 sub usage {
 	my $program_name = fileparse $0;
 
@@ -47,13 +46,14 @@ EOT
 }
 
 sub make_file_template {
-	my $file_with_extensions = shift or die "make_file_template needs a file.\n";
+	my $file_with_extensions = shift
+		or die "make_file_template needs a file.\n";
 
 	# This contains all anticipated extensions. A more liberal regular
 	# expression runs the risk of oversight (accidentally matching more
 	# than was intended--easy to do) and introducing unnecessary
 	# complexity.
-	my $extension_regexp = "(webm|mkv|mp4|info\.json|description)";
+	my $extension_regexp = '(webm|mkv|mp4|info\.json|description)';
 
 	$file_with_extensions =~ s/\.$extension_regexp\z//g;
 	my $file_without_extensions = $file_with_extensions;
@@ -81,7 +81,8 @@ sub upload_date_to_epoch {
 	my $file_to_process = shift or die "upload_date_to_epoch needs a file.\n";
 	my $upload_date = get_upload_date $file_to_process;
 
-	$upload_date =~ /\A \d{8} \z/ax or die "Upload date is not eight digits long.\n";
+	$upload_date =~ /\A \d{8} \z/ax
+		or die "Upload date is not eight digits long.\n";
 
 	my $year = substr $upload_date, 0, 4;
 	my $month = substr $upload_date, 4, 2;
@@ -97,8 +98,7 @@ sub modify_utime {
 	my $since_the_epoch = upload_date_to_epoch $file_to_process;
 
 	my @files_to_modify = (
-		$file_to_process,
-		"$file_template.info.json",
+		$file_to_process, "$file_template.info.json",
 		"$file_template.description",
 	);
 
@@ -108,13 +108,12 @@ sub modify_utime {
 sub wanted {
 	/\.(?:mkv|mp4|webm)\z/a or return;
 	-f or return;
-	if (defined $last_updated_time) {
-		(-M _) < $last_updated_time or return;
+	if ( defined $last_updated_time ) {
+		( -M _ ) < $last_updated_time or return;
 	}
 
 	push @found_files, $File::Find::name;
 }
-
 
 @ARGV or usage;
 my $old_pwd = cwd;
@@ -122,11 +121,11 @@ my $old_pwd = cwd;
 for (@ARGV) {
 	if (-f) { modify_utime $_; }
 
-	elsif (-d _) {
+	elsif ( -d _ ) {
 		chdir $_;
 
 		$last_updated_time = -M '.sudat_last_update';
-		find({wanted => \&wanted}, '.');
+		find( { wanted => \&wanted }, '.' );
 
 		for (@found_files) { modify_utime $_; }
 

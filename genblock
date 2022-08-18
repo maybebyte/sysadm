@@ -32,10 +32,7 @@ use List::Util 'uniq';
 our $opt_h;
 our $opt_t = 'plain';
 
-my @formats = (
-	'plain',
-	'unbound',
-);
+my @formats = qw(plain unbound);
 
 my $program_name = fileparse $0;
 
@@ -58,7 +55,7 @@ EOT
 sub unique_domains {
 	my @domains;
 
-	while (<<>>) {
+	while ( <<>> ) {
 		# Don't process commented or blank lines.
 		next if /\A \s*? [#]/ax;
 		next if /\A \s* \z/ax;
@@ -114,13 +111,13 @@ sub unique_domains {
 			### END TOP-LEVEL DOMAIN ###
 
 			\b # word boundary
-		/axp) {
+		/axp)
+		{
 			push @domains, ${^MATCH};
 		}
 	}
 	return uniq @domains;
 }
-
 
 getopts 'ht:';
 usage if defined($opt_h);
@@ -128,8 +125,9 @@ usage if defined($opt_h);
 $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 my @sorted_domains = sort &unique_domains;
 
-if ($opt_t eq 'plain') {
+if ( $opt_t eq 'plain' ) {
 	say join "\n", @sorted_domains;
-} elsif ($opt_t eq 'unbound') {
+}
+elsif ( $opt_t eq 'unbound' ) {
 	say join "\n", map { "local-zone: \"$_\" always_refuse" } @sorted_domains;
 }

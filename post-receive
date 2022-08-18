@@ -47,7 +47,7 @@ sub check_dependencies {
 		push @dependency_checks, $_;
 	}
 
-	if (scalar @_ != scalar @dependency_checks) {
+	if ( scalar @_ != scalar @dependency_checks ) {
 		my $count = 0;
 		while (<@_>) {
 			$dependency_checks[$count] // '' =~ /$_/
@@ -65,27 +65,27 @@ sub check_dependencies {
 my @dependencies = qw(stagit git);
 check_dependencies @dependencies;
 
-
 # NOTE: MUST be pushing to a bare git repository.
 my $repo_location = cwd;
 my $repo_name = fileparse $repo_location;
 my $repo_name_no_dot_git = $repo_name =~ s/\.git\z//r;
 
-my $home = (getpwuid $<)[7];
+my $home = ( getpwuid $< )[7];
 my $bindir = catdir $home, qw(.local bin);
 my $bin_ssg = catdir $bindir, 'ssg6';
 my $bin_rssg = catdir $bindir, 'rssg';
 
 # $owner is written to $repo_location/owner
-my ($owner, $domain_with_schema) = qw(Ashlen https://amissing.link);
+my ( $owner, $domain_with_schema ) = qw(Ashlen https://amissing.link);
 my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
 
-my $web_server_dir = catfile &rootdir, qw(var www htdocs), $domain_without_schema;
+my $web_server_dir = catfile &rootdir, qw(var www htdocs),
+	$domain_without_schema;
 
-my ($src_dir, $src_page) = qw(src src.html);
+my ( $src_dir, $src_page ) = qw(src src.html);
 my $stagit_dir = catdir $web_server_dir, $src_dir, $repo_name_no_dot_git;
 
-my ($website_repo_name, $sysadm_repo_name, $dotfiles_repo_name) =
+my ( $website_repo_name, $sysadm_repo_name, $dotfiles_repo_name ) =
 	qw(website_md sysadm dotfiles);
 
 # The key for the repo in use is written to $repo_location/description
@@ -96,15 +96,14 @@ my %repo_descriptions = (
 	'learning_perl_exercises' => 'Learning Perl exercises',
 );
 
-
 # Takes an anon function and a list of arguments. Returns a closure
 # which will call the anon function with those arguments prepended to
 # the argument list.
 #
 # https://www.perlmonks.org/?node_id=109068
 sub make_wanted {
-	my ($sub, @args) = @_;
-	return sub { $sub->(@args, @_); };
+	my ( $sub, @args ) = @_;
+	return sub { $sub->( @args, @_ ); };
 }
 
 sub gzip_files {
@@ -114,30 +113,35 @@ sub gzip_files {
 	return unless /\.(?:html|css|txt|xml|asc)\z/;
 
 	my $src_toggle = shift // '';
-	if ($src_toggle eq 'no-src') {
-		if ($File::Find::name =~ /$src_dir/) { return unless $_ eq $src_page; }
+	if ( $src_toggle eq 'no-src' ) {
+		if ( $File::Find::name =~ /$src_dir/ ) {
+			return
+				unless $_ eq $src_page;
+		}
 	}
 
 	return unless -f;
 
-	unless (eval { gzip $_ => "$_.gz" or die "gzip failed: $GzipError\n"; }) {
+	unless ( eval { gzip $_ => "$_.gz" or die "gzip failed: $GzipError\n"; } ) {
 		print STDERR "Couldn't compress file: $@" if $@;
 	}
 }
 
 sub generate_website {
-	my $clone_dir = tempdir(CLEANUP => 1);
+	my $clone_dir = tempdir( CLEANUP => 1 );
 	system qw(git clone --), $repo_location, $clone_dir;
 
-	my $ssg_pid = open3(undef, my $ssg_out, '>&STDERR', $bin_ssg,
-		$clone_dir, $web_server_dir, $domain_without_schema,
-		$domain_with_schema) or die "Could not open ssg: $!\n";
+	my $ssg_pid =
+		open3( undef, my $ssg_out, '>&STDERR', $bin_ssg,
+			$clone_dir, $web_server_dir, $domain_without_schema,
+			$domain_with_schema )
+		or die "Could not open ssg: $!\n";
 
 	waitpid $ssg_pid, 0;
+
 	# NOTE: This MUST come after waitpid; otherwise, ssg won't generate
 	# the website.
 	close $ssg_out;
-
 
 	my $rss_title = "Newsletter - $domain_without_schema";
 	my $rss_file_path = catdir $web_server_dir, 'rss.xml';
@@ -145,28 +149,31 @@ sub generate_website {
 
 	# NOTE: For whatever reason, rssg doesn't play nice with sending its
 	# STDOUT to a file handle. It hangs indefinitely.
-	my $rssg_pid = open3(undef, my $rssg_out, '>&STDERR', $bin_rssg,
-		catfile($clone_dir, $rssg_index_name), $rss_title)
+	my $rssg_pid =
+		open3( undef, my $rssg_out, '>&STDERR', $bin_rssg,
+			catfile( $clone_dir, $rssg_index_name ), $rss_title )
 		or die "Could not open rssg: $!\n";
 
 	open my $rss_feed_fh, '>', $rss_file_path;
 	while (<$rssg_out>) { print $rss_feed_fh $_; }
 
 	waitpid $rssg_pid, 0;
+
 	# Does the order in which filehandles are closed matter here?
 	close $rssg_out;
 	close $rss_feed_fh;
 }
 
 sub update_sysadm {
-	my $clone_dir = tempdir(CLEANUP => 1);
+	my $clone_dir = tempdir( CLEANUP => 1 );
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $sysadm_dir = catdir &rootdir, 'etc', $sysadm_repo_name;
+
 	# Clear out $sysadm_dir.
 	my @files_to_delete;
-	opendir(my $sysadm_dir_fh, $sysadm_dir);
-	while (my $file = readdir $sysadm_dir_fh) {
+	opendir( my $sysadm_dir_fh, $sysadm_dir );
+	while ( my $file = readdir $sysadm_dir_fh ) {
 		next if $file eq '.';
 		next if $file eq '..';
 		$file = catfile $sysadm_dir, $file;
@@ -177,8 +184,8 @@ sub update_sysadm {
 
 	# Move files from $clone_dir to $sysadm_dir.
 	my @files_to_copy;
-	opendir(my $clone_dir_fh, $clone_dir);
-	while (my $file = readdir $clone_dir_fh) {
+	opendir( my $clone_dir_fh, $clone_dir );
+	while ( my $file = readdir $clone_dir_fh ) {
 		next if $file eq '.';
 		next if $file eq '..';
 		next if $file eq '.git';
@@ -190,7 +197,7 @@ sub update_sysadm {
 }
 
 sub update_ssg {
-	my $clone_dir = tempdir(CLEANUP => 1);
+	my $clone_dir = tempdir( CLEANUP => 1 );
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $clone_bin = catdir $clone_dir, qw(.local bin);
@@ -213,31 +220,36 @@ sub clone_and_stagit {
 	system qw(stagit --), $repo_location;
 }
 
-
-unless (eval {
-	open my $repo_owner_fh, '>', catfile($repo_location, 'owner');
-	say $repo_owner_fh $owner;
-	close $repo_owner_fh;
-}) {
+unless (
+	eval {
+		open my $repo_owner_fh, '>', catfile( $repo_location, 'owner' );
+		say $repo_owner_fh $owner;
+		close $repo_owner_fh;
+	}
+	)
+{
 	print STDERR "Couldn't write to $repo_location/owner $@" if $@;
 }
 
-unless (eval {
-	open my $repo_description_fh, '>', catfile($repo_location, 'description');
-	say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
-	close $repo_description_fh;
-}) {
+unless (
+	eval {
+		open my $repo_description_fh, '>',
+			catfile( $repo_location, 'description' );
+		say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
+		close $repo_description_fh;
+	}
+	)
+{
 	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
 }
-
 
 system qw(rm -rf --), $stagit_dir;
 system qw(mkdir -p --), $stagit_dir;
 
-if ($repo_name_no_dot_git eq $website_repo_name) {
-	opendir(my $web_server_dir_fh, $web_server_dir);
+if ( $repo_name_no_dot_git eq $website_repo_name ) {
+	opendir( my $web_server_dir_fh, $web_server_dir );
 	my @files_to_delete;
-	while (my $file = readdir $web_server_dir_fh) {
+	while ( my $file = readdir $web_server_dir_fh ) {
 		next if $file eq '.';
 		next if $file eq '..';
 		next if $file eq $src_dir;
@@ -248,19 +260,20 @@ if ($repo_name_no_dot_git eq $website_repo_name) {
 	system qw(rm -rf --), @files_to_delete;
 
 	generate_website;
-	unlink catdir($web_server_dir, '.files');
-	find make_wanted(\&gzip_files, 'no-src'), $web_server_dir;
-} elsif ($repo_name_no_dot_git eq $sysadm_repo_name) {
+	unlink catdir( $web_server_dir, '.files' );
+	find make_wanted( \&gzip_files, 'no-src' ), $web_server_dir;
+}
+elsif ( $repo_name_no_dot_git eq $sysadm_repo_name ) {
 	update_sysadm;
-} elsif ($repo_name_no_dot_git eq $dotfiles_repo_name) {
+}
+elsif ( $repo_name_no_dot_git eq $dotfiles_repo_name ) {
 	update_ssg;
 }
 
-
 clone_and_stagit;
 
-copy catfile($stagit_dir, 'log.html'), catfile($stagit_dir, 'index.html');
-copy catfile($web_server_dir, qw(stagit style.css)),
-	catfile($stagit_dir, 'style.css');
+copy catfile( $stagit_dir, 'log.html' ), catfile( $stagit_dir, 'index.html' );
+copy catfile( $web_server_dir, qw(stagit style.css) ),
+	catfile( $stagit_dir, 'style.css' );
 
-find make_wanted(\&gzip_files), $stagit_dir;
+find make_wanted( \&gzip_files ), $stagit_dir;
