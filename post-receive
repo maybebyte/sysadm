@@ -70,7 +70,7 @@ my $repo_location = cwd;
 my $repo_name = fileparse $repo_location;
 my $repo_name_no_dot_git = $repo_name =~ s/\.git\z//r;
 
-my $home = ( getpwuid $< )[7];
+my $home = $ENV{'HOME'} // ( getpwuid $< )[7];
 my $bindir = catdir $home, qw(.local bin);
 my $bin_ssg = catdir $bindir, 'ssg6';
 my $bin_rssg = catdir $bindir, 'rssg';
