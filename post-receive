@@ -41,17 +41,13 @@ use IPC::System::Simple;
 sub check_dependencies {
 	open my $which_fh, '-|', 'which', '--', @_;
 
-	my @dependency_checks;
-	while (<$which_fh>) {
-		chomp;
-		push @dependency_checks, $_;
-	}
+	chomp( my @dependency_checks = <$which_fh> );
 
 	if ( scalar @_ != scalar @dependency_checks ) {
 		my $count = 0;
-		while (<@_>) {
-			$dependency_checks[$count] // '' =~ /$_/
-				or die "$_ is not installed!\n";
+		for (@_) {
+			die "$_ is not installed!\n"
+				unless ( $dependency_checks[$count] // '' ) =~ /$_/;
 			$count++;
 		}
 	}
