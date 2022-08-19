@@ -62,6 +62,7 @@ pf-state-searches'
 
 	for graphname in ${GRAPHS}; do
 		BASE_CMD="rrdtool graph "${SAVEDIR}/${graphname}-${PERIOD}.png" -s -${HOURS}hours"
+
 		case "${graphname}" in
 			'pf-bits')
 				REST_OF_CMD="-t 'pf bits in/out (IPv4)' \
