@@ -28,10 +28,6 @@ use Time::Local 'timelocal_modern';
 # External modules.
 use JSON::MaybeXS 'decode_json';
 
-# Global variables.
-my $last_updated_time;
-my @found_files;
-
 sub usage {
 	my $program_name = fileparse $0;
 
@@ -105,14 +101,25 @@ sub modify_utime {
 	utime $since_the_epoch, $since_the_epoch, @files_to_modify;
 }
 
+# Takes an anon function and a list of arguments. Returns a closure
+# which will call the anon function with those arguments prepended to
+# the argument list.
+#
+# https://www.perlmonks.org/?node_id=109068
+sub make_wanted {
+	my ( $sub, @args ) = @_;
+	return sub { $sub->( @args, @_ ); };
+}
+
 sub wanted {
-	/\.(?:mkv|mp4|webm)\z/a or return;
-	-f or return;
-	if ( defined $last_updated_time ) {
-		( -M _ ) < $last_updated_time or return;
+	return unless /\.(?:mkv|mp4|webm)\z/a;
+	return unless -f;
+
+	if ( my $last_update = shift ) {
+		return if ( -M _ ) > $last_update;
 	}
 
-	push @found_files, $File::Find::name;
+	modify_utime $_;
 }
 
 @ARGV or usage;
@@ -124,17 +131,18 @@ for (@ARGV) {
 	elsif ( -d _ ) {
 		chdir $_;
 
-		$last_updated_time = -M '.sudat_last_update';
-		find( { wanted => \&wanted }, '.' );
-
-		for (@found_files) { modify_utime $_; }
+		my $last_update;
+		if ( $last_update = -M '.sudat_last_update' ) {
+			find( make_wanted( \&wanted, $last_update ), '.' );
+		}
+		else {
+			find( make_wanted( \&wanted ), '.' );
+		}
 
 		open my $last_update_fh, '>', '.sudat_last_update';
 		close $last_update_fh;
 		utime undef, undef, '.sudat_last_update';
 
-		@found_files = ();
-		$last_updated_time = undef;
 		chdir $old_pwd;
 	}
 
