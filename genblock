@@ -56,7 +56,7 @@ sub unique_domains {
 	my @domains;
 
 	while ( <<>> ) {
-		# Don't process commented or blank lines.
+		## Don't process commented or blank lines.
 		next if /\A \s*? [#]/ax;
 		next if /\A \s* \z/ax;
 
@@ -79,6 +79,7 @@ sub unique_domains {
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
 
+		#<<<
 		if (/
 			\b # word boundary
 
@@ -112,6 +113,7 @@ sub unique_domains {
 
 			\b # word boundary
 		/axp)
+		#>>>
 		{
 			push @domains, ${^MATCH};
 		}

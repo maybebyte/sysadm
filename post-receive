@@ -103,8 +103,8 @@ sub make_wanted {
 }
 
 sub gzip_files {
-	# Patterns are evaluated before file tests because it's less
-	# expensive.
+	## Patterns are evaluated before file tests because it's less
+	## expensive.
 	return if $File::Find::name =~ /\.git/;
 	return unless /\.(?:html|css|txt|xml|asc)\z/;
 
@@ -216,25 +216,21 @@ sub clone_and_stagit {
 	system qw(stagit --), $repo_location;
 }
 
-unless (
-	eval {
-		open my $repo_owner_fh, '>', catfile( $repo_location, 'owner' );
-		say $repo_owner_fh $owner;
-		close $repo_owner_fh;
-	}
-	)
+unless ( eval {
+	open my $repo_owner_fh, '>', catfile( $repo_location, 'owner' );
+	say $repo_owner_fh $owner;
+	close $repo_owner_fh;
+} )
 {
 	print STDERR "Couldn't write to $repo_location/owner $@" if $@;
 }
 
-unless (
-	eval {
-		open my $repo_description_fh, '>',
-			catfile( $repo_location, 'description' );
-		say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
-		close $repo_description_fh;
-	}
-	)
+unless ( eval {
+	open my $repo_description_fh, '>',
+		catfile( $repo_location, 'description' );
+	say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
+	close $repo_description_fh;
+} )
 {
 	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
 }
