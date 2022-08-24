@@ -25,6 +25,8 @@ use File::Basename 'fileparse';
 # Parse command line options.
 use Getopt::Std;
 
+use re '/aaxx';
+
 our $opt_h;
 our $opt_t = 'plain';
 
@@ -53,13 +55,13 @@ sub unique_domains {
 
 	while ( <<>> ) {
 		## Don't process commented or blank lines.
-		next if /\A \s*? [#]/ax;
-		next if /\A \s* \z/ax;
+		next if /\A \s*? \#/;
+		next if /\A \s* \z/;
 
 		# Get rid of these common leading IP addresses in hosts(5)
 		# formatted blocklists.
-		s/\A \s*? 127\.0\.0\.1 \s*?//ax;
-		s/\A \s*? 0\.0\.0\.0 \s*?//ax;
+		s/\A \s*? 127\.0\.0\.1 \s*?//;
+		s/\A \s*? 0\.0\.0\.0 \s*?//;
 
 		# Lines with these IP addresses at the tail end of a word
 		# (likely caused by maintainer typos) can't be trusted. Messing
@@ -69,8 +71,8 @@ sub unique_domains {
 		# Here are two examples of lines that match:
 		# zy16eoat1w.com0.0.0.0 102.112.2o7.net
 		# vungle.com0.0.0.0adminer.com
-		next if /\B 127\.0\.0\.1/ax;
-		next if /\B 0\.0\.0\.0/ax;
+		next if /\B 127\.0\.0\.1/;
+		next if /\B 0\.0\.0\.0/;
 
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
@@ -81,12 +83,12 @@ sub unique_domains {
 
 			### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
 			(?: # begin noncapturing group
-			[a-z0-9]+ # one or more lowercase or number characters
+			[a-z 0-9]+ # one or more lowercase or number characters
 
 			### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
 			(?: # begin noncapturing group
 			[-_]+ # one or more hyphens or underscores
-			[a-z0-9]+ # one or more lowercase or number characters
+			[a-z 0-9]+ # one or more lowercase or number characters
 			)* # end of noncapturing group, matches zero or more times
 			### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
 
@@ -97,8 +99,9 @@ sub unique_domains {
 			### TOP-LEVEL DOMAIN ###
 			(?: # begin noncapturing group
 
-			(?:xn-- # begin noncapturing group, punycode prefix
-			[a-z0-9]+ # one or more lowercase or number characters
+			(?: # begin noncapturing group
+			xn-- # punycode prefix
+			[a-z 0-9]+ # one or more lowercase or number characters
 			) # end the punycode noncapturing group
 
 			| # OR
@@ -108,7 +111,7 @@ sub unique_domains {
 			### END TOP-LEVEL DOMAIN ###
 
 			\b # word boundary
-		/axp)
+		/p)
 		#>>>
 		{
 			$domain_appearances{ ${^MATCH} }++;
