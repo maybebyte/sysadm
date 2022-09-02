@@ -111,8 +111,7 @@ sub gzip_files {
 	my $src_toggle = shift // '';
 	if ( $src_toggle eq 'no-src' ) {
 		if ( $File::Find::name =~ /$src_dir/ ) {
-			return
-				unless $_ eq $src_page;
+			return unless $_ eq $src_page;
 		}
 	}
 
