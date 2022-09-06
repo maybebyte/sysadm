@@ -19,11 +19,10 @@
 # Can this be generalized?
 # Can this be made more readable?
 
+use v5.32;
 use autodie ':all';
 use strict;
 use warnings;
-
-use feature 'say';
 
 # Base modules.
 use Cwd 'cwd';

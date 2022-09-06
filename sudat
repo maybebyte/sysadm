@@ -15,6 +15,7 @@
 
 # Sync Upload Date and Access Time
 
+use v5.32;
 use autodie;
 use strict;
 use warnings;
