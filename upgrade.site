@@ -1,5 +1,5 @@
 # upgrade.site(5)
-/bin/cat <<-'EOF' >>/etc/rc.firsttime
+/bin/cat <<- 'EOF' >> /etc/rc.firsttime
 	/usr/sbin/pkg_add -Iu
 
 	/bin/rm -f /etc/fonts/conf.d/10-hinting-slight.conf \

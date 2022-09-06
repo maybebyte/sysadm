@@ -19,8 +19,8 @@ fi
 # note that I only check executables that aren't accounted for in dotfiles.
 check_deps() {
 	while read -r dependency; do
-		command -v -- "${dependency}" ||
-			err "${dependency} not found in PATH or not executable."
+		command -v -- "${dependency}" \
+			|| err "${dependency} not found in PATH or not executable."
 	done
 }
 

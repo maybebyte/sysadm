@@ -115,8 +115,8 @@ pf-state-searches'
 	done
 }
 
-command -v 'rrdtool' > /dev/null 2>&1 ||
-	err "rrdtool not found in PATH or not executable."
+command -v 'rrdtool' > /dev/null 2>&1 \
+	|| err "rrdtool not found in PATH or not executable."
 
 while getopts s opt; do
 	case "${opt}" in
