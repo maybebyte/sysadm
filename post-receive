@@ -38,23 +38,12 @@ use IPC::Open3;
 use IPC::System::Simple;
 
 sub check_dependencies {
-	open my $which_fh, '-|', 'which', '--', @_;
+	my @required = @_;
+	open my $which_fh, '-|', qw(which --), @required;
 
-	chomp( my @dependency_checks = <$which_fh> );
-
-	if ( scalar @_ != scalar @dependency_checks ) {
-		my $count = 0;
-		for (@_) {
-			die "$_ is not installed!\n"
-				unless ( $dependency_checks[$count] // '' ) =~ /$_/;
-			$count++;
-		}
+	unless ( eval { close $which_fh } ) {
+		exit;
 	}
-
-	# Placing this before the comparison loop masks the real error.
-	close $which_fh;
-
-	return scalar @dependency_checks;
 }
 
 my @dependencies = qw(stagit git);
