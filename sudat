@@ -21,13 +21,13 @@ use strict;
 use warnings;
 
 # Included modules.
-use File::Basename 'fileparse';
+use File::Basename qw(fileparse);
 use File::Find;
 use Cwd;
-use Time::Local 'timelocal_modern';
+use Time::Local qw(timelocal_modern);
 
 # External modules.
-use JSON::MaybeXS 'decode_json';
+use JSON::MaybeXS qw(decode_json);
 
 sub usage {
 	my $program_name = fileparse $0;
@@ -52,8 +52,8 @@ sub make_file_template {
 	# complexity.
 	my $extension_regexp = '(webm|mkv|mp4|info\.json|description)';
 
-	$file_with_extensions =~ s/\.$extension_regexp\z//g;
-	my $file_without_extensions = $file_with_extensions;
+	my $file_without_extensions =
+		$file_with_extensions =~ s/\.$extension_regexp\z//gr;
 
 	return $file_without_extensions;
 }
@@ -70,7 +70,7 @@ sub get_upload_date {
 	};
 
 	my $decoded_json = decode_json $info_json;
-	my $upload_date = ${$decoded_json}{'upload_date'};
+	my $upload_date = $decoded_json->{'upload_date'};
 	return $upload_date;
 }
 
@@ -78,8 +78,8 @@ sub upload_date_to_epoch {
 	my $file_to_process = shift or die "upload_date_to_epoch needs a file.\n";
 	my $upload_date = get_upload_date $file_to_process;
 
-	$upload_date =~ /\A \d{8} \z/ax
-		or die "Upload date is not eight digits long.\n";
+	die "Upload date is not eight digits long.\n"
+		unless $upload_date =~ /\A \d{8} \z/ax;
 
 	my $year = substr $upload_date, 0, 4;
 	my $month = substr $upload_date, 4, 2;

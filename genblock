@@ -18,10 +18,10 @@ use autodie;
 use strict;
 use warnings;
 
-use experimental 'smartmatch';
+use experimental qw(smartmatch);
 
 # Extract file name.
-use File::Basename 'fileparse';
+use File::Basename qw(fileparse);
 
 # Parse command line options.
 use Getopt::Std;
