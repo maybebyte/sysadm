@@ -198,28 +198,6 @@ sub generate_website {
 	close $rss_feed_fh;
 }
 
-sub update_post_receive {
-	my $post_receive_original = shift;
-
-	for my $repository ( keys %repo_descriptions ) {
-		my $post_receive_destination =
-			catfile( $home, "$repository.git", qw(hooks post-receive) );
-
-		say "Copying $post_receive_original to $post_receive_destination"
-			if $opt_v;
-
-		unless ( eval {
-			copy $post_receive_original, $post_receive_destination
-				or die;
-		} )
-		{
-			print STDERR "Copy from $post_receive_original to "
-				. "$post_receive_destination failed: $@"
-				if $@;
-		}
-	}
-}
-
 sub update_sysadm {
 	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
@@ -255,9 +233,6 @@ sub update_sysadm {
 	}
 	closedir $clone_dir_fh;
 	system qw(mv -f --), @files_to_copy, $sysadm_dir;
-
-	say "Updating post-receive hooks" if $opt_v;
-	update_post_receive catfile( $sysadm_dir, 'post-receive' );
 }
 
 sub update_ssg {
