@@ -35,14 +35,13 @@ use IO::Compress::Gzip qw(gzip $GzipError);
 use IPC::Open3;
 
 # External modules.
-use IPC::System::Simple;
+use IPC::System::Simple qw(capturex);
 
 our $opt_v;
 
 sub check_dependencies {
-	my @required = @_;
-	open my $which_fh, '-|', qw(which --), @required;
-	close $which_fh;
+	my $which_output = capturex qw(which --), @_;
+	$which_output = undef;
 }
 
 my @dependencies = qw(stagit git);
