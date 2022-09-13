@@ -43,7 +43,7 @@ sub check_dependencies {
 	my @required = @_;
 	open my $which_fh, '-|', qw(which --), @required;
 
-	unless ( eval { close $which_fh } ) {
+	unless ( eval { close $which_fh; 1; } ) {
 		exit;
 	}
 }
