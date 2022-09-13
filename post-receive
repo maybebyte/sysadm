@@ -15,7 +15,6 @@
 
 # post-receive hook, see githooks(5)
 
-# TODO: Add verbosity toggle.
 # Can this be generalized?
 # Can this be made more readable?
 
@@ -31,11 +30,14 @@ use File::Copy qw(copy move);
 use File::Find;
 use File::Spec::Functions qw(catdir catfile rootdir);
 use File::Temp qw(tempdir);
+use Getopt::Std;
 use IO::Compress::Gzip qw(gzip $GzipError);
 use IPC::Open3;
 
 # External modules.
 use IPC::System::Simple;
+
+our $opt_v;
 
 sub check_dependencies {
 	my @required = @_;
@@ -49,36 +51,73 @@ sub check_dependencies {
 my @dependencies = qw(stagit git);
 check_dependencies @dependencies;
 
+getopts('v');
+
 # NOTE: MUST be pushing to a bare git repository.
 my $repo_location = cwd;
+say "REPOSITORY LOCATION: $repo_location" if $opt_v;
+
 my $repo_name = fileparse $repo_location;
+say "REPOSITORY NAME: $repo_name" if $opt_v;
+
 my $repo_name_no_dot_git = $repo_name =~ s/\.git\z//r;
+say "REPOSITORY NAME (sans .git): $repo_name_no_dot_git" if $opt_v;
 
 my $home = $ENV{'HOME'} // ( getpwuid $< )[7];
+say "HOME DIRECTORY: $home" if $opt_v;
+
 my $bindir = catdir $home, qw(.local bin);
+say "BINARY DIRECTORY: $bindir" if $opt_v;
+
 my $bin_ssg = catdir $bindir, 'ssg6';
+say "SSG LOCATION: $bin_ssg" if $opt_v;
+
 my $bin_rssg = catdir $bindir, 'rssg';
+say "RSSG LOCATION: $bin_rssg" if $opt_v;
 
 # $owner is written to $repo_location/owner
 my ( $owner, $domain_with_schema ) = qw(Ashlen https://amissing.link);
 my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
+say "OWNER: $owner" if $opt_v;
+say "DOMAIN WITH SCHEMA: $domain_with_schema" if $opt_v;
+say "DOMAIN WITHOUT SCHEMA: $domain_without_schema" if $opt_v;
 
 my $web_server_dir = catfile &rootdir, qw(var www htdocs),
 	$domain_without_schema;
 
-my ( $src_dir, $src_page ) = qw(src src.html);
-my $stagit_dir = catdir $web_server_dir, $src_dir, $repo_name_no_dot_git;
+say "WEB SERVER DIRECTORY: $web_server_dir" if $opt_v;
 
-my ( $website_repo_name, $sysadm_repo_name, $dotfiles_repo_name ) =
-	qw(website_md sysadm dotfiles);
+my ( $src_dir, $src_page ) = qw(src src.html);
+say "SRC DIRECTORY NAME: $src_dir" if $opt_v;
+say "SRC PAGE NAME: $src_page" if $opt_v;
+
+my $stagit_dir = catdir $web_server_dir, $src_dir, $repo_name_no_dot_git;
+say "STAGIT DIRECTORY: $stagit_dir" if $opt_v;
+
+my (
+	$website_repo_name, $sysadm_repo_name,
+	$dotfiles_repo_name, $learning_perl_repo_name
+) = qw(website_md sysadm dotfiles learning_perl_exercises);
+
+say "WEBSITE REPOSITORY NAME: $website_repo_name" if $opt_v;
+say "SYSADM REPOSITORY NAME: $sysadm_repo_name" if $opt_v;
+say "DOTFILES REPOSITORY NAME: $dotfiles_repo_name" if $opt_v;
+say "LEARNING PERL REPOSITORY NAME: $learning_perl_repo_name" if $opt_v;
 
 # The key for the repo in use is written to $repo_location/description
 my %repo_descriptions = (
 	$website_repo_name => "Source for $domain_without_schema",
 	$sysadm_repo_name => 'System Administration Tools',
 	$dotfiles_repo_name => 'OpenBSD configuration files',
-	'learning_perl_exercises' => 'Learning Perl exercises',
+	$learning_perl_repo_name => 'Learning Perl exercises',
 );
+
+say "WEBSITE DESCRIPTION: " . $repo_descriptions{$website_repo_name} if $opt_v;
+say "SYSADM DESCRIPTION: " . $repo_descriptions{$sysadm_repo_name} if $opt_v;
+say "DOTFILES DESCRIPTION: " . $repo_descriptions{$dotfiles_repo_name}
+	if $opt_v;
+say "LEARNING PERL DESCRIPTION: " . $repo_descriptions{$learning_perl_repo_name}
+	if $opt_v;
 
 # Takes an anon function and a list of arguments. Returns a closure
 # which will call the anon function with those arguments prepended to
@@ -111,8 +150,14 @@ sub gzip_files {
 }
 
 sub generate_website {
+	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
+
 	system qw(git clone --), $repo_location, $clone_dir;
+
+	say "Running '$bin_ssg $clone_dir $web_server_dir $domain_without_schema "
+		. "$domain_with_schema'"
+		if $opt_v;
 
 	my $ssg_pid =
 		open3( undef, my $ssg_out, '>&STDERR', $bin_ssg,
@@ -127,14 +172,24 @@ sub generate_website {
 	close $ssg_out;
 
 	my $rss_title = "Newsletter - $domain_without_schema";
+	say "RSS TITLE: $rss_title" if $opt_v;
+
 	my $rss_file_path = catdir $web_server_dir, 'rss.xml';
+	say "RSS FEED LOCATION: $rss_file_path" if $opt_v;
+
 	my $rssg_index_name = 'index.md';
+	say "INDEX NAME FOR RSSG: $rssg_index_name" if $opt_v;
+
+	my $rssg_index_location = catfile $clone_dir, $rssg_index_name;
+	say "INDEX LOCATION FOR RSSG: $rssg_index_location" if $opt_v;
+
+	say "Running $bin_rssg $rssg_index_location $rss_title" if $opt_v;
 
 	# NOTE: For whatever reason, rssg doesn't play nice with sending its
 	# STDOUT to a file handle. It hangs indefinitely.
 	my $rssg_pid =
 		open3( undef, my $rssg_out, '>&STDERR', $bin_rssg,
-			catfile( $clone_dir, $rssg_index_name ), $rss_title )
+			$rssg_index_location, $rss_title )
 		or die "Could not open rssg: $!\n";
 
 	open my $rss_feed_fh, '>', $rss_file_path;
@@ -148,12 +203,16 @@ sub generate_website {
 }
 
 sub update_sysadm {
+	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
+
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $sysadm_dir = catdir &rootdir, 'etc', $sysadm_repo_name;
+	say "SYSADM DIRECTORY: $sysadm_dir" if $opt_v;
 
 	# Clear out $sysadm_dir.
+	say "Clearing out the sysadm dir at $sysadm_dir" if $opt_v;
 	my @files_to_delete;
 	opendir( my $sysadm_dir_fh, $sysadm_dir );
 	while ( my $file = readdir $sysadm_dir_fh ) {
@@ -166,6 +225,7 @@ sub update_sysadm {
 	system qw(rm -rf --), @files_to_delete;
 
 	# Move files from $clone_dir to $sysadm_dir.
+	say "Moving files to the sysadm dir at $sysadm_dir" if $opt_v;
 	my @files_to_copy;
 	opendir( my $clone_dir_fh, $clone_dir );
 	while ( my $file = readdir $clone_dir_fh ) {
@@ -180,25 +240,36 @@ sub update_sysadm {
 }
 
 sub update_ssg {
+	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
+
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $clone_bin = catdir $clone_dir, qw(.local bin);
 	my $clone_ssg = catdir $clone_bin, 'ssg6';
 	my $clone_rssg = catdir $clone_bin, 'rssg';
 
+	say "Replacing $bin_ssg with newer $clone_ssg" if $opt_v;
 	move $clone_ssg, $bin_ssg;
+
+	say "Replacing $bin_rssg with newer $clone_rssg" if $opt_v;
 	move $clone_rssg, $bin_rssg;
 
+	say "Changing permissions for $bin_ssg and $bin_rssg to 700" if $opt_v;
 	chmod 0700, $bin_ssg, $bin_rssg;
 }
 
 sub clone_and_stagit {
 	my $stagit_git_dir = catdir $stagit_dir, '.git';
+	say "STAGIT GIT DIRECTORY: $stagit_git_dir" if $opt_v;
+
 	system qw(git clone --bare --), $repo_location, $stagit_git_dir;
 
+	say "Updating server info" if $opt_v;
 	chdir $stagit_git_dir;
 	system qw(git update-server-info);
+
+	say "Generating stagit pages for $repo_name_no_dot_git" if $opt_v;
 	chdir $stagit_dir;
 	system qw(stagit --), $repo_location;
 }
@@ -207,6 +278,7 @@ unless ( eval {
 	open my $repo_owner_fh, '>', catfile( $repo_location, 'owner' );
 	say $repo_owner_fh $owner;
 	close $repo_owner_fh;
+	say "Populated owner metadata for $repo_name_no_dot_git" if $opt_v;
 } )
 {
 	print STDERR "Couldn't write to $repo_location/owner $@" if $@;
@@ -217,15 +289,22 @@ unless ( eval {
 		catfile( $repo_location, 'description' );
 	say $repo_description_fh $repo_descriptions{$repo_name_no_dot_git};
 	close $repo_description_fh;
+	say "Populated description metadata for $repo_name_no_dot_git"
+		if $opt_v;
 } )
 {
 	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
 }
 
+say "Removing $stagit_dir" if $opt_v;
 system qw(rm -rf --), $stagit_dir;
+
+say "Creating $stagit_dir" if $opt_v;
 system qw(mkdir -p --), $stagit_dir;
 
 if ( $repo_name_no_dot_git eq $website_repo_name ) {
+	say "Clearing out $web_server_dir" if $opt_v;
+
 	opendir( my $web_server_dir_fh, $web_server_dir );
 	my @files_to_delete;
 	while ( my $file = readdir $web_server_dir_fh ) {
@@ -238,21 +317,46 @@ if ( $repo_name_no_dot_git eq $website_repo_name ) {
 	closedir $web_server_dir_fh;
 	system qw(rm -rf --), @files_to_delete;
 
+	say "Generating website" if $opt_v;
 	generate_website;
+
+	say "Deleting '.files' file" if $opt_v;
 	unlink catdir( $web_server_dir, '.files' );
+
+	say "Gzipping blog files in $web_server_dir" if $opt_v;
 	find make_wanted( \&gzip_files, 'no-src' ), $web_server_dir;
 }
 elsif ( $repo_name_no_dot_git eq $sysadm_repo_name ) {
+	say "Updating sysadm directory contents" if $opt_v;
 	update_sysadm;
 }
 elsif ( $repo_name_no_dot_git eq $dotfiles_repo_name ) {
+	say "Replacing ssg and rssg with newer versions" if $opt_v;
 	update_ssg;
 }
 
+say "Generating stagit pages" if $opt_v;
 clone_and_stagit;
 
-copy catfile( $stagit_dir, 'log.html' ), catfile( $stagit_dir, 'index.html' );
-copy catfile( $web_server_dir, qw(stagit style.css) ),
-	catfile( $stagit_dir, 'style.css' );
+# Wipe out and/or create the index file so it's known to exist.
+open my $index_fh, '>', catfile( $stagit_dir, 'index.html' );
+close $index_fh;
 
+my ( $stagit_log, $stagit_index ) = (
+	catfile( $stagit_dir, 'log.html' ),
+	catfile( $stagit_dir, 'index.html' )
+);
+
+say "Copying $stagit_log to $stagit_index" if $opt_v;
+copy $stagit_log, $stagit_index;
+
+my ( $stagit_css_source, $stagit_css_destination ) = (
+	catfile( $web_server_dir, qw(stagit style.css) ),
+	catfile( $stagit_dir, 'style.css' )
+);
+
+say "Copying CSS from $stagit_css_source to $stagit_css_destination" if $opt_v;
+copy $stagit_css_source, $stagit_css_destination;
+
+say "Gzipping files in $stagit_dir" if $opt_v;
 find make_wanted( \&gzip_files ), $stagit_dir;
