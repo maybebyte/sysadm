@@ -149,6 +149,7 @@ sub generate_website {
 	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
+	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	say "Running '$bin_ssg $clone_dir $web_server_dir $domain_without_schema "
@@ -202,13 +203,14 @@ sub update_sysadm {
 	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
+	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $sysadm_dir = catdir &rootdir, 'etc', $sysadm_repo_name;
 	say "SYSADM DIRECTORY: $sysadm_dir" if $opt_v;
 
 	# Clear out $sysadm_dir.
-	say "Clearing out the sysadm dir at $sysadm_dir" if $opt_v;
+	say "Clearing out $sysadm_dir" if $opt_v;
 	my @files_to_delete;
 	opendir( my $sysadm_dir_fh, $sysadm_dir );
 	while ( my $file = readdir $sysadm_dir_fh ) {
@@ -221,7 +223,7 @@ sub update_sysadm {
 	system qw(rm -rf --), @files_to_delete;
 
 	# Move files from $clone_dir to $sysadm_dir.
-	say "Moving files to the sysadm dir at $sysadm_dir" if $opt_v;
+	say "Moving the appropriate files to $sysadm_dir" if $opt_v;
 	my @files_to_copy;
 	opendir( my $clone_dir_fh, $clone_dir );
 	while ( my $file = readdir $clone_dir_fh ) {
@@ -239,6 +241,7 @@ sub update_ssg {
 	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
+	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
 	system qw(git clone --), $repo_location, $clone_dir;
 
 	my $clone_bin = catdir $clone_dir, qw(.local bin);
@@ -259,13 +262,15 @@ sub clone_and_stagit {
 	my $stagit_git_dir = catdir $stagit_dir, '.git';
 	say "STAGIT GIT DIRECTORY: $stagit_git_dir" if $opt_v;
 
+	say "Running 'git clone --bare -- $repo_location $stagit_git_dir'"
+		if $opt_v;
 	system qw(git clone --bare --), $repo_location, $stagit_git_dir;
 
-	say "Updating server info for $repo_name_no_dot_git" if $opt_v;
+	say "Running 'git update-server-info' for $repo_name_no_dot_git" if $opt_v;
 	chdir $stagit_git_dir;
 	system qw(git update-server-info);
 
-	say "Generating stagit pages for $repo_name_no_dot_git" if $opt_v;
+	say "Running 'stagit -- $repo_location'" if $opt_v;
 	chdir $stagit_dir;
 	system qw(stagit --), $repo_location;
 }
@@ -313,7 +318,6 @@ if ( $repo_name_no_dot_git eq $website_repo_name ) {
 	closedir $web_server_dir_fh;
 	system qw(rm -rf --), @files_to_delete;
 
-	say "Generating HTML from Markdown and populating $web_server_dir" if $opt_v;
 	generate_website;
 
 	my $dot_files_file = catdir $web_server_dir, '.files';
@@ -326,11 +330,9 @@ if ( $repo_name_no_dot_git eq $website_repo_name ) {
 	find make_wanted( \&gzip_files, 'no-src' ), $web_server_dir;
 }
 elsif ( $repo_name_no_dot_git eq $sysadm_repo_name ) {
-	say "Updating sysadm directory contents" if $opt_v;
 	update_sysadm;
 }
 elsif ( $repo_name_no_dot_git eq $dotfiles_repo_name ) {
-	say "Replacing ssg and rssg with newer versions" if $opt_v;
 	update_ssg;
 }
 
