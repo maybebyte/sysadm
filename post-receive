@@ -35,7 +35,7 @@ use IO::Compress::Gzip qw(gzip $GzipError);
 use IPC::Open3;
 
 # External modules.
-use IPC::System::Simple qw(capturex);
+use IPC::System::Simple qw(capturex systemx);
 
 our $opt_v;
 
@@ -150,7 +150,7 @@ sub generate_website {
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
 	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
-	system qw(git clone --), $repo_location, $clone_dir;
+	systemx qw(git clone --), $repo_location, $clone_dir;
 
 	say "Running '$bin_ssg $clone_dir $web_server_dir $domain_without_schema "
 		. "$domain_with_schema'"
@@ -204,7 +204,7 @@ sub update_sysadm {
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
 	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
-	system qw(git clone --), $repo_location, $clone_dir;
+	systemx qw(git clone --), $repo_location, $clone_dir;
 
 	my $sysadm_dir = catdir &rootdir, 'etc', $sysadm_repo_name;
 	say "SYSADM DIRECTORY: $sysadm_dir" if $opt_v;
@@ -220,7 +220,7 @@ sub update_sysadm {
 		push @files_to_delete, $file;
 	}
 	closedir $sysadm_dir_fh;
-	system qw(rm -rf --), @files_to_delete;
+	systemx qw(rm -rf --), @files_to_delete;
 
 	# Move files from $clone_dir to $sysadm_dir.
 	say "Moving the appropriate files to $sysadm_dir" if $opt_v;
@@ -234,7 +234,7 @@ sub update_sysadm {
 		push @files_to_copy, $file;
 	}
 	closedir $clone_dir_fh;
-	system qw(mv -f --), @files_to_copy, $sysadm_dir;
+	systemx qw(mv -f --), @files_to_copy, $sysadm_dir;
 }
 
 sub update_ssg {
@@ -242,7 +242,7 @@ sub update_ssg {
 	my $clone_dir = tempdir( CLEANUP => 1 );
 
 	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
-	system qw(git clone --), $repo_location, $clone_dir;
+	systemx qw(git clone --), $repo_location, $clone_dir;
 
 	my $clone_bin = catdir $clone_dir, qw(.local bin);
 	my $clone_ssg = catdir $clone_bin, 'ssg6';
@@ -264,15 +264,15 @@ sub clone_and_stagit {
 
 	say "Running 'git clone --bare -- $repo_location $stagit_git_dir'"
 		if $opt_v;
-	system qw(git clone --bare --), $repo_location, $stagit_git_dir;
+	systemx qw(git clone --bare --), $repo_location, $stagit_git_dir;
 
 	say "Running 'git update-server-info' for $repo_name_no_dot_git" if $opt_v;
 	chdir $stagit_git_dir;
-	system qw(git update-server-info);
+	systemx qw(git update-server-info);
 
 	say "Running 'stagit -- $repo_location'" if $opt_v;
 	chdir $stagit_dir;
-	system qw(stagit --), $repo_location;
+	systemx qw(stagit --), $repo_location;
 }
 
 unless ( eval {
@@ -298,10 +298,10 @@ unless ( eval {
 }
 
 say "Clearing out $stagit_dir" if $opt_v;
-system qw(rm -rf --), $stagit_dir;
+systemx qw(rm -rf --), $stagit_dir;
 
 say "Creating $stagit_dir" if $opt_v;
-system qw(mkdir -p --), $stagit_dir;
+systemx qw(mkdir -p --), $stagit_dir;
 
 if ( $repo_name_no_dot_git eq $website_repo_name ) {
 	say "Clearing out $web_server_dir (excluding $src_dir)" if $opt_v;
@@ -316,7 +316,7 @@ if ( $repo_name_no_dot_git eq $website_repo_name ) {
 		push @files_to_delete, $file;
 	}
 	closedir $web_server_dir_fh;
-	system qw(rm -rf --), @files_to_delete;
+	systemx qw(rm -rf --), @files_to_delete;
 
 	generate_website;
 
