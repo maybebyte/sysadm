@@ -42,10 +42,7 @@ our $opt_v;
 sub check_dependencies {
 	my @required = @_;
 	open my $which_fh, '-|', qw(which --), @required;
-
-	unless ( eval { close $which_fh; 1; } ) {
-		exit;
-	}
+	close $which_fh;
 }
 
 my @dependencies = qw(stagit git);
