@@ -179,7 +179,7 @@ sub generate_website {
 	my $rssg_index_location = catfile $clone_dir, $rssg_index_name;
 	say "INDEX LOCATION FOR RSSG: $rssg_index_location" if $opt_v;
 
-	say "Running $bin_rssg $rssg_index_location $rss_title" if $opt_v;
+	say "Running '$bin_rssg $rssg_index_location $rss_title'" if $opt_v;
 
 	# NOTE: For whatever reason, rssg doesn't play nice with sending its
 	# STDOUT to a file handle. It hangs indefinitely.
@@ -256,7 +256,7 @@ sub update_sysadm {
 	closedir $clone_dir_fh;
 	system qw(mv -f --), @files_to_copy, $sysadm_dir;
 
-	say "Updating post-receive hook" if $opt_v;
+	say "Updating post-receive hooks" if $opt_v;
 	update_post_receive catfile( $sysadm_dir, 'post-receive' );
 }
 
@@ -286,7 +286,7 @@ sub clone_and_stagit {
 
 	system qw(git clone --bare --), $repo_location, $stagit_git_dir;
 
-	say "Updating server info" if $opt_v;
+	say "Updating server info for $repo_name_no_dot_git" if $opt_v;
 	chdir $stagit_git_dir;
 	system qw(git update-server-info);
 
@@ -317,14 +317,14 @@ unless ( eval {
 	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
 }
 
-say "Removing $stagit_dir" if $opt_v;
+say "Clearing out $stagit_dir" if $opt_v;
 system qw(rm -rf --), $stagit_dir;
 
 say "Creating $stagit_dir" if $opt_v;
 system qw(mkdir -p --), $stagit_dir;
 
 if ( $repo_name_no_dot_git eq $website_repo_name ) {
-	say "Clearing out $web_server_dir" if $opt_v;
+	say "Clearing out $web_server_dir (excluding $src_dir)" if $opt_v;
 
 	opendir( my $web_server_dir_fh, $web_server_dir );
 	my @files_to_delete;
@@ -338,13 +338,16 @@ if ( $repo_name_no_dot_git eq $website_repo_name ) {
 	closedir $web_server_dir_fh;
 	system qw(rm -rf --), @files_to_delete;
 
-	say "Generating website" if $opt_v;
+	say "Generating HTML from Markdown and populating $web_server_dir" if $opt_v;
 	generate_website;
 
-	say "Deleting '.files' file" if $opt_v;
-	unlink catdir( $web_server_dir, '.files' );
+	my $dot_files_file = catdir $web_server_dir, '.files';
+	say "Deleting $dot_files_file" if $opt_v;
+	unlink $dot_files_file;
 
-	say "Gzipping blog files in $web_server_dir" if $opt_v;
+	say "Gzipping files in $web_server_dir (excluding those in $src_dir)"
+		if $opt_v;
+
 	find make_wanted( \&gzip_files, 'no-src' ), $web_server_dir;
 }
 elsif ( $repo_name_no_dot_git eq $sysadm_repo_name ) {
@@ -356,7 +359,6 @@ elsif ( $repo_name_no_dot_git eq $dotfiles_repo_name ) {
 	update_ssg;
 }
 
-say "Generating stagit pages" if $opt_v;
 clone_and_stagit;
 
 my ( $stagit_log, $stagit_index ) = (
