@@ -202,6 +202,28 @@ sub generate_website {
 	close $rss_feed_fh;
 }
 
+sub update_post_receive {
+	my $post_receive_original = shift;
+
+	for my $repository ( keys %repo_descriptions ) {
+		my $post_receive_destination =
+			catfile( $home, "$repository.git", qw(hooks post-receive) );
+
+		say "Copying $post_receive_original to $post_receive_destination"
+			if $opt_v;
+
+		unless ( eval {
+			copy $post_receive_original, $post_receive_destination
+				or die;
+		} )
+		{
+			print STDERR "Copy from $post_receive_original to "
+				. "$post_receive_destination failed: $@"
+				if $@;
+		}
+	}
+}
+
 sub update_sysadm {
 	say "Creating temporary directory for $repo_name_no_dot_git" if $opt_v;
 	my $clone_dir = tempdir( CLEANUP => 1 );
@@ -237,6 +259,9 @@ sub update_sysadm {
 	}
 	closedir $clone_dir_fh;
 	system qw(mv -f --), @files_to_copy, $sysadm_dir;
+
+	say "Updating post-receive hook" if $opt_v;
+	update_post_receive catfile( $sysadm_dir, 'post-receive' );
 }
 
 sub update_ssg {
@@ -337,10 +362,6 @@ elsif ( $repo_name_no_dot_git eq $dotfiles_repo_name ) {
 
 say "Generating stagit pages" if $opt_v;
 clone_and_stagit;
-
-# Wipe out and/or create the index file so it's known to exist.
-open my $index_fh, '>', catfile( $stagit_dir, 'index.html' );
-close $index_fh;
 
 my ( $stagit_log, $stagit_index ) = (
 	catfile( $stagit_dir, 'log.html' ),
