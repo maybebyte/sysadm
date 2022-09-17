@@ -1,0 +1,112 @@
+#!/usr/bin/env perl
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# TODO (*maybe*): Allow the user to specify a custom format.
+
+use v5.32;
+use strict;
+use warnings;
+use autodie qw(:all);
+
+use File::Basename qw(fileparse);
+use Getopt::Std;
+use IO::Compress::Gzip qw(:constants);
+use Sys::Hostname;
+
+use IPC::System::Simple qw(capturex systemx system);
+
+my $program_name = fileparse $0;
+
+sub usage {
+	die <<EOF;
+$program_name [mount point] [...]
+
+$program_name creates compressed backups of mount points. It creates a level 0
+dump(8) and updates /etc/dumpdates. Currently, it uses IO::Compress::Gzip with
+the best compression level available.
+
+The output file name is in this format:
+formatted-path_hostname_yyyy_mmdd_hhmm.dump.gz
+EOF
+}
+
+sub remove_leading_and_trailing_slashes {
+	my $path = shift
+		// die "remove_leading_and_trailing_slashes needs a path.\n";
+
+	$path =~ s{\A/+}{/};   # Leave one so that the mount point can be checked.
+	$path =~ s{/+\z}{};
+
+	return $path;
+}
+
+# derive_filename exists as a separate subroutine so that file name derivation
+# is decoupled from backup operations. Conceptually, it makes more sense to me
+# to keep them separate like this.
+sub derive_filename {
+	my $path = shift // die "derive_filename needs a path.\n";
+	my $filename = $path;
+
+	$filename = remove_leading_and_trailing_slashes $filename;
+	$filename =~ s{\A/}{};
+	$filename =~ s{/}{-}g;
+
+	$filename = 'rootdir' unless length $filename;
+
+	my $hostname = ( split /\./, hostname )[0];
+	$filename .= "_$hostname";
+
+	my ( $min, $hour, $day, $month, $year ) =
+		( localtime time )[ 1, 2, 3, 4, 5 ];
+
+	$year += 1900;
+	$month = sprintf( "%02d", $month += 1 );
+
+	for my $unit_of_time ( $min, $hour, $day ) {
+		$unit_of_time = sprintf "%02d", $unit_of_time;
+	}
+
+	$filename .= "_${year}_${month}${day}_${hour}${min}";
+	$filename .= '.dump.gz';   # Change if supporting more than dump + gzip.
+
+	return $filename;
+}
+
+sub backup_partition {
+	my $mount_point = shift // die "backup_partition needs a mount point.\n";
+	$mount_point = remove_leading_and_trailing_slashes $mount_point;
+	my $filename = derive_filename $mount_point;
+
+	my @mount_points = capturex 'mount';
+	die "$mount_point isn't mounted!\n"
+		unless grep { /$mount_point/ } @mount_points;
+
+	my $z = IO::Compress::Gzip->new( $filename, -Level => Z_BEST_COMPRESSION, )
+		or die;
+
+	open my $dump_fh, '-|', qw(dump -0auf -), $mount_point;
+	while (<$dump_fh>) {
+		print $z $_;
+	}
+
+	close $dump_fh;
+	close $z;
+}
+
+usage unless @ARGV;
+
+for (@ARGV) {
+	backup_partition $_;
+}
