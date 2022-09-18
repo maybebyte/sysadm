@@ -47,7 +47,7 @@ sub remove_leading_and_trailing_slashes {
 		// die "remove_leading_and_trailing_slashes needs a path.\n";
 
 	$path =~ s{\A/+}{/};   # Leave one so that the mount point can be checked.
-	$path =~ s{/+\z}{};
+	$path =~ s{/+\z}{} unless $path eq '/';
 
 	return $path;
 }
