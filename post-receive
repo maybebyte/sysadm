@@ -140,9 +140,11 @@ sub gzip_files {
 
 	return unless -f;
 
-	unless ( eval { gzip $_ => "$_.gz" or die "gzip failed: $GzipError\n"; } ) {
-		print STDERR "Couldn't compress file: $@" if $@;
-	}
+	# If the file can fit in a single frame, compression will hurt more than it
+	# helps.
+	return unless (-s _) > 1400;
+
+	gzip $_ => "$_.gz" or die "gzipping $_ to $_.gz failed: $GzipError\n";
 }
 
 sub generate_website {
