@@ -22,7 +22,7 @@ use autodie qw(:all);
 
 use File::Basename qw(fileparse);
 use Getopt::Std;
-use IO::Compress::Gzip qw(:constants);
+use IO::Compress::Gzip qw(gzip $GzipError :constants);
 use Sys::Hostname;
 
 use IPC::System::Simple qw(capturex systemx system);
@@ -93,16 +93,11 @@ sub backup_partition {
 	die "$mount_point isn't mounted!\n"
 		unless grep { /$mount_point/ } @mount_points;
 
-	my $z = IO::Compress::Gzip->new( $filename, -Level => Z_BEST_COMPRESSION, )
-		or die;
-
 	open my $dump_fh, '-|', qw(dump -0auf -), $mount_point;
-	while (<$dump_fh>) {
-		print $z $_;
-	}
+	gzip( $dump_fh => $filename, -Level => Z_BEST_COMPRESSION )
+		or die "Could not compress dump with gzip to $filename: $GzipError";
 
 	close $dump_fh;
-	close $z;
 }
 
 usage unless @ARGV;
