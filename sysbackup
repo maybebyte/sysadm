@@ -22,7 +22,7 @@ use autodie qw(:all);
 
 use File::Basename qw(fileparse);
 use Getopt::Std;
-use IO::Compress::Gzip qw(gzip $GzipError :constants);
+use IO::Compress::Gzip qw(gzip $GzipError);
 use Sys::Hostname;
 
 use IPC::System::Simple qw(capturex);
@@ -34,8 +34,7 @@ sub usage {
 $program_name [mount point] [...]
 
 $program_name creates compressed backups of mount points. It creates a level 0
-dump(8) and updates /etc/dumpdates. Currently, it uses IO::Compress::Gzip with
-the best compression level available.
+dump(8) and updates /etc/dumpdates. Currently, it uses IO::Compress::Gzip.
 
 The output file name is in this format:
 formatted-path_hostname_yyyy_mmdd_hhmm.dump.gz
@@ -94,7 +93,7 @@ sub backup_partition {
 		unless grep { /$mount_point/ } @mount_points;
 
 	open my $dump_fh, '-|', qw(dump -0auf -), $mount_point;
-	gzip( $dump_fh => $filename, -Level => Z_BEST_COMPRESSION )
+	gzip( $dump_fh => $filename )
 		or die "Could not compress dump with gzip to $filename: $GzipError";
 
 	close $dump_fh;
