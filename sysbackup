@@ -25,7 +25,7 @@ use Getopt::Std;
 use IO::Compress::Gzip qw(gzip $GzipError :constants);
 use Sys::Hostname;
 
-use IPC::System::Simple qw(capturex systemx system);
+use IPC::System::Simple qw(capturex);
 
 my $program_name = fileparse $0;
 
