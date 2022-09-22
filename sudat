@@ -126,7 +126,7 @@ sub wanted {
 @ARGV or usage;
 my $old_pwd = cwd;
 
-for (@ARGV) {
+while (<@ARGV>) {
 	if (-f) { modify_utime $_; }
 
 	elsif ( -d _ ) {

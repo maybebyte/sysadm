@@ -101,6 +101,6 @@ sub backup_partition {
 
 usage unless @ARGV;
 
-for (@ARGV) {
+while (<@ARGV>) {
 	backup_partition $_;
 }
