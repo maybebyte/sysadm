@@ -72,7 +72,7 @@ my $bin_rssg = catdir $bindir, 'rssg';
 say "RSSG LOCATION: $bin_rssg" if $opt_v;
 
 # $owner is written to $repo_location/owner
-my ( $owner, $domain_with_schema ) = qw(Ashlen https://amissing.link);
+my ( $owner, $domain_with_schema ) = qw(Ashlen https://anthes.is);
 my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
 say "OWNER: $owner" if $opt_v;
 say "DOMAIN WITH SCHEMA: $domain_with_schema" if $opt_v;
