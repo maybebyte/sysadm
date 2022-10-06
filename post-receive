@@ -87,6 +87,10 @@ my ( $src_dir, $src_page ) = qw(src src.html);
 say "SRC DIRECTORY NAME: $src_dir" if $opt_v;
 say "SRC PAGE NAME: $src_page" if $opt_v;
 
+
+my $clone_url = $domain_with_schema . "/$src_dir" . "/$repo_name_no_dot_git/.git";
+say "CLONE URL: $clone_url" if $opt_v;
+
 my $stagit_dir = catdir $web_server_dir, $src_dir, $repo_name_no_dot_git;
 say "STAGIT DIRECTORY: $stagit_dir" if $opt_v;
 
@@ -297,6 +301,18 @@ unless ( eval {
 } )
 {
 	print STDERR "Couldn't write to $repo_location/description: $@" if $@;
+}
+
+unless ( eval {
+	open my $repo_url_fh, '>',
+		catfile( $repo_location, 'url' );
+	say $repo_url_fh $clone_url;
+	close $repo_url_fh;
+	say "Populated URL metadata for $repo_name_no_dot_git"
+		if $opt_v;
+} )
+{
+	print STDERR "Couldn't write to $repo_location/url: $@" if $@;
 }
 
 say "Clearing out $stagit_dir" if $opt_v;
