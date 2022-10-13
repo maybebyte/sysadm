@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+use v5.32;
+use strict;
+use warnings;
+use autodie;
+
+use File::Basename qw(fileparse);
+use Scalar::Util qw(looks_like_number);
+
+my $program_name = fileparse $0;
+
+my $file = shift or die "$program_name needs a file.\n";
+-e $file or die "$file doesn't exist.\n";
+-f _ or die "$file isn't a file.\n";
+-r _ or die "$file isn't readable.\n";
+
+my $number_of_backups = shift
+	or die "$program_name needs a number of backups to maintain.\n";
+looks_like_number $number_of_backups or die "Number of backups
+	($number_of_backups) doesn't look like a number.\n";
+
+my @files = ($file);
+my $count = 0;
+
+while ( $count < $number_of_backups ) {
+	push @files, $file . ".$count";
+	$count++;
+}
+
+while ( @files > 1 ) {
+	my $destination = pop @files;
+
+	eval { rename $files[-1], $destination; };
+	print STDERR $@ if $@;
+}
