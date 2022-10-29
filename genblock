@@ -31,7 +31,7 @@ use re '/aaxx';
 our $opt_h;
 our $opt_t = 'plain';
 
-my @formats = qw(plain unbound);
+my @formats = qw(plain unbound rpz);
 
 my $program_name = fileparse $0;
 
@@ -131,4 +131,7 @@ if ( $opt_t eq 'plain' ) {
 }
 elsif ( $opt_t eq 'unbound' ) {
 	print map { "local-zone: \"$_\" always_refuse" . "\n" } &unique_domains;
+}
+elsif ( $opt_t eq 'rpz' ) {
+	print map { "$_ CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } &unique_domains;
 }
