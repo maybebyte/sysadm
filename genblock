@@ -13,6 +13,11 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# TODO: reduce number of domains in rpz format (the wildcards get out of control
+# given that many hosts files are an enumeration of many subdomains---this could
+# be better solved by identifying redundant patterns and pruning them from the
+# final blocklist)
+
 use v5.32;
 use autodie;
 use strict;
