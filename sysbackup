@@ -55,7 +55,7 @@ sub remove_leading_and_trailing_slashes {
 # is decoupled from backup operations. Conceptually, it makes more sense to me
 # to keep them separate like this.
 sub derive_filename {
-	my $path = shift // die "derive_filename needs a path.\n";
+	my $path = shift or die "derive_filename needs a path.\n";
 	my $filename = $path;
 
 	$filename = remove_leading_and_trailing_slashes $filename;
@@ -84,7 +84,7 @@ sub derive_filename {
 }
 
 sub backup_partition {
-	my $mount_point = shift // die "backup_partition needs a mount point.\n";
+	my $mount_point = shift or die "backup_partition needs a mount point.\n";
 	$mount_point = remove_leading_and_trailing_slashes $mount_point;
 	my $filename = derive_filename $mount_point;
 
