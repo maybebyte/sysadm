@@ -128,6 +128,9 @@ my %wg_properties;
 open my $wg_file_fh, '<', $wg_file;
 
 # The format of the configuration file being parsed is based on INI.
+#
+# TODO: change IP sanity checking so it specifically checks IPv4 or IPv6. Right
+# now, it does not do so, it only checks for a valid IP address in general.
 while (<$wg_file_fh>) {
 	chomp;
 
