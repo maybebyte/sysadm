@@ -1,0 +1,298 @@
+#!/usr/bin/env perl
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# What this script does:
+# Parses a random WireGuard configuration file, then brings up a wg(4) interface
+# with appropriate parameters using ifconfig(8).
+#
+# Can optionally do other things:
+# - Specify an rtable(4) for `wgrtable`.
+# - Adjust pf(4) rules given anchor names.
+# - Restart unbound(8).
+# - Adjust the MTU of the VPN interface.
+
+# Background information:
+#
+# Protocol: https://www.wireguard.com/protocol/
+#
+# Relevant upstream man pages (details configuration file options as well):
+# https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
+# https://www.man7.org/linux/man-pages/man8/wg.8.html
+
+# TODO:
+# - Write a proper man page.
+#
+# - Make this so that if there's failure, it won't leave networking in a partial
+#   and potentially broken state. Sanity checks are performed so that commands
+#   later down the line have a good chance of having valid syntax, but something
+#   more robust like an exit routine should be added to restore the previous
+#   working configuration just in case.
+#
+# - Make use of a configuration file instead of so many flags... This could also
+#   be used to populate the WireGuard files array, which would remove the need to
+#   edit the source code directly to change which WireGuard configuration files
+#   are eligible to be randomly selected.
+#
+# - Potentially add support for restarting other daemons besides unbound(8) by
+#   making that process more generic.
+#
+# - Add a "dry run" mode (-n, probably), and add a toggle for verbosity (-v).
+#
+# - Plan around the use case where this program gets executed if a tunnel has
+#   lost connectivity and a VPN reset is desired.
+
+# WONTFIX:
+# - Decoupling this from OpenBSD and making it more system agnostic. Even if
+#   this was a consideration, it wouldn't be a priority; it would require use of
+#   commands other than ifconfig(8), pfctl(8), and rcctl(8). That means that the
+#   process necessary to actually configure the network + firewall and restart
+#   daemons would have to be made entirely modular. I'd rather have this work well
+#   against one system than be broken on many that I don't test against.
+
+use v5.32;
+use strict;
+use warnings;
+use autodie qw(:all);
+
+use File::Basename qw(fileparse);
+use Getopt::Std;
+use List::Util qw(sample);
+use MIME::Base64 qw(decoded_base64_length);
+use Scalar::Util qw(looks_like_number);
+
+# External modules should be separated from modules included with Perl.
+use IPC::System::Simple;
+use Net::IP;
+
+# Edit this to your liking.
+my @wireguard_files = (
+	'/path/to/wireguard/wg-001.conf',
+	'/path/to/wireguard/wg-002.conf',
+	'/path/to/wireguard/wg-003.conf',
+);
+
+my $program_name = fileparse $0;
+
+sub usage {
+	die <<EOF;
+$program_name [-ahmtu] [-c clearnet_interface] [-d pf_vpn_dns_anchor]
+              [-e pf_vpn_endpoint_anchor] [-i wireguard_interface]
+              [-M mtu_for_wireguard] [-T rtable]
+EOF
+}
+
+my $wg_file = sample 1, @wireguard_files;
+$wg_file // die "$program_name needs a WireGuard configuration file.\n";
+
+our (
+	$opt_a, $opt_c, $opt_d, $opt_e, $opt_h, $opt_i,
+	$opt_m, $opt_M, $opt_t, $opt_T, $opt_u,
+);
+
+getopts 'ac:d:e:hi:mM:tT:u';
+
+usage if $opt_h;
+
+my $adjust_pf_anchor_rules = $opt_a // 0;
+my $clearnet_interface = $opt_c // 'pppoe0';
+my $pf_dns_anchor = $opt_d // 'vpn_dns';
+my $pf_endpoint_anchor = $opt_e // 'vpn_endpoint';
+my $wg_interface = $opt_i // 'wg0';
+my $adjust_mtu = $opt_m // 0;
+my $mtu = $opt_M // 1412;
+my $use_rtable = $opt_t // 0;
+my $rtable_number = $opt_T // 1;
+my $restart_unbound = $opt_u // 0;
+
+$clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
+	or die "-c only accepts [a-z]+[0-9]+.\n";
+$wg_interface =~ /\A wg[0-9]+ \z/aaxx or die "-i only accepts wg[0-9]+.\n";
+looks_like_number $rtable_number or die "-T only accepts integers.\n";
+looks_like_number $mtu or die "-M only accepts integers.\n";
+
+my %wg_properties;
+
+open my $wg_file_fh, '<', $wg_file;
+
+# The format of the configuration file being parsed is based on INI.
+while (<$wg_file_fh>) {
+	chomp;
+
+	if (/\A PrivateKey/aaxx) {
+		my $private_key = ( split ' ' )[-1];
+
+		# The private key should always be 44 bytes in length when encoded in
+		# base64 and 32 bytes in length when decoded from base64. The same
+		# applies for public keys as well.
+		decoded_base64_length $private_key == 32
+			or die "The given private key ($private_key) couldn't be base64 "
+			. "decoded to a 32 byte string.\n";
+
+		$wg_properties{private_key} = $private_key;
+	}
+
+	elsif (/\A Address/aaxx) {
+		my $local_ip = ( split ' ' )[-1];
+		my ( $local_ipv4, $local_ipv6 ) = split ',', $local_ip;
+
+		my $ip4 = new Net::IP($local_ipv4)
+			or die "Expected: IPv4 address.\n" . "Received: $local_ipv4\n";
+
+		my $ip6 = new Net::IP($local_ipv6)
+			or die "Expected: IPv6 address.\n" . "Received: $local_ipv6\n";
+
+		$wg_properties{local_ipv4} = $ip4->ip;
+		$wg_properties{local_ipv6} = $ip6->ip;
+	}
+
+	elsif (/\A PublicKey/aaxx) {
+		my $peer_key = ( split ' ' )[-1];
+
+		decoded_base64_length $peer_key == 32
+			or die "The given peer key ($peer_key) couldn't be base64 "
+			. "decoded to a 32 byte string.\n";
+
+		$wg_properties{peer_key} = $peer_key;
+	}
+
+	elsif (/\A Endpoint/aaxx) {
+		my $endpoint = ( split ' ' )[-1];
+		my ( $endpoint_ip, $endpoint_port ) = split ':', $endpoint;
+
+		my $ip = new Net::IP($endpoint_ip)
+			or die "Expected: Endpoint IP address.\n"
+			. "Received: $endpoint_ip\n";
+
+		unless ( $endpoint_port =~ /\A \d{1,5} \z/aaxx
+			and $endpoint_port <= 65535 )
+		{
+			die "Expected: endpoint port - 1-5 digits, between 1-65535.\n"
+				. "Received: $endpoint_port\n";
+		}
+
+		$wg_properties{endpoint_ip} = $ip->ip;
+		$wg_properties{endpoint_port} = $endpoint_port;
+	}
+
+	elsif (/\A DNS/aaxx) {
+		my $dns_ip = ( split ' ' )[-1];
+
+		my $ip = new Net::IP($dns_ip)
+			or die "Expected: IP address of DNS server.\n"
+			. "Received: $dns_ip\n";
+
+		$wg_properties{dns_ip} = $ip->ip;
+	}
+
+	elsif (/\A AllowedIPs/aaxx) {
+		my $allowed_ips = ( split ' ' )[-1];
+		my ( $allowed_ipv4, $allowed_ipv6 ) = split ',', $allowed_ips;
+
+		my $ip4 = new Net::IP($allowed_ipv4)
+			or die "Expected: IPv4 mask to allow.\n"
+			. "Received: $allowed_ipv4\n";
+
+		my $ip6 = new Net::IP($allowed_ipv6)
+			or die "Expected: IPv6 mask to allow.\n"
+			. "Received: $allowed_ipv6\n";
+
+		# $ip(4|6)->print is used instead of $ip(4|6)->ip since preserving the
+		# netmask is important (AllowedIPS consists of IPv(4|6) ranges that
+		# specify what addresses the peer allows inbound traffic to originate
+		# from, and what addresses the peer allows itself to send outbound
+		# traffic to).
+		$wg_properties{allowed_ipv4} = $ip4->print;
+		$wg_properties{allowed_ipv6} = $ip6->print;
+	}
+}
+
+close $wg_file_fh;
+
+# Attempt to destroy the WireGuard interface so `ifconfig wgX create` won't fail
+# with "ifconfig: SIOCIFCREATE: File exists" later. If destruction fails (wgX
+# doesn't exist), ignore it and move on as it isn't a problem.
+eval {
+	open my $old_STDERR, ">&", *STDERR;
+	close STDERR;
+	eval { system 'ifconfig', $wg_interface, 'destroy'; };
+	open STDERR, ">&", $old_STDERR;
+	close $old_STDERR;
+};
+
+system 'ifconfig', $wg_interface, 'create';
+system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
+
+system 'ifconfig', $wg_interface, 'wgpeer', $wg_properties{peer_key},
+	'wgendpoint', $wg_properties{endpoint_ip}, $wg_properties{endpoint_port},
+	'wgaip', $wg_properties{allowed_ipv4};
+
+system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
+
+# wgrtable can be relevant when the WireGuard interface uses the default routing
+# table and what would ordinarily be egress uses a non-default routing table
+# [see rdomain(4) and rtable(4)]. This setup can be useful as a fail-safe
+# mechanism so that the "actual" IP isn't leaked when the VPN goes down
+# (connectivity will be lost instead).
+if ($use_rtable) {
+	system 'ifconfig', $wg_interface, 'wgrtable', $rtable_number;
+}
+
+# The default MTU of 1420 is made with the assumption that egress uses an MTU of
+# 1500, but that assumption may not always be correct. Though it often is,
+# things like pppoe(4) can complicate things. It's important to have the right
+# MTU to avoid IP fragmentation because Path MTU Discovery can't be relied on
+# (erroneous blocking of ICMP for "security" by service providers).
+#
+# Background information on the default MTU:
+# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
+if ($adjust_mtu) {
+	system 'ifconfig', $wg_interface, 'mtu', $mtu;
+}
+
+system 'ifconfig', $wg_interface, 'up';
+system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
+
+if ($adjust_pf_anchor_rules) {
+	system qw(pfctl -a), $pf_dns_anchor, qw(-F all);
+
+	open my $pfctl_dns_fh, '|-', qw(pfctl -a), $pf_dns_anchor, qw(-f -);
+
+	# This pass rule uses `quick` because the anchor is placed right before a
+	# rule in my pf.conf(5) that blocks connections to private addresses
+	# (RFC1918 and friends). These are also known as "martian addresses" or
+	# similar because they aren't (shouldn't be) publicly routable. Without
+	# making use of `quick`, the provided IP address for DNS would be blocked by
+	# the following rule as it's a private address.
+	#
+	# RFC1918: https://datatracker.ietf.org/doc/html/rfc1918
+	#
+	# TODO: Consider making this a configuration file option when the time comes.
+	print $pfctl_dns_fh
+		"pass out quick on $wg_interface inet proto { tcp udp } "
+		. "to $wg_properties{dns_ip} port domain";
+	close $pfctl_dns_fh;
+
+	system qw(pfctl -a), $pf_endpoint_anchor, qw(-F all);
+
+	open my $pfctl_endpoint_fh, '|-', qw(pfctl -a), $pf_endpoint_anchor,
+		qw(-f -);
+	print $pfctl_endpoint_fh "pass out on $clearnet_interface inet proto udp "
+		. "to $wg_properties{endpoint_ip} port $wg_properties{endpoint_port}";
+	close $pfctl_endpoint_fh;
+}
+
+if ($restart_unbound) {
+	system qw(rcctl restart unbound);
+}
