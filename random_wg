@@ -48,8 +48,6 @@
 # - Potentially add support for restarting other daemons besides unbound(8) by
 #   making that process more generic.
 #
-# - Add a "dry run" mode (-n, probably), and add a toggle for verbosity (-v).
-#
 # - Plan around the use case where this program gets executed if a tunnel has
 #   lost connectivity and a VPN reset is desired.
 
@@ -87,7 +85,7 @@ my $program_name = fileparse $0;
 
 sub usage {
 	die <<EOF;
-$program_name [-ahmtu] [-c clearnet_interface] [-d pf_vpn_dns_anchor]
+$program_name [-ahmntuv] [-c clearnet_interface] [-d pf_vpn_dns_anchor]
               [-e pf_vpn_endpoint_anchor] [-i wireguard_interface]
               [-M mtu_for_wireguard] [-T rtable]
 EOF
@@ -97,11 +95,11 @@ my $wg_file = sample 1, @wireguard_files;
 $wg_file // die "$program_name needs a WireGuard configuration file.\n";
 
 our (
-	$opt_a, $opt_c, $opt_d, $opt_e, $opt_h, $opt_i,
-	$opt_m, $opt_M, $opt_t, $opt_T, $opt_u,
+	$opt_a, $opt_c, $opt_d, $opt_e, $opt_h, $opt_i, $opt_m,
+	$opt_M, $opt_n, $opt_t, $opt_T, $opt_u, $opt_v,
 );
 
-getopts 'ac:d:e:hi:mM:tT:u';
+getopts 'ac:d:e:hi:mM:ntT:uv';
 
 usage if $opt_h;
 
@@ -111,10 +109,12 @@ my $pf_dns_anchor = $opt_d // 'vpn_dns';
 my $pf_endpoint_anchor = $opt_e // 'vpn_endpoint';
 my $wg_interface = $opt_i // 'wg0';
 my $adjust_mtu = $opt_m // 0;
+my $dry_run = $opt_n // 0;
 my $mtu = $opt_M // 1412;
 my $use_rtable = $opt_t // 0;
 my $rtable_number = $opt_T // 1;
 my $restart_unbound = $opt_u // 0;
+my $verbose = $opt_v // 0;
 
 $clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
 	or die "-c only accepts [a-z]+[0-9]+.\n";
@@ -220,79 +220,203 @@ while (<$wg_file_fh>) {
 
 close $wg_file_fh;
 
-# Attempt to destroy the WireGuard interface so `ifconfig wgX create` won't fail
-# with "ifconfig: SIOCIFCREATE: File exists" later. If destruction fails (wgX
-# doesn't exist), ignore it and move on as it isn't a problem.
-eval {
-	open my $old_STDERR, ">&", *STDERR;
-	close STDERR;
-	eval { system 'ifconfig', $wg_interface, 'destroy'; };
-	open STDERR, ">&", $old_STDERR;
-	close $old_STDERR;
-};
+if ( !$dry_run ) {
+	eval {
+		open my $old_STDERR, ">&", *STDERR;
+		close STDERR;
 
-system 'ifconfig', $wg_interface, 'create';
-system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
+		# Attempt to destroy the WireGuard interface so `ifconfig wgX create`
+		# won't fail with "ifconfig: SIOCIFCREATE: File exists" later. If
+		# destruction fails (wgX doesn't exist), ignore it and move on as it
+		# isn't a problem.
+		if ($verbose) { say "Executing: `ifconfig $wg_interface destroy`"; }
+		eval { system 'ifconfig', $wg_interface, 'destroy'; };
 
-system 'ifconfig', $wg_interface, 'wgpeer', $wg_properties{peer_key},
-	'wgendpoint', $wg_properties{endpoint_ip}, $wg_properties{endpoint_port},
-	'wgaip', $wg_properties{allowed_ipv4};
+		open STDERR, ">&", $old_STDERR;
+		close $old_STDERR;
+	};
 
-system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
+	if ($verbose) {
+		say "Executing: `ifconfig $wg_interface create`";
+	}
+	system 'ifconfig', $wg_interface, 'create';
 
-# wgrtable can be relevant when the WireGuard interface uses the default routing
-# table and what would ordinarily be egress uses a non-default routing table
-# [see rdomain(4) and rtable(4)]. This setup can be useful as a fail-safe
-# mechanism so that the "actual" IP isn't leaked when the VPN goes down
-# (connectivity will be lost instead).
-if ($use_rtable) {
-	system 'ifconfig', $wg_interface, 'wgrtable', $rtable_number;
-}
+	if ($verbose) {
+		say "Executing: "
+			. "`ifconfig $wg_interface create $wg_properties{private_key}`";
+	}
+	system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
 
-# The default MTU of 1420 is made with the assumption that egress uses an MTU of
-# 1500, but that assumption may not always be correct. Though it often is,
-# things like pppoe(4) can complicate things. It's important to have the right
-# MTU to avoid IP fragmentation because Path MTU Discovery can't be relied on
-# (erroneous blocking of ICMP for "security" by service providers).
-#
-# Background information on the default MTU:
-# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
-if ($adjust_mtu) {
-	system 'ifconfig', $wg_interface, 'mtu', $mtu;
-}
+	if ($verbose) {
+		say "Executing: "
+			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
+			. "wgendpoint $wg_properties{endpoint_ip} "
+			. "$wg_properties{endpoint_port} "
+			. "wgaip $wg_properties{allowed_ipv4}`";
+	}
+	system 'ifconfig', $wg_interface, 'wgpeer', $wg_properties{peer_key},
+		'wgendpoint', $wg_properties{endpoint_ip},
+		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4};
 
-system 'ifconfig', $wg_interface, 'up';
-system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
+	if ($verbose) {
+		say "Executing: "
+			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
+	}
+	system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
 
-if ($adjust_pf_anchor_rules) {
-	system qw(pfctl -a), $pf_dns_anchor, qw(-F all);
+	# wgrtable can be relevant when the WireGuard interface uses the default
+	# routing table and what would ordinarily be egress uses a non-default
+	# routing table [see rdomain(4) and rtable(4)]. This setup can be useful as
+	# a fail-safe mechanism so that the "actual" IP isn't leaked when the VPN
+	# goes down (connectivity will be lost instead).
+	if ($use_rtable) {
+		if ($verbose) {
+			say "Executing: `ifconfig $wg_interface wgrtable $rtable_number`";
+		}
+		system 'ifconfig', $wg_interface, 'wgrtable', $rtable_number;
+	}
 
-	open my $pfctl_dns_fh, '|-', qw(pfctl -a), $pf_dns_anchor, qw(-f -);
-
-	# This pass rule uses `quick` because the anchor is placed right before a
-	# rule in my pf.conf(5) that blocks connections to private addresses
-	# (RFC1918 and friends). These are also known as "martian addresses" or
-	# similar because they aren't (shouldn't be) publicly routable. Without
-	# making use of `quick`, the provided IP address for DNS would be blocked by
-	# the following rule as it's a private address.
+	# The default MTU of 1420 is made with the assumption that egress uses an
+	# MTU of 1500, but that assumption may not always be correct. Though it
+	# often is, things like pppoe(4) can complicate things. It's important to
+	# have the right MTU to avoid IP fragmentation because Path MTU Discovery
+	# can't be relied on (erroneous blocking of ICMP for "security" by service
+	# providers).
 	#
-	# RFC1918: https://datatracker.ietf.org/doc/html/rfc1918
-	#
-	# TODO: Consider making this a configuration file option when the time comes.
-	print $pfctl_dns_fh
-		"pass out quick on $wg_interface inet proto { tcp udp } "
-		. "to $wg_properties{dns_ip} port domain";
-	close $pfctl_dns_fh;
+	# Background information on the default MTU:
+	# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
+	if ($adjust_mtu) {
+		if ($verbose) {
+			say "Executing: `ifconfig $wg_interface mtu $mtu`";
+		}
+		system 'ifconfig', $wg_interface, 'mtu', $mtu;
+	}
 
-	system qw(pfctl -a), $pf_endpoint_anchor, qw(-F all);
+	if ($verbose) {
+		say "Executing: `ifconfig $wg_interface up`";
+	}
+	system 'ifconfig', $wg_interface, 'up';
 
-	open my $pfctl_endpoint_fh, '|-', qw(pfctl -a), $pf_endpoint_anchor,
-		qw(-f -);
-	print $pfctl_endpoint_fh "pass out on $clearnet_interface inet proto udp "
-		. "to $wg_properties{endpoint_ip} port $wg_properties{endpoint_port}";
-	close $pfctl_endpoint_fh;
+	if ($verbose) {
+		say "Executing: `route -qn add -inet default "
+			. "-iface $wg_properties{local_ipv4}`";
+	}
+	system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
+
+	if ($adjust_pf_anchor_rules) {
+		if ($verbose) {
+			say "Executing: `pfctl -a $pf_dns_anchor -F all`";
+		}
+		system qw(pfctl -a), $pf_dns_anchor, qw(-F all);
+
+		if ($verbose) {
+			say "Opening pipe: `pfctl -a $pf_dns_anchor -f -`";
+		}
+		open my $pfctl_dns_fh, '|-', qw(pfctl -a), $pf_dns_anchor, qw(-f -);
+
+		# This pass rule uses `quick` because the anchor is placed right before
+		# a rule in my pf.conf(5) that blocks connections to private addresses
+		# (RFC1918 and friends). These are also known as "martian addresses" or
+		# similar because they aren't (shouldn't be) publicly routable. Without
+		# making use of `quick`, the provided IP address for DNS would be
+		# blocked by the following rule as it's a private address.
+		#
+		# RFC1918: https://datatracker.ietf.org/doc/html/rfc1918
+		#
+		# TODO: Consider making this a configuration file option when the time
+		# comes.
+		if ($verbose) {
+			say "Writing to pipe: `pass out quick on $wg_interface inet "
+				. "proto { tcp udp } to $wg_properties{dns_ip} port domain`";
+		}
+		print $pfctl_dns_fh
+			"pass out quick on $wg_interface inet proto { tcp udp } "
+			. "to $wg_properties{dns_ip} port domain";
+
+		if ($verbose) { say "Closing pipe."; }
+		close $pfctl_dns_fh;
+
+		if ($verbose) {
+			say "Executing: `pfctl -a $pf_endpoint_anchor -F all`";
+		}
+		system qw(pfctl -a), $pf_endpoint_anchor, qw(-F all);
+
+		if ($verbose) {
+			say "Opening pipe: `pfctl -a $pf_endpoint_anchor -f -`";
+		}
+		open my $pfctl_endpoint_fh, '|-', qw(pfctl -a), $pf_endpoint_anchor,
+			qw(-f -);
+
+		if ($verbose) {
+			say "Writing to pipe: `pass out on $clearnet_interface inet "
+				. "proto udp to $wg_properties{endpoint_ip} port "
+				. "$wg_properties{endpoint_port}`";
+		}
+		print $pfctl_endpoint_fh "pass out on $clearnet_interface "
+			. "inet proto udp to $wg_properties{endpoint_ip} "
+			. "port $wg_properties{endpoint_port}";
+
+		if ($verbose) { say "Closing pipe."; }
+		close $pfctl_endpoint_fh;
+	}
+
+	if ($restart_unbound) {
+		if ($verbose) { say "Restarting unbound(8)."; }
+		system qw(rcctl restart unbound);
+	}
 }
+else {
+	if ($verbose) {
+		say "Would execute: `ifconfig $wg_interface destroy`";
+		say "Would execute: `ifconfig $wg_interface create`";
 
-if ($restart_unbound) {
-	system qw(rcctl restart unbound);
+		say "Would execute: `ifconfig $wg_interface wgkey "
+			. "$wg_properties{private_key}`";
+
+		say "Would execute: "
+			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
+			. "wgendpoint $wg_properties{endpoint_ip} "
+			. "$wg_properties{endpoint_port} "
+			. "wgaip $wg_properties{allowed_ipv4}`";
+
+		say "Would execute: "
+			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
+
+		if ($use_rtable) {
+			say "Would execute: "
+				. "`ifconfig $wg_interface wgrtable $rtable_number`";
+		}
+
+		if ($adjust_mtu) {
+			say "Would execute: `ifconfig $wg_interface mtu $mtu`";
+		}
+
+		say "Would execute: `ifconfig $wg_interface up`";
+
+		say "Would execute: `route -qn add -inet default "
+			. "-iface $wg_properties{local_ipv4}`";
+
+		if ($adjust_pf_anchor_rules) {
+			say "Would execute: `pfctl -a $pf_dns_anchor -F all`";
+			say "Would open pipe: `pfctl -a $pf_dns_anchor -f -`";
+
+			say "Would write to pipe: "
+				. "`pass out quick on $wg_interface inet proto { tcp udp } "
+				. "to $wg_properties{dns_ip} port domain`";
+
+			say "Would close pipe.";
+
+			say "Would execute: `pfctl -a $pf_endpoint_anchor -F all`";
+			say "Would open pipe: `pfctl -a $pf_endpoint_anchor -f -`";
+
+			say "Would write to pipe: "
+				. "`pass out on $clearnet_interface inet proto udp "
+				. "to $wg_properties{endpoint_ip} port "
+				. "$wg_properties{endpoint_port}`";
+
+			say "Would close pipe.";
+		}
+
+		if ($restart_unbound) { say "Would restart unbound(8)."; }
+	}
 }
