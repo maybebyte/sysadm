@@ -220,7 +220,62 @@ while (<$wg_file_fh>) {
 
 close $wg_file_fh;
 
-if ( !$dry_run ) {
+if ($dry_run) {
+	if ($verbose) {
+		say "Would execute: `ifconfig $wg_interface destroy`";
+		say "Would execute: `ifconfig $wg_interface create`";
+
+		say "Would execute: `ifconfig $wg_interface wgkey "
+			. "$wg_properties{private_key}`";
+
+		say "Would execute: "
+			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
+			. "wgendpoint $wg_properties{endpoint_ip} "
+			. "$wg_properties{endpoint_port} "
+			. "wgaip $wg_properties{allowed_ipv4}`";
+
+		say "Would execute: "
+			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
+
+		if ($use_rtable) {
+			say "Would execute: "
+				. "`ifconfig $wg_interface wgrtable $rtable_number`";
+		}
+
+		if ($adjust_mtu) {
+			say "Would execute: `ifconfig $wg_interface mtu $mtu`";
+		}
+
+		say "Would execute: `ifconfig $wg_interface up`";
+
+		say "Would execute: `route -qn add -inet default "
+			. "-iface $wg_properties{local_ipv4}`";
+
+		if ($adjust_pf_anchor_rules) {
+			say "Would execute: `pfctl -a $pf_dns_anchor -F all`";
+			say "Would open pipe: `pfctl -a $pf_dns_anchor -f -`";
+
+			say "Would write to pipe: "
+				. "`pass out quick on $wg_interface inet proto { tcp udp } "
+				. "to $wg_properties{dns_ip} port domain`";
+
+			say "Would close pipe.";
+
+			say "Would execute: `pfctl -a $pf_endpoint_anchor -F all`";
+			say "Would open pipe: `pfctl -a $pf_endpoint_anchor -f -`";
+
+			say "Would write to pipe: "
+				. "`pass out on $clearnet_interface inet proto udp "
+				. "to $wg_properties{endpoint_ip} port "
+				. "$wg_properties{endpoint_port}`";
+
+			say "Would close pipe.";
+		}
+
+		if ($restart_unbound) { say "Would restart unbound(8)."; }
+	}
+}
+else {
 	eval {
 		open my $old_STDERR, ">&", *STDERR;
 		close STDERR;
@@ -363,60 +418,5 @@ if ( !$dry_run ) {
 	if ($restart_unbound) {
 		if ($verbose) { say "Restarting unbound(8)."; }
 		system qw(rcctl restart unbound);
-	}
-}
-else {
-	if ($verbose) {
-		say "Would execute: `ifconfig $wg_interface destroy`";
-		say "Would execute: `ifconfig $wg_interface create`";
-
-		say "Would execute: `ifconfig $wg_interface wgkey "
-			. "$wg_properties{private_key}`";
-
-		say "Would execute: "
-			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
-			. "wgendpoint $wg_properties{endpoint_ip} "
-			. "$wg_properties{endpoint_port} "
-			. "wgaip $wg_properties{allowed_ipv4}`";
-
-		say "Would execute: "
-			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
-
-		if ($use_rtable) {
-			say "Would execute: "
-				. "`ifconfig $wg_interface wgrtable $rtable_number`";
-		}
-
-		if ($adjust_mtu) {
-			say "Would execute: `ifconfig $wg_interface mtu $mtu`";
-		}
-
-		say "Would execute: `ifconfig $wg_interface up`";
-
-		say "Would execute: `route -qn add -inet default "
-			. "-iface $wg_properties{local_ipv4}`";
-
-		if ($adjust_pf_anchor_rules) {
-			say "Would execute: `pfctl -a $pf_dns_anchor -F all`";
-			say "Would open pipe: `pfctl -a $pf_dns_anchor -f -`";
-
-			say "Would write to pipe: "
-				. "`pass out quick on $wg_interface inet proto { tcp udp } "
-				. "to $wg_properties{dns_ip} port domain`";
-
-			say "Would close pipe.";
-
-			say "Would execute: `pfctl -a $pf_endpoint_anchor -F all`";
-			say "Would open pipe: `pfctl -a $pf_endpoint_anchor -f -`";
-
-			say "Would write to pipe: "
-				. "`pass out on $clearnet_interface inet proto udp "
-				. "to $wg_properties{endpoint_ip} port "
-				. "$wg_properties{endpoint_port}`";
-
-			say "Would close pipe.";
-		}
-
-		if ($restart_unbound) { say "Would restart unbound(8)."; }
 	}
 }
