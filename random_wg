@@ -285,39 +285,33 @@ else {
 		# won't fail with "ifconfig: SIOCIFCREATE: File exists" later. If
 		# destruction fails (wgX doesn't exist), ignore it and move on as it
 		# isn't a problem.
-		if ($verbose) { say "Executing: `ifconfig $wg_interface destroy`"; }
+		say "Executing: `ifconfig $wg_interface destroy`" if $verbose;
 		eval { system 'ifconfig', $wg_interface, 'destroy'; };
 
 		open STDERR, ">&", $old_STDERR;
 		close $old_STDERR;
 	};
 
-	if ($verbose) {
-		say "Executing: `ifconfig $wg_interface create`";
-	}
+	say "Executing: `ifconfig $wg_interface create`" if $verbose;
 	system 'ifconfig', $wg_interface, 'create';
 
-	if ($verbose) {
-		say "Executing: "
-			. "`ifconfig $wg_interface create $wg_properties{private_key}`";
-	}
+	say "Executing: "
+		. "`ifconfig $wg_interface create $wg_properties{private_key}`"
+		if $verbose;
 	system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
 
-	if ($verbose) {
-		say "Executing: "
-			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
-			. "wgendpoint $wg_properties{endpoint_ip} "
-			. "$wg_properties{endpoint_port} "
-			. "wgaip $wg_properties{allowed_ipv4}`";
-	}
+	say "Executing: "
+		. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
+		. "wgendpoint $wg_properties{endpoint_ip} "
+		. "$wg_properties{endpoint_port} "
+		. "wgaip $wg_properties{allowed_ipv4}`" if $verbose;
 	system 'ifconfig', $wg_interface, 'wgpeer', $wg_properties{peer_key},
 		'wgendpoint', $wg_properties{endpoint_ip},
 		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4};
 
-	if ($verbose) {
-		say "Executing: "
-			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
-	}
+	say "Executing: "
+		. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`"
+		if $verbose;
 	system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
 
 	# wgrtable can be relevant when the WireGuard interface uses the default
@@ -326,9 +320,8 @@ else {
 	# a fail-safe mechanism so that the "actual" IP isn't leaked when the VPN
 	# goes down (connectivity will be lost instead).
 	if ($use_rtable) {
-		if ($verbose) {
-			say "Executing: `ifconfig $wg_interface wgrtable $rtable_number`";
-		}
+		say "Executing: `ifconfig $wg_interface wgrtable $rtable_number`"
+			if $verbose;
 		system 'ifconfig', $wg_interface, 'wgrtable', $rtable_number;
 	}
 
@@ -342,32 +335,23 @@ else {
 	# Background information on the default MTU:
 	# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
 	if ($adjust_mtu) {
-		if ($verbose) {
-			say "Executing: `ifconfig $wg_interface mtu $mtu`";
-		}
+		say "Executing: `ifconfig $wg_interface mtu $mtu`" if $verbose;
 		system 'ifconfig', $wg_interface, 'mtu', $mtu;
 	}
 
-	if ($verbose) {
-		say "Executing: `ifconfig $wg_interface up`";
-	}
+	say "Executing: `ifconfig $wg_interface up`" if $verbose;
 	system 'ifconfig', $wg_interface, 'up';
 
-	if ($verbose) {
-		say "Executing: `route -qn add -inet default "
-			. "-iface $wg_properties{local_ipv4}`";
-	}
+	say "Executing: `route -qn add -inet default "
+		. "-iface $wg_properties{local_ipv4}`"
+		if $verbose;
 	system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
 
 	if ($adjust_pf_anchor_rules) {
-		if ($verbose) {
-			say "Executing: `pfctl -a $pf_dns_anchor -F all`";
-		}
+		say "Executing: `pfctl -a $pf_dns_anchor -F all`" if $verbose;
 		system qw(pfctl -a), $pf_dns_anchor, qw(-F all);
 
-		if ($verbose) {
-			say "Opening pipe: `pfctl -a $pf_dns_anchor -f -`";
-		}
+		say "Opening pipe: `pfctl -a $pf_dns_anchor -f -`" if $verbose;
 		open my $pfctl_dns_fh, '|-', qw(pfctl -a), $pf_dns_anchor, qw(-f -);
 
 		# This pass rule uses `quick` because the anchor is placed right before
@@ -381,43 +365,36 @@ else {
 		#
 		# TODO: Consider making this a configuration file option when the time
 		# comes.
-		if ($verbose) {
-			say "Writing to pipe: `pass out quick on $wg_interface inet "
-				. "proto { tcp udp } to $wg_properties{dns_ip} port domain`";
-		}
+		say "Writing to pipe: `pass out quick on $wg_interface inet "
+			. "proto { tcp udp } to $wg_properties{dns_ip} port domain`"
+			if $verbose;
 		print $pfctl_dns_fh
 			"pass out quick on $wg_interface inet proto { tcp udp } "
 			. "to $wg_properties{dns_ip} port domain";
 
-		if ($verbose) { say "Closing pipe."; }
+		say "Closing pipe." if $verbose;
 		close $pfctl_dns_fh;
 
-		if ($verbose) {
-			say "Executing: `pfctl -a $pf_endpoint_anchor -F all`";
-		}
+		say "Executing: `pfctl -a $pf_endpoint_anchor -F all`" if $verbose;
 		system qw(pfctl -a), $pf_endpoint_anchor, qw(-F all);
 
-		if ($verbose) {
-			say "Opening pipe: `pfctl -a $pf_endpoint_anchor -f -`";
-		}
+		say "Opening pipe: `pfctl -a $pf_endpoint_anchor -f -`" if $verbose;
 		open my $pfctl_endpoint_fh, '|-', qw(pfctl -a), $pf_endpoint_anchor,
 			qw(-f -);
 
-		if ($verbose) {
-			say "Writing to pipe: `pass out on $clearnet_interface inet "
-				. "proto udp to $wg_properties{endpoint_ip} port "
-				. "$wg_properties{endpoint_port}`";
-		}
+		say "Writing to pipe: `pass out on $clearnet_interface inet "
+			. "proto udp to $wg_properties{endpoint_ip} port "
+			. "$wg_properties{endpoint_port}`" if $verbose;
 		print $pfctl_endpoint_fh "pass out on $clearnet_interface "
 			. "inet proto udp to $wg_properties{endpoint_ip} "
 			. "port $wg_properties{endpoint_port}";
 
-		if ($verbose) { say "Closing pipe."; }
+		say "Closing pipe." if $verbose;
 		close $pfctl_endpoint_fh;
 	}
 
 	if ($restart_unbound) {
-		if ($verbose) { say "Restarting unbound(8)."; }
+		say "Restarting unbound(8)." if $verbose;
 		system qw(rcctl restart unbound);
 	}
 }
