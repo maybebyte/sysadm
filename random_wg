@@ -19,9 +19,10 @@
 #
 # Can optionally do other things:
 # - Specify an rtable(4) for `wgrtable`.
-# - Adjust pf(4) rules given anchor names.
+# - Flush and add appropriate pf(4) rules in given anchors.
 # - Restart unbound(8).
-# - Adjust the MTU of the VPN interface.
+# - Adjust the MTU of the WireGuard interface.
+# - "Dry run" to see what would happen.
 
 # Background information:
 #
@@ -209,7 +210,7 @@ while (<$wg_file_fh>) {
 			. "Received: $allowed_ipv6\n";
 
 		# $ip(4|6)->print is used instead of $ip(4|6)->ip since preserving the
-		# netmask is important (AllowedIPS consists of IPv(4|6) ranges that
+		# netmask is important (AllowedIPs consists of IPv(4|6) ranges that
 		# specify what addresses the peer allows inbound traffic to originate
 		# from, and what addresses the peer allows itself to send outbound
 		# traffic to).
