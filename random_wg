@@ -51,6 +51,10 @@
 #
 # - Plan around the use case where this program gets executed if a tunnel has
 #   lost connectivity and a VPN reset is desired.
+#
+# - Flush more or reload pf.conf(5) so that `systat -h queue` doesn't return
+#   with "bad file descriptor" after the script exits (the queueing interface
+#   changing is probably what causes this).
 
 # WONTFIX:
 # - Decoupling this from OpenBSD and making it more system agnostic. Even if
