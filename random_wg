@@ -56,7 +56,7 @@
 #   with "bad file descriptor" after the script exits (the queueing interface
 #   changing is probably what causes this).
 
-# WONTFIX:
+# UNLIKELY:
 # - Decoupling this from OpenBSD and making it more system agnostic. Even if
 #   this was a consideration, it wouldn't be a priority; it would require use of
 #   commands other than ifconfig(8), pfctl(8), and rcctl(8). That means that the
