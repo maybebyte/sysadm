@@ -183,7 +183,8 @@ while (<$wg_file_fh>) {
 			or die "Expected: Endpoint IP address.\n"
 			. "Received: $endpoint_ip\n";
 
-		unless ( $endpoint_port =~ /\A \d{1,5} \z/aaxx
+		unless ( looks_like_number $endpoint_port
+			and $endpoint_port >= 1
 			and $endpoint_port <= 65535 )
 		{
 			die "Expected: endpoint port - 1-5 digits, between 1-65535.\n"
@@ -311,7 +312,8 @@ else {
 		. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
 		. "wgendpoint $wg_properties{endpoint_ip} "
 		. "$wg_properties{endpoint_port} "
-		. "wgaip $wg_properties{allowed_ipv4}`" if $verbose;
+		. "wgaip $wg_properties{allowed_ipv4}`"
+		if $verbose;
 	system 'ifconfig', $wg_interface, 'wgpeer', $wg_properties{peer_key},
 		'wgendpoint', $wg_properties{endpoint_ip},
 		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4};
@@ -391,7 +393,8 @@ else {
 
 		say "Writing to pipe: `pass out on $clearnet_interface inet "
 			. "proto udp to $wg_properties{endpoint_ip} port "
-			. "$wg_properties{endpoint_port}`" if $verbose;
+			. "$wg_properties{endpoint_port}`"
+			if $verbose;
 		print $pfctl_endpoint_fh "pass out on $clearnet_interface "
 			. "inet proto udp to $wg_properties{endpoint_ip} "
 			. "port $wg_properties{endpoint_port}";
