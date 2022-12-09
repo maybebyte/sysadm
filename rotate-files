@@ -30,8 +30,10 @@ my $file = shift or die "$program_name needs a file.\n";
 
 my $number_of_backups = shift
 	or die "$program_name needs a number of backups to maintain.\n";
-looks_like_number $number_of_backups or die "Number of backups
-	($number_of_backups) doesn't look like a number.\n";
+
+looks_like_number $number_of_backups
+	or die "Number of backups "
+	. "($number_of_backups) doesn't look like a number.\n";
 
 my @files = ($file);
 my $count = 0;
