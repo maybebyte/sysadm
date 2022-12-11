@@ -401,6 +401,19 @@ else {
 
 		say "Closing pipe." if $verbose;
 		close $pfctl_endpoint_fh;
+
+		# The rules are reloaded here so that a problem with queueing is
+		# resolved (`systat -h queue` returns "DIOCGETQSTATS: Bad file
+		# descriptor" because the interface changed and pf(4) had no chance to
+		# catch up).
+		eval { system qw(pfctl -nf), '/etc/pf.conf'; };
+		if ($@) {
+			warn "Parsing pf(4) rules failed: $@";
+		}
+		else {
+			say "Executing `pfctl -f /etc/pf.conf`" if $verbose;
+			system qw(pfctl -f), '/etc/pf.conf';
+		}
 	}
 
 	if ($restart_unbound) {
