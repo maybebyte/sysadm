@@ -1,10 +1,10 @@
-#!/bin/sh
-# Copyright (c) 2020-2022 Ashlen <eurydice@riseup.net>
-
+#!/usr/bin/env perl
+# Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+#
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
 # copyright notice and this permission notice appear in all copies.
-
+#
 # THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 # WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -13,70 +13,53 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-set -e
+use v5.32;
+use strict;
+use warnings;
+use autodie qw(:all);
 
-err() {
-	printf '%s\n' "$*" >&2
-	exit 1
+# Included modules.
+use File::Basename qw(fileparse);
+use Getopt::Std;
+
+# External modules.
+use IPC::System::Simple qw(capturex);
+
+my $program_name = fileparse $0;
+
+sub usage {
+	die <<EOF;
+$program_name [-hNO] [domain_name ...]
+EOF
 }
 
-usage() {
-	err "usage:
-${0##*/} [domain name] [daemon(s) to reload] ...
+our ( $opt_h, $opt_O, $opt_N, );
 
-Only the domain name is strictly necessary. If only the domain name is
-given, ${0##*/} will simply perform certificate maintenance without
-reloading any daemon(s).
+getopts('hNO');
 
-${0##*/} needs a valid acme-client.conf(5) and full chain certificate.
-The full chain certificate must be located at '/etc/ssl/example.com.pem'."
+usage if $opt_h;
+usage if !@ARGV;
+
+$> == 0 or die "$program_name must be run as root.\n";
+
+my $acme_client_conf = '/etc/acme-client.conf';
+-e -f $acme_client_conf
+	or die "$acme_client_conf doesn't exist or isn't a file.\n";
+
+for my $domain_name (@ARGV) {
+	my $crt_file = "/etc/ssl/$domain_name.crt";
+	my $ocsp_file = "/etc/ssl/$domain_name.ocsp";
+
+	# capturex is used to easily suppress output (much easier than an equivalent
+	# solution with IPC::Open2 or IPC::Open3).
+	my $dummy = capturex [ 0, 2 ], qw(acme-client --), $domain_name;
+	undef $dummy;
+
+	if ( defined $opt_O ) {
+		my @ocspcheck = $opt_N ? qw(ocspcheck -N) : 'ocspcheck';
+		my $dummy_two = capturex @ocspcheck, '-o', $ocsp_file, qw(--),
+			$crt_file;
+
+		undef $dummy_two;
+	}
 }
-
-# if acme-client.conf(5) exists as a file in /etc/, run acme-client(1)
-# to refresh the TLS certificate for $1.
-#
-# if a TLS certificate exists as a file in /etc/ssl/ with $1 as its
-# name, validate it against its OCSP responder with ocspcheck(8) and
-# save the response to /etc/ssl/$1.ocsp.
-#
-# $1 is a chosen domain name.
-cert_maintenance() {
-	if [ -f '/etc/acme-client.conf' ]; then
-		acme-client -- "$1" > /dev/null
-	else
-		err "acme-client.conf(5) wasn't found."
-	fi
-
-	if [ -f "/etc/ssl/$1.pem" ]; then
-		# if your provider supports the use of OCSP nonces, don't use -N
-		ocspcheck -No "/etc/ssl/$1.ocsp" -- "/etc/ssl/$1.pem" > /dev/null
-	else
-		err "/etc/ssl/$1.pem wasn't found."
-	fi
-}
-
-# reload daemons if enabled.
-reload_daemons() {
-	for daemon in "$@"; do
-		if [ "$(rcctl get "${daemon}" flags)" != 'NO' ]; then
-			rcctl reload "${daemon}"
-		# We want to notify the user when a daemon wasn't reloaded.
-		else
-			printf '%s\n' "Unable to reload ${daemon} because it is not enabled." >&2
-			continue
-		fi
-	done
-}
-
-case "$1" in
-	'' | '-h') usage ;;
-esac
-
-[ "$(id -u)" -eq 0 ] || err "Execute ${0##*/} with root privileges."
-
-if cert_maintenance "$1"; then
-	shift
-	[ -n "$*" ] && reload_daemons "$@" > /dev/null
-else
-	err 'Unable to perform certificate maintenance.'
-fi

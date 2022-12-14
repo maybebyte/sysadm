@@ -1,0 +1,78 @@
+.\" Copyright (c) 2022 Ashlen <eurydice@riseup.net>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.Dd December 14, 2022
+.Dt CERT-MAINTENANCE 8
+.Sh NAME
+.Nm cert-maintenance
+.Nd Obtain and renew TLS certificates
+.Sh SYNOPSIS
+.Nm cert-maintenance
+.Op Fl hNO
+.Op Ar domain_name ...
+.Sh DESCRIPTION
+.Nm
+wraps around
+.Xr acme-client 1
+and
+.Xr ocspcheck 8
+so that multiple certificates can be obtained and/or refreshed seamlessly.
+To do this, at least one
+.Ar domain_name
+must be passed as an argument, and each
+.Ar domain_name
+must be appropriately represented by a block in
+.Xr acme-client.conf 5 .
+.Pp
+Options:
+.Bl -tag -width Ds
+.It Fl h
+Print basic usage information and exit.
+.It Fl N
+When used with
+.Fl O ,
+a nonce value is excluded from the OCSP request, and validation of the nonce
+value in the OCSP response never happens either. This is a security risk and
+nonces should always be used unless the server lacks support for OCSP nonces,
+see
+.Xr ocspcheck 8 .
+.It Fl O
+Retrieve and save an OCSP response such that it may be used for OCSP stapling.
+.El
+.Sh FILES
+.Bl -tag -width Ds -compact
+.It Pa /etc/acme-client.conf
+The configuration file for
+.Xr acme-client 1 .
+.Pp
+.It Pa /etc/ssl/domain_name.crt
+.It Pa /etc/ssl/domain_name.ocsp
+When
+.Fl O
+is used, these files are consulted because
+.Xr ocspcheck 8
+requires a PEM formatted file to read from and
+.Nm
+needs a file to write the OCSP response to.
+.Sh EXAMPLES
+To obtain and/or refresh TLS certificates for example.com and example.net,
+saving the OCSP response for each:
+.Pp
+.Dl # cert-maintenance -O example.com example.net
+.Sh SEE ALSO
+.Xr acme-client 1 ,
+.Xr acme-client.conf 5 ,
+.Xr ocspcheck 8
+.Sh AUTHORS
+Written and maintained by
+.An Ashlen Aq Mt eurydice@riseup.net .
