@@ -33,7 +33,7 @@ use Getopt::Std;
 
 use re '/aaxx';
 
-our $opt_h;
+our ( $opt_h, $opt_O );
 our $opt_t = 'plain';
 
 my @formats = qw(plain unbound rpz);
@@ -48,12 +48,61 @@ usage: $program_name [-h] [-t type] [file (optional)] ...
 
 -h: help.
 
+-O: origin FQDN for \$ORIGIN. Example: 'sinkhole.home.arpa'. Only valid when
+    type is 'rpz'.
+
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
+    'rpz' formats the domain as '\$ORIGIN.[domain] CNAME .'
 
 $program_name reads from STDIN or a given file.
 EOT
+}
+
+sub is_domain {
+	my $potential_domain = shift or die "is_domain needs a potential domain!\n";
+
+	if (
+		$potential_domain =~ /
+	\b # word boundary
+
+	### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+	(?: # begin noncapturing group
+	[a-z 0-9]+ # one or more lowercase or number characters
+
+	### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+	(?: # begin noncapturing group
+	[-_]+ # one or more hyphens or underscores
+	[a-z 0-9]+ # one or more lowercase or number characters
+	)* # end of noncapturing group, matches zero or more times
+	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+
+	\. # period
+	)+ # end noncapturing group, matches one or more times
+	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+
+	### TOP-LEVEL DOMAIN ###
+	(?: # begin noncapturing group
+
+	(?: # begin noncapturing group
+	xn-- # punycode prefix
+	[a-z 0-9]+ # one or more lowercase or number characters
+	) # end the punycode noncapturing group
+
+	| # OR
+
+	[a-z]{2,} # two or more lowercase characters
+	) # end noncapturing group
+	### END TOP-LEVEL DOMAIN ###
+
+	\b # word boundary
+	/p
+		)
+	{
+		return ${^MATCH};
+	}
+	return 0;
 }
 
 sub unique_domains {
@@ -82,51 +131,16 @@ sub unique_domains {
 
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
+		chomp;
 
-		#<<<
-		if (/
-			\b # word boundary
-
-			### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
-			(?: # begin noncapturing group
-			[a-z 0-9]+ # one or more lowercase or number characters
-
-			### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
-			(?: # begin noncapturing group
-			[-_]+ # one or more hyphens or underscores
-			[a-z 0-9]+ # one or more lowercase or number characters
-			)* # end of noncapturing group, matches zero or more times
-			### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
-
-			\. # period
-			)+ # end noncapturing group, matches one or more times
-			### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
-
-			### TOP-LEVEL DOMAIN ###
-			(?: # begin noncapturing group
-
-			(?: # begin noncapturing group
-			xn-- # punycode prefix
-			[a-z 0-9]+ # one or more lowercase or number characters
-			) # end the punycode noncapturing group
-
-			| # OR
-
-			[a-z]{2,} # two or more lowercase characters
-			) # end noncapturing group
-			### END TOP-LEVEL DOMAIN ###
-
-			\b # word boundary
-		/p)
-		#>>>
-		{
-			$domain_appearances{ ${^MATCH} }++;
+		if ( my $domain = is_domain $_ ) {
+			$domain_appearances{$domain}++;
 		}
 	}
 	return ( sort keys %domain_appearances );
 }
 
-getopts 'ht:';
+getopts 'hO:t:';
 usage if defined($opt_h);
 
 $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
@@ -138,10 +152,18 @@ elsif ( $opt_t eq 'unbound' ) {
 	print map { "local-zone: \"$_\" always_refuse" . "\n" } &unique_domains;
 }
 elsif ( $opt_t eq 'rpz' ) {
-	print map { "$_ CNAME ." . "\n" } &unique_domains;
+	$opt_O // die "$program_name expects a domain name for \$ORIGIN.\n";
+
+	is_domain $opt_O
+		or die "$program_name expects a domain name for \$ORIGIN.\n";
+
+	# This needs to be at the top of the file.
+	say "\$ORIGIN $opt_O.";
+
+	print map { "$_.$opt_O. CNAME ." . "\n" } &unique_domains;
 
 	# This is commented out for now, because wildcards need to be optimized
 	# first before it is used (without that optimization, it doubles the
 	# blocklist size which results in more loss than gain).
-	#print map { "$_ CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } &unique_domains;
+	#print map { "$_.$opt_O CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } &unique_domains;
 }
