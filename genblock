@@ -104,51 +104,6 @@ sub is_domain {
 	return 0;
 }
 
-sub is_fqdn {
-	my $potential_domain = shift or return 0;
-
-	if (
-		$potential_domain =~ /
-	\b # word boundary
-
-	### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
-	(?: # begin noncapturing group
-	[a-z 0-9]+ # one or more lowercase or number characters
-
-	### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
-	(?: # begin noncapturing group
-	[-_]+ # one or more hyphens or underscores
-	[a-z 0-9]+ # one or more lowercase or number characters
-	)* # end of noncapturing group, matches zero or more times
-	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
-
-	\. # period
-	){2,} # end noncapturing group
-	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
-
-	### TOP-LEVEL DOMAIN ###
-	(?: # begin noncapturing group
-
-	(?: # begin noncapturing group
-	xn-- # punycode prefix
-	[a-z 0-9]+ # one or more lowercase or number characters
-	) # end the punycode noncapturing group
-
-	| # OR
-
-	[a-z]{2,} # two or more lowercase characters
-	) # end noncapturing group
-	### END TOP-LEVEL DOMAIN ###
-
-	\b # word boundary
-	/paaxx
-		)
-	{
-		return ${^MATCH};
-	}
-	return 0;
-}
-
 sub reduce_domains {
 	my $hashref = shift or return 0;
 
@@ -165,7 +120,6 @@ sub reduce_domains {
 
 			if ( $domain_chars[-1] eq '.' ) {
 				my $leaf = join( '', reverse @reduced_domain_chars );
-				next CHARACTER unless is_domain $leaf;
 
 				if ( defined $hashref->{$leaf} ) {
 					delete $hashref->{$domain};
@@ -179,7 +133,7 @@ sub reduce_domains {
 sub unique_domains {
 	my $hashref = shift or die "unique_domains needs a hash reference.\n";
 
-	while ( <<>> ) {
+	PROCESS_LINE: while ( <<>> ) {
 		## Don't process commented or blank lines.
 		next if /\A \s*? \#/aaxx;
 		next if /\A \s* \z/aaxx;
@@ -204,9 +158,11 @@ sub unique_domains {
 		$_ = lc $_;
 		chomp;
 
-		if ( my $domain = is_domain $_ ) {
-			$hashref->{$domain}++;
-		}
+		my $domain = do {
+			is_domain $_ or next PROCESS_LINE;
+		};
+
+		$hashref->{$domain}++;
 	}
 	return ( keys %$hashref );
 }
