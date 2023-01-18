@@ -107,7 +107,7 @@ sub is_domain {
 sub reduce_domains {
 	my $hashref = shift or return 0;
 
-	DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
+DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 		my @domain_chars = split( '', $domain );
 		my @reduced_domain_chars;
 
@@ -130,7 +130,7 @@ sub reduce_domains {
 sub unique_domains {
 	my $hashref = shift or die "unique_domains needs a hash reference.\n";
 
-	PROCESS_LINE: while ( <<>> ) {
+PROCESS_LINE: while ( <<>> ) {
 		## Don't process commented or blank lines.
 		next if /\A \s*? \#/aaxx;
 		next if /\A \s* \z/aaxx;
