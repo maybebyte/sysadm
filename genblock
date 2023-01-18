@@ -259,10 +259,9 @@ elsif ( $opt_t eq 'rpz' ) {
 	# first before it is used (without that optimization, it doubles the
 	# blocklist size which results in more loss than gain).
 	#<<<
-	#say join("\n", sort keys %domain_appearances);
 	print map {
-		"$_.$opt_O CNAME .\n"
-		. "*.$_.$opt_O CNAME .\n"
+		"$_.$opt_O. CNAME .\n"
+		. "*.$_.$opt_O. CNAME .\n"
 	} sort keys %domain_appearances;
 	#>>>
 }
