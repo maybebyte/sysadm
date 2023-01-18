@@ -104,7 +104,7 @@ sub is_domain {
 }
 
 sub unique_domains {
-	my %domain_appearances;
+	my $hashref = shift or die "unique_domains needs a hash reference.\n";
 
 	while ( <<>> ) {
 		## Don't process commented or blank lines.
@@ -132,10 +132,10 @@ sub unique_domains {
 		chomp;
 
 		if ( my $domain = is_domain $_ ) {
-			$domain_appearances{$domain}++;
+			$hashref->{$domain}++;
 		}
 	}
-	return ( sort keys %domain_appearances );
+	return ( keys %$hashref );
 }
 
 getopts 'hO:t:';
@@ -143,11 +143,13 @@ usage if defined($opt_h);
 
 $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 
+my %domain_appearances;
+
 if ( $opt_t eq 'plain' ) {
-	print map { $_ . "\n" } &unique_domains;
+	print map { $_ . "\n" } sort &unique_domains(\%domain_appearances);
 }
 elsif ( $opt_t eq 'unbound' ) {
-	print map { "local-zone: \"$_\" always_refuse" . "\n" } &unique_domains;
+	print map { "local-zone: \"$_\" always_refuse" . "\n" } sort &unique_domains(\%domain_appearances);
 }
 elsif ( $opt_t eq 'rpz' ) {
 	$opt_O // die "$program_name expects a domain name for \$ORIGIN.\n";
@@ -158,10 +160,10 @@ elsif ( $opt_t eq 'rpz' ) {
 	# This needs to be at the top of the file.
 	say "\$ORIGIN $opt_O.";
 
-	print map { "$_.$opt_O. CNAME ." . "\n" } &unique_domains;
+	print map { "$_.$opt_O. CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
 
 	# This is commented out for now, because wildcards need to be optimized
 	# first before it is used (without that optimization, it doubles the
 	# blocklist size which results in more loss than gain).
-	#print map { "$_.$opt_O CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } &unique_domains;
+	#print map { "$_.$opt_O CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } sort &unique_domains \%domain_appearances;
 }
