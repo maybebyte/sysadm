@@ -23,6 +23,7 @@ use autodie;
 use strict;
 use warnings;
 
+use Scalar::Util qw(looks_like_number);
 use experimental qw(smartmatch);
 
 # Extract file name.
@@ -59,7 +60,11 @@ EOT
 }
 
 sub is_domain {
-	my $potential_domain = shift or die "is_domain needs a potential domain!\n";
+	my $potential_domain = shift or die "is_domain needs a potential domain.\n";
+	my $min_leaves_above_tld = shift
+		or die "is_domain expected a minimum number of leaves above the TLD.\n";
+	looks_like_number $min_leaves_above_tld
+		or die "is_domain expected a minimum number of leaves above the TLD.\n";
 
 	if (
 		$potential_domain =~ /
@@ -77,7 +82,7 @@ sub is_domain {
 	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
 
 	\. # period
-	)+ # end noncapturing group, matches one or more times
+	){$min_leaves_above_tld,} # end noncapturing group
 	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
 
 	### TOP-LEVEL DOMAIN ###
@@ -103,8 +108,39 @@ sub is_domain {
 	return 0;
 }
 
+sub reduce_domains {
+	my $domain = shift or die "reduce_domain needs a domain.\n";
+	my $hashref = shift or die "reduce_domain needs a hashref.\n";
+
+	is_domain( $domain, 1 ) or return 0;
+
+	my @domain_chars = split( '', $domain );
+	my @reduced_domain_chars;
+
+	while ( scalar @domain_chars > 0 ) {
+		push @reduced_domain_chars, pop @domain_chars;
+
+		if ( scalar @domain_chars == 0 ) {
+			return $domain;
+		}
+		elsif ( $domain_chars[-1] eq '.' ) {
+			my $leaf = join( '', reverse @reduced_domain_chars );
+			next unless is_domain( $leaf, 2 ); # FQDN
+
+			if ( defined $hashref->{$leaf} ) {
+				return $leaf;
+			}
+			elsif ( my @unreduced_domains = grep { /$leaf\z/ } keys %$hashref )
+			{
+				return $leaf, @unreduced_domains;
+			}
+		}
+	}
+}
+
 sub unique_domains {
 	my $hashref = shift or die "unique_domains needs a hash reference.\n";
+	my $should_reduce_domains = shift or 0;
 
 	while ( <<>> ) {
 		## Don't process commented or blank lines.
@@ -131,8 +167,18 @@ sub unique_domains {
 		$_ = lc $_;
 		chomp;
 
-		if ( my $domain = is_domain $_ ) {
-			$hashref->{$domain}++;
+		if ( my $domain = is_domain( $_, 1 ) ) {
+			if ($should_reduce_domains) {
+				my ( $reduced_domain, @unreduced_domains ) = reduce_domains $_,
+					$hashref;
+
+				while ( my $unreduced_domain = shift @unreduced_domains ) {
+					say "Deleting $unreduced_domain";
+					delete $hashref->{$unreduced_domain};
+				}
+				$domain = $reduced_domain;
+			}
+		$hashref->{$domain}++;
 		}
 	}
 	return ( keys %$hashref );
@@ -146,24 +192,30 @@ $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 my %domain_appearances;
 
 if ( $opt_t eq 'plain' ) {
-	print map { $_ . "\n" } sort &unique_domains(\%domain_appearances);
+	print map { $_ . "\n" } sort &unique_domains( \%domain_appearances );
 }
 elsif ( $opt_t eq 'unbound' ) {
-	print map { "local-zone: \"$_\" always_refuse" . "\n" } sort &unique_domains(\%domain_appearances);
+	print map { "local-zone: \"$_\" always_refuse" . "\n" }
+		sort &unique_domains( \%domain_appearances );
 }
 elsif ( $opt_t eq 'rpz' ) {
 	$opt_O // die "$program_name expects a domain name for \$ORIGIN.\n";
 
-	is_domain $opt_O
+	is_domain( $opt_O, 1 )
 		or die "$program_name expects a domain name for \$ORIGIN.\n";
 
 	# This needs to be at the top of the file.
 	say "\$ORIGIN $opt_O.";
 
-	print map { "$_.$opt_O. CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
+	#print map { "$_.$opt_O. CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
 
 	# This is commented out for now, because wildcards need to be optimized
 	# first before it is used (without that optimization, it doubles the
 	# blocklist size which results in more loss than gain).
-	#print map { "$_.$opt_O CNAME ." . "\n" . "*.$_ CNAME ." . "\n" } sort &unique_domains \%domain_appearances;
+	#<<<
+	print map {
+		"$_.$opt_O CNAME .\n"
+		. "*.$_.$opt_O CNAME .\n"
+	} sort &unique_domains( \%domain_appearances, 1 );
+	#>>>
 }
