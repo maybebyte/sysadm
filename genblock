@@ -107,15 +107,12 @@ sub is_domain {
 sub reduce_domains {
 	my $hashref = shift or return 0;
 
-	my $found_domains_to_reduce = 0;
-
 	DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 		my @domain_chars = split( '', $domain );
 		my @reduced_domain_chars;
 
-		CHARACTER: while ( scalar @reduced_domain_chars < length $domain ) {
+		while ( scalar @reduced_domain_chars < length $domain ) {
 			push @reduced_domain_chars, pop @domain_chars;
-
 			last if scalar @domain_chars == 0;
 
 			if ( $domain_chars[-1] eq '.' ) {
@@ -137,11 +134,6 @@ sub unique_domains {
 		## Don't process commented or blank lines.
 		next if /\A \s*? \#/aaxx;
 		next if /\A \s* \z/aaxx;
-
-		# Get rid of these common leading IP addresses in hosts(5)
-		# formatted blocklists.
-		s/\A \s*? 127\.0\.0\.1 \s*?//aaxx;
-		s/\A \s*? 0\.0\.0\.0 \s*?//aaxx;
 
 		# Lines with these IP addresses at the tail end of a word
 		# (likely caused by maintainer typos) can't be trusted. Messing
