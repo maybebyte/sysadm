@@ -3,7 +3,7 @@
 /bin/test -e /etc/blocklist.txt \
 	&& /bin/mv /etc/blocklist.txt /etc/blocklist.txt.bak
 
-/usr/bin/xargs -n 6 -P 8 -- /usr/bin/ftp -o - < /etc/sysadm/blocklist_urls \
+/usr/bin/xargs -- /usr/bin/ftp -o - < /etc/sysadm/blocklist_urls \
 	| /etc/sysadm/genblock -t unbound \
 	> /etc/blocklist.txt
 
