@@ -60,7 +60,7 @@ EOT
 }
 
 sub is_domain {
-	my $potential_domain = shift or die "is_domain needs a potential domain.\n";
+	my $potential_domain = shift or return 0;
 
 	if (
 		$potential_domain =~ /
@@ -105,7 +105,7 @@ sub is_domain {
 }
 
 sub is_fqdn {
-	my $potential_domain = shift or die "is_domain needs a potential domain.\n";
+	my $potential_domain = shift or return 0;
 
 	if (
 		$potential_domain =~ /
@@ -150,7 +150,7 @@ sub is_fqdn {
 }
 
 sub reduce_domains {
-	my $hashref = shift or die "reduce_domains needs a hashref.\n";
+	my $hashref = shift or return 0;
 
 	PROCESS_HASH: {
 		my $found_domains_to_reduce = 0;
