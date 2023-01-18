@@ -61,10 +61,6 @@ EOT
 
 sub is_domain {
 	my $potential_domain = shift or die "is_domain needs a potential domain.\n";
-	my $min_leaves_above_tld = shift
-		or die "is_domain expected a minimum number of leaves above the TLD.\n";
-	looks_like_number $min_leaves_above_tld
-		or die "is_domain expected a minimum number of leaves above the TLD.\n";
 
 	if (
 		$potential_domain =~ /
@@ -82,7 +78,52 @@ sub is_domain {
 	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
 
 	\. # period
-	){$min_leaves_above_tld,} # end noncapturing group
+	)+ # end noncapturing group
+	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+
+	### TOP-LEVEL DOMAIN ###
+	(?: # begin noncapturing group
+
+	(?: # begin noncapturing group
+	xn-- # punycode prefix
+	[a-z 0-9]+ # one or more lowercase or number characters
+	) # end the punycode noncapturing group
+
+	| # OR
+
+	[a-z]{2,} # two or more lowercase characters
+	) # end noncapturing group
+	### END TOP-LEVEL DOMAIN ###
+
+	\b # word boundary
+	/paaxx
+		)
+	{
+		return ${^MATCH};
+	}
+	return 0;
+}
+
+sub is_fqdn {
+	my $potential_domain = shift or die "is_domain needs a potential domain.\n";
+
+	if (
+		$potential_domain =~ /
+	\b # word boundary
+
+	### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+	(?: # begin noncapturing group
+	[a-z 0-9]+ # one or more lowercase or number characters
+
+	### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+	(?: # begin noncapturing group
+	[-_]+ # one or more hyphens or underscores
+	[a-z 0-9]+ # one or more lowercase or number characters
+	)* # end of noncapturing group, matches zero or more times
+	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+
+	\. # period
+	){2,} # end noncapturing group
 	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
 
 	### TOP-LEVEL DOMAIN ###
@@ -112,7 +153,7 @@ sub reduce_domains {
 	my $domain = shift or die "reduce_domain needs a domain.\n";
 	my $hashref = shift or die "reduce_domain needs a hashref.\n";
 
-	is_domain( $domain, 1 ) or return 0;
+	is_domain $domain or return 0;
 
 	my @domain_chars = split( '', $domain );
 	my @reduced_domain_chars;
@@ -125,7 +166,7 @@ sub reduce_domains {
 		}
 		elsif ( $domain_chars[-1] eq '.' ) {
 			my $leaf = join( '', reverse @reduced_domain_chars );
-			next unless is_domain( $leaf, 2 ); # FQDN
+			next unless is_fqdn $leaf; # FQDN
 
 			if ( defined $hashref->{$leaf} ) {
 				return $leaf;
@@ -167,7 +208,7 @@ sub unique_domains {
 		$_ = lc $_;
 		chomp;
 
-		if ( my $domain = is_domain( $_, 1 ) ) {
+		if ( my $domain = is_domain $_ ) {
 			if ($should_reduce_domains) {
 				my ( $reduced_domain, @unreduced_domains ) = reduce_domains $_,
 					$hashref;
@@ -201,7 +242,7 @@ elsif ( $opt_t eq 'unbound' ) {
 elsif ( $opt_t eq 'rpz' ) {
 	$opt_O // die "$program_name expects a domain name for \$ORIGIN.\n";
 
-	is_domain( $opt_O, 1 )
+	is_domain $opt_O
 		or die "$program_name expects a domain name for \$ORIGIN.\n";
 
 	# This needs to be at the top of the file.
