@@ -31,8 +31,6 @@ use File::Basename qw(fileparse);
 # Parse command line options.
 use Getopt::Std;
 
-use re '/aaxx';
-
 our ( $opt_h, $opt_O );
 our $opt_t = 'plain';
 
@@ -97,7 +95,7 @@ sub is_domain {
 	### END TOP-LEVEL DOMAIN ###
 
 	\b # word boundary
-	/p
+	/paaxx
 		)
 	{
 		return ${^MATCH};
@@ -110,13 +108,13 @@ sub unique_domains {
 
 	while ( <<>> ) {
 		## Don't process commented or blank lines.
-		next if /\A \s*? \#/;
-		next if /\A \s* \z/;
+		next if /\A \s*? \#/aaxx;
+		next if /\A \s* \z/aaxx;
 
 		# Get rid of these common leading IP addresses in hosts(5)
 		# formatted blocklists.
-		s/\A \s*? 127\.0\.0\.1 \s*?//;
-		s/\A \s*? 0\.0\.0\.0 \s*?//;
+		s/\A \s*? 127\.0\.0\.1 \s*?//aaxx;
+		s/\A \s*? 0\.0\.0\.0 \s*?//aaxx;
 
 		# Lines with these IP addresses at the tail end of a word
 		# (likely caused by maintainer typos) can't be trusted. Messing
@@ -126,8 +124,8 @@ sub unique_domains {
 		# Here are two examples of lines that match:
 		# zy16eoat1w.com0.0.0.0 102.112.2o7.net
 		# vungle.com0.0.0.0adminer.com
-		next if /\B 127\.0\.0\.1/;
-		next if /\B 0\.0\.0\.0/;
+		next if /\B 127\.0\.0\.1/aaxx;
+		next if /\B 0\.0\.0\.0/aaxx;
 
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
