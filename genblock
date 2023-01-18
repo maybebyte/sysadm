@@ -150,38 +150,49 @@ sub is_fqdn {
 }
 
 sub reduce_domains {
-	my $domain = shift or die "reduce_domain needs a domain.\n";
-	my $hashref = shift or die "reduce_domain needs a hashref.\n";
+	my $hashref = shift or die "reduce_domains needs a hashref.\n";
 
-	is_domain $domain or return 0;
+	PROCESS_HASH: {
+		my $found_domains_to_reduce = 0;
 
-	my @domain_chars = split( '', $domain );
-	my @reduced_domain_chars;
+		DOMAIN:	for my $domain ( sort keys %$hashref ) {
+			my @domain_chars = split( '', $domain );
+			my @reduced_domain_chars;
 
-	while ( scalar @domain_chars > 0 ) {
-		push @reduced_domain_chars, pop @domain_chars;
+			CHARACTER: while ( scalar @reduced_domain_chars < length $domain ) {
+				push @reduced_domain_chars, pop @domain_chars;
 
-		if ( scalar @domain_chars == 0 ) {
-			return $domain;
-		}
-		elsif ( $domain_chars[-1] eq '.' ) {
-			my $leaf = join( '', reverse @reduced_domain_chars );
-			next unless is_fqdn $leaf; # FQDN
+				last if scalar @domain_chars == 0;
 
-			if ( defined $hashref->{$leaf} ) {
-				return $leaf;
+				#if ( scalar @domain_chars == 0 ) {
+					#my $leaf = join( '', reverse @reduced_domain_chars );
+					#$hashref->{$leaf}++;
+					#last CHARACTER;
+				#}
+
+				if ( $domain_chars[-1] eq '.' ) {
+					my $leaf = join( '', reverse @reduced_domain_chars );
+					next CHARACTER unless is_fqdn $leaf;   # FQDN
+					$hashref->{$leaf}++;
+
+					if ( my @unreduced_domains = grep { /$leaf\z/ } keys %$hashref )  {
+						while ( my $unreduced_domain = shift @unreduced_domains ) {
+							next if $unreduced_domain eq $leaf;
+							delete $hashref->{$unreduced_domain};
+							$found_domains_to_reduce++;
+						}
+					}
+				}
+				last CHARACTER if $found_domains_to_reduce;
 			}
-			elsif ( my @unreduced_domains = grep { /$leaf\z/ } keys %$hashref )
-			{
-				return $leaf, @unreduced_domains;
-			}
+			last DOMAIN if $found_domains_to_reduce;
 		}
+		redo PROCESS_HASH if $found_domains_to_reduce;
 	}
 }
 
 sub unique_domains {
 	my $hashref = shift or die "unique_domains needs a hash reference.\n";
-	my $should_reduce_domains = shift or 0;
 
 	while ( <<>> ) {
 		## Don't process commented or blank lines.
@@ -209,17 +220,7 @@ sub unique_domains {
 		chomp;
 
 		if ( my $domain = is_domain $_ ) {
-			if ($should_reduce_domains) {
-				my ( $reduced_domain, @unreduced_domains ) = reduce_domains $_,
-					$hashref;
-
-				while ( my $unreduced_domain = shift @unreduced_domains ) {
-					say "Deleting $unreduced_domain";
-					delete $hashref->{$unreduced_domain};
-				}
-				$domain = $reduced_domain;
-			}
-		$hashref->{$domain}++;
+			$hashref->{$domain}++;
 		}
 	}
 	return ( keys %$hashref );
@@ -245,6 +246,10 @@ elsif ( $opt_t eq 'rpz' ) {
 	is_domain $opt_O
 		or die "$program_name expects a domain name for \$ORIGIN.\n";
 
+	# Executed for their side-effects only (populating and reducing a hash).
+	&unique_domains( \%domain_appearances );
+	&reduce_domains( \%domain_appearances );
+
 	# This needs to be at the top of the file.
 	say "\$ORIGIN $opt_O.";
 
@@ -254,9 +259,10 @@ elsif ( $opt_t eq 'rpz' ) {
 	# first before it is used (without that optimization, it doubles the
 	# blocklist size which results in more loss than gain).
 	#<<<
+	#say join("\n", sort keys %domain_appearances);
 	print map {
 		"$_.$opt_O CNAME .\n"
 		. "*.$_.$opt_O CNAME .\n"
-	} sort &unique_domains( \%domain_appearances, 1 );
+	} sort keys %domain_appearances;
 	#>>>
 }
