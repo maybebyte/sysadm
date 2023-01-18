@@ -152,42 +152,27 @@ sub is_fqdn {
 sub reduce_domains {
 	my $hashref = shift or return 0;
 
-	PROCESS_HASH: {
-		my $found_domains_to_reduce = 0;
+	my $found_domains_to_reduce = 0;
 
-		DOMAIN:	for my $domain ( sort keys %$hashref ) {
-			my @domain_chars = split( '', $domain );
-			my @reduced_domain_chars;
+	DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
+		my @domain_chars = split( '', $domain );
+		my @reduced_domain_chars;
 
-			CHARACTER: while ( scalar @reduced_domain_chars < length $domain ) {
-				push @reduced_domain_chars, pop @domain_chars;
+		CHARACTER: while ( scalar @reduced_domain_chars < length $domain ) {
+			push @reduced_domain_chars, pop @domain_chars;
 
-				last if scalar @domain_chars == 0;
+			last if scalar @domain_chars == 0;
 
-				#if ( scalar @domain_chars == 0 ) {
-					#my $leaf = join( '', reverse @reduced_domain_chars );
-					#$hashref->{$leaf}++;
-					#last CHARACTER;
-				#}
+			if ( $domain_chars[-1] eq '.' ) {
+				my $leaf = join( '', reverse @reduced_domain_chars );
+				next CHARACTER unless is_domain $leaf;
 
-				if ( $domain_chars[-1] eq '.' ) {
-					my $leaf = join( '', reverse @reduced_domain_chars );
-					next CHARACTER unless is_fqdn $leaf;   # FQDN
-					$hashref->{$leaf}++;
-
-					if ( my @unreduced_domains = grep { /$leaf\z/ } keys %$hashref )  {
-						while ( my $unreduced_domain = shift @unreduced_domains ) {
-							next if $unreduced_domain eq $leaf;
-							delete $hashref->{$unreduced_domain};
-							$found_domains_to_reduce++;
-						}
-					}
+				if ( defined $hashref->{$leaf} ) {
+					delete $hashref->{$domain};
+					next DOMAIN;
 				}
-				last CHARACTER if $found_domains_to_reduce;
 			}
-			last DOMAIN if $found_domains_to_reduce;
 		}
-		redo PROCESS_HASH if $found_domains_to_reduce;
 	}
 }
 
@@ -253,15 +238,14 @@ elsif ( $opt_t eq 'rpz' ) {
 	# This needs to be at the top of the file.
 	say "\$ORIGIN $opt_O.";
 
+	# Without wildcards.
+	# TODO: implement option to toggle wildcards.
 	#print map { "$_.$opt_O. CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
 
-	# This is commented out for now, because wildcards need to be optimized
-	# first before it is used (without that optimization, it doubles the
-	# blocklist size which results in more loss than gain).
 	#<<<
 	print map {
-		"$_.$opt_O. CNAME .\n"
-		. "*.$_.$opt_O. CNAME .\n"
+		"$_ CNAME .\n"
+		. "*.$_ CNAME .\n"
 	} sort keys %domain_appearances;
 	#>>>
 }
