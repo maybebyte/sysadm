@@ -51,8 +51,11 @@ usage: $program_name [-h] [-t type] [file (optional)] ...
 
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
+
     'unbound' formats the domain as 'local-zone: \"[domain]\" always_refuse'
-    'rpz' formats the domain as '\$ORIGIN.[domain] CNAME .'
+
+    'rpz' formats the domain as '[domain] CNAME .', and then copies that to a
+    wildcard entry. It also reduces domains to avoid unnecessary duplication.
 
 $program_name reads from STDIN or a given file.
 EOT
