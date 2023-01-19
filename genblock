@@ -80,7 +80,7 @@ sub is_domain {
 	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
 
 	\. # period
-	)+ # end noncapturing group
+	)+ # end noncapturing group, matches one or more times
 	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
 
 	### TOP-LEVEL DOMAIN ###
