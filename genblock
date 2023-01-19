@@ -56,6 +56,11 @@ sub is_domain {
 
 	if (
 		$potential_domain =~ /
+	# For more details, see:
+	# RFC1034
+	# RFC2181
+	# and too many others to list
+
 	# This "main" group MUST match one or more times 
 	#
 	# Its role is to match the leaves in the domain before the top-level domain,
