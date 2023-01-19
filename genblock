@@ -127,6 +127,14 @@ PROCESS_LINE: while ( <<>> ) {
 		next if /\A \s*? \#/aaxx;
 		next if /\A \s* \z/aaxx;
 
+		# Get rid of these common leading IP addresses in hosts(5)
+		# formatted blocklists.
+		#
+		# Types of entries that this addresses:
+		# 0.0.0.0alfa-bitcoin.com
+		s/\A \s*? 127\.0\.0\.1 \s*?//aaxx;
+		s/\A \s*? 0\.0\.0\.0 \s*?//aaxx;
+
 		# Lines with these IP addresses at the tail end of a word
 		# (likely caused by maintainer typos) can't be trusted. Messing
 		# with them is likely to mangle the line and give a bogus
