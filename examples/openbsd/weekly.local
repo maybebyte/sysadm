@@ -1,18 +1,21 @@
+BLOCKLIST_LOCATION="/var/unbound/etc/blocklist.txt"
+
 # For genblock. Does blocklist handling so the script doesn't have
 # to. Generates blocklist from content of URLs and reloads daemons.
-/bin/test -e /etc/blocklist.txt \
-	&& /bin/mv /etc/blocklist.txt /etc/blocklist.txt.bak
+/bin/test -e "${BLOCKLIST_LOCATION}" \
+	&& /bin/mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
 
-/usr/bin/xargs -- /usr/bin/ftp -o - < /etc/sysadm/blocklist_urls \
-	| /etc/sysadm/genblock -t unbound \
-	> /etc/blocklist.txt
+grep -Ev '^#' /etc/sysadm/blocklist_urls \
+	| /usr/bin/xargs -- /usr/bin/ftp -o -
+	| /etc/sysadm/genblock -t rpz -O 'hostname.home.arpa' \
+	> "${BLOCKLIST_LOCATION}"
 
 # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-echo 'local-zone: "use-application-dns.net" always_refuse' >> /etc/blocklist.txt
+echo 'use-application-dns.net CNAME .' >> "${BLOCKLIST_LOCATION}"
 
 if /usr/sbin/unbound-checkconf; then
-	/bin/chmod 0444 /etc/blocklist.txt
+	/bin/chmod 0444 "${BLOCKLIST_LOCATION}"
 	/usr/sbin/rcctl restart unbound
 else
-	/bin/mv /etc/blocklist.txt.bak /etc/blocklist.txt
+	/bin/mv "${BLOCKLIST_LOCATION}.bak" "${BLOCKLIST_LOCATION}"
 fi
