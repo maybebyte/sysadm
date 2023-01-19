@@ -56,38 +56,66 @@ sub is_domain {
 
 	if (
 		$potential_domain =~ /
-	\b # word boundary
+	# This "main" group MUST match one or more times 
+	#
+	# Its role is to match the leaves in the domain before the top-level domain,
+	# and to do so it encapsulates the optional "hyphen" group because a domain
+	# MAY have hyphens, but we don't know for sure whether it will
+	#
+	# At the beginning of a word boundary, open the "main" group, and that group
+	# MUST match one or more alphanumeric characters to start
+	\b 
+	(?: 
+	[a-z 0-9]+
 
-	### BEGIN DOMAINS BEFORE TOP-LEVEL DOMAIN ###
-	(?: # begin noncapturing group
-	[a-z 0-9]+ # one or more lowercase or number characters
+	# This "hyphen" group MAY match zero or more times
+	#
+	# Its role is to capture hyphens in the middle of a leaf, like "abc-xyz" for
+	# instance
+	#
+	# Inside the optional "hyphen" group, match one or more hyphens or
+	# underscores, followed by one or more alphanumeric characters
+	(?: 
+	[-_]+ 
+	[a-z 0-9]+
+	)*
 
-	### BEGIN OPTIONAL GROUP - HYPHENS AND UNDERSCORES
-	(?: # begin noncapturing group
-	[-_]+ # one or more hyphens or underscores
-	[a-z 0-9]+ # one or more lowercase or number characters
-	)* # end of noncapturing group, matches zero or more times
-	### END OPTIONAL GROUP - HYPHENS AND UNDERSCORES
+	# The "main" noncapturing group ends with a period to mark the end of a
+	# leaf
+	#
+	# The "main" noncapturing group MUST match one or more times as said before,
+	# as this accounts for all of the leaves before the top-level domain
+	\.
+	)+
 
-	\. # period
-	)+ # end noncapturing group, matches one or more times
-	### END DOMAINS BEFORE TOP-LEVEL DOMAIN ###
+	# This begins the "top-level domain" section
+	#
+	# It's relatively simple, it MUST be one of two things:
+	#
+	# A punycode prefixed top-level domain
+	# OR
+	# A regular top-level domain
+	(?: 
 
-	### TOP-LEVEL DOMAIN ###
-	(?: # begin noncapturing group
-
-	(?: # begin noncapturing group
-	xn-- # punycode prefix
-	[a-z 0-9]+ # one or more lowercase or number characters
-	) # end the punycode noncapturing group
+	# The top-level domain MAY be a punycode prefixed top-level domain, starting
+	# with 'xn--' and matching one or more alphanumeric characters afterward
+	(?: 
+	xn-- 
+	[a-z 0-9]+ 
+	)
 
 	| # OR
 
-	[a-z]{2,} # two or more lowercase characters
-	) # end noncapturing group
-	### END TOP-LEVEL DOMAIN ###
+	# If the top-level domain wasn't the punycode prefixed variant, then it MUST
+	# be a regular top-level domain
+	#
+	# Has at least two letters
+	[a-z]{2,}
 
-	\b # word boundary
+	# The top-level domain is the end, so conclude the regular expression by
+	# closing the "top-level domain" group followed by a word boundary
+	) 
+	\b
 	/paaxx
 		)
 	{
