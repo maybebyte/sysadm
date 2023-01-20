@@ -1,6 +1,7 @@
 #!/usr/bin/env ksh
 
 # Example fetch + reload script for genblock + unbound.
+# TODO: replace a lot of this with a perl script instead
 
 PATH='/bin:/usr/bin:/sbin:/usr/sbin'
 
@@ -19,16 +20,39 @@ blocklist_missing_or_invalid() {
 ${BLOCKLIST_LOCATION} missing or invalid.
 Creating a blank file there instead.
 EOF
-	cp '/dev/null' "${BLOCKLIST_LOCATION}"
+
+	cp '/dev/null' "${BLOCKLIST_LOCATION}" || {
+		echo "Failed to write to '${BLOCKLIST_LOCATION}', exiting." >&2
+		exit 1
+	}
 }
 
-[ -e "${BLOCKLIST_LOCATION}" ] || {
+[ -e "${BLOCKLIST_LOCATION}" ] || blocklist_missing_or_invalid
+
+unbound-checkconf || {
 	blocklist_missing_or_invalid
+
+	unbound-checkconf || {
+		cat >&2 <<EOF
+Unbound's configuration is broken for some reason, even after replacing the
+blocklist with a blank file. Exiting.
+EOF
+		exit 1
+	}
 }
 
-unbound-checkconf || blocklist_missing_or_invalid
+mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak" || {
+	cat >&2 <<EOF
+Failed to move '${BLOCKLIST_LOCATION}' to '${BLOCKLIST_LOCATION}.bak'.
+Exiting.
+EOF
+	exit 1
+}
 
-mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
+cp '/dev/null' "${BLOCKLIST_LOCATION}" || {
+	echo "Failed to write to '${BLOCKLIST_LOCATION}', exiting." >&2
+	exit 1
+}
 
 # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
 echo 'use-application-dns.net CNAME .' > "${BLOCKLIST_LOCATION}"
