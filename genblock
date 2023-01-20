@@ -61,16 +61,22 @@ sub is_domain {
 	# RFC2181
 	# and too many others to list
 
-	# This "main" group MUST match one or more times 
+	# This "main" group MUST match one or more times
 	#
 	# Its role is to match the leaves in the domain before the top-level domain,
 	# and to do so it encapsulates the optional "hyphen" group because a domain
 	# MAY have hyphens, but we don't know for sure whether it will
 	#
-	# At the beginning of a word boundary, open the "main" group, and that group
-	# MUST match one or more alphanumeric characters to start
-	\b 
-	(?: 
+	# It also includes a "lookahead" to ensure that each leaf is no longer than
+	# 63 characters---this is a zero-width assertion that checks RFC compliance
+	# by looking to see if there are 1-63 letters, digits, hyphens, and
+	# underscores until the next dot
+	#
+	# If the lookahead succeeds, proceed with matching one or more alphanumeric
+	# characters to start
+	\b
+	(
+	(?= [a-z 0-9 -_]{1,63} \.)
 	[a-z 0-9]+
 
 	# This "hyphen" group MAY match zero or more times
@@ -80,8 +86,8 @@ sub is_domain {
 	#
 	# Inside the optional "hyphen" group, match one or more hyphens or
 	# underscores, followed by one or more alphanumeric characters
-	(?: 
-	[-_]+ 
+	(
+	[-_]+
 	[a-z 0-9]+
 	)*
 
@@ -100,13 +106,13 @@ sub is_domain {
 	# A punycode prefixed top-level domain
 	# OR
 	# A regular top-level domain
-	(?: 
+	(
 
 	# The top-level domain MAY be a punycode prefixed top-level domain, starting
 	# with 'xn--' and matching one or more alphanumeric characters afterward
-	(?: 
-	xn-- 
-	[a-z 0-9]+ 
+	(
+	xn--
+	[a-z 0-9]{2,59}
 	)
 
 	| # OR
@@ -115,13 +121,13 @@ sub is_domain {
 	# be a regular top-level domain
 	#
 	# Has at least two letters
-	[a-z]{2,}
+	[a-z]{2,63}
 
 	# The top-level domain is the end, so conclude the regular expression by
 	# closing the "top-level domain" group followed by a word boundary
-	) 
+	)
 	\b
-	/paaxx
+	/paaxxn
 		)
 	{
 		return ${^MATCH};
