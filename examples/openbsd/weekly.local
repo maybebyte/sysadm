@@ -14,7 +14,7 @@ reload_zone() {
 	unbound-control -q flush_zone "${AUTH_ZONE}" || return
 }
 
-[ -e "${BLOCKLIST_LOCATION}" ] || {
+blocklist_missing_or_invalid() {
 	cat >&2 <<EOF
 ${BLOCKLIST_LOCATION} missing or invalid.
 Creating a blank file there instead.
@@ -22,15 +22,21 @@ EOF
 	cp '/dev/null' "${BLOCKLIST_LOCATION}"
 }
 
+[ -e "${BLOCKLIST_LOCATION}" ] || {
+	blocklist_missing_or_invalid
+}
+
+unbound-checkconf || blocklist_missing_or_invalid
+
 mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
+
+# https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+echo 'use-application-dns.net CNAME .' > "${BLOCKLIST_LOCATION}"
 
 grep -Ev '^#' "${BLOCKLIST_URLS}" \
 	| xargs -- ftp -o - \
 	| "${GENBLOCK_BIN}" -t rpz \
-		> "${BLOCKLIST_LOCATION}"
-
-# https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-echo 'use-application-dns.net CNAME .' >> "${BLOCKLIST_LOCATION}"
+		>> "${BLOCKLIST_LOCATION}"
 
 chmod 0444 "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
 
