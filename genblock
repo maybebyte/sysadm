@@ -134,6 +134,7 @@ sub is_domain {
 
 sub reduce_domains {
 	my $hashref = shift or return 0;
+	my $number_of_domains_removed = 0;
 
 DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 		my @domain_chars = split( '', $domain );
@@ -148,16 +149,18 @@ DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 
 				if ( defined $hashref->{$leaf} ) {
 					delete $hashref->{$domain};
+					$number_of_domains_removed++;
 					next DOMAIN;
 				}
 			}
 		}
 	}
-	return ( keys %$hashref );
+	return $number_of_domains_removed;
 }
 
 sub unique_domains {
 	my $hashref = shift or die "unique_domains needs a hash reference.\n";
+	my $number_of_domains_added = 0;
 
 PROCESS_LINE: while ( <<>> ) {
 		## Don't process commented or blank lines.
@@ -192,8 +195,9 @@ PROCESS_LINE: while ( <<>> ) {
 		};
 
 		$hashref->{$domain}++;
+		$number_of_domains_added++;
 	}
-	return ( keys %$hashref );
+	return $number_of_domains_added;
 }
 
 our $opt_h;
@@ -207,21 +211,22 @@ $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 
 my %domain_appearances;
 
+&unique_domains( \%domain_appearances );
+
 if ( $opt_t eq 'plain' ) {
-	print map { "$_\n" } sort &unique_domains( \%domain_appearances );
+	print map { "$_\n" } sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'unbound' ) {
 	print map { "local-zone: \"$_\" always_refuse\n" }
-		sort &unique_domains( \%domain_appearances );
+		sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'rpz' ) {
-	# Executed for its side-effects only (populating a hash).
-	&unique_domains( \%domain_appearances );
+	&reduce_domains( \%domain_appearances );
 
 	#<<<
 	print map {
 		"$_ CNAME .\n"
 		. "*.$_ CNAME .\n"
-	} sort &reduce_domains( \%domain_appearances );
+	} sort keys %domain_appearances;
 	#>>>
 }
