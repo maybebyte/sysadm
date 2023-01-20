@@ -13,6 +13,9 @@ grep -Ev '^#' /etc/sysadm/blocklist_urls \
 # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
 echo 'use-application-dns.net CNAME .' >> "${BLOCKLIST_LOCATION}"
 
+# Nothing to do if they're the same.
+cmp -s "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.txt" && exit
+
 if /usr/sbin/unbound-checkconf; then
 	/bin/chmod 0444 "${BLOCKLIST_LOCATION}"
 	/usr/sbin/rcctl restart unbound

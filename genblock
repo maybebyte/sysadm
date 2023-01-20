@@ -36,9 +36,6 @@ usage: $program_name [-h] [-t type] [file (optional)] ...
 
 -h: help.
 
--O: origin FQDN for \$ORIGIN. Example: 'sinkhole.home.arpa'. Only valid when
-    type is 'rpz'.
-
 -t: type of format, 'plain' by default.
     'plain' extracts one domain per line and does no other formatting.
 
@@ -198,10 +195,10 @@ PROCESS_LINE: while ( <<>> ) {
 	return ( keys %$hashref );
 }
 
-our ( $opt_h, $opt_O );
+our $opt_h;
 our $opt_t = 'plain';
 
-getopts 'hO:t:';
+getopts 'ht:';
 usage if defined($opt_h);
 
 my @formats = qw(plain unbound rpz);
@@ -217,21 +214,13 @@ elsif ( $opt_t eq 'unbound' ) {
 		sort &unique_domains( \%domain_appearances );
 }
 elsif ( $opt_t eq 'rpz' ) {
-	$opt_O // die "$program_name expects a domain name for \$ORIGIN.\n";
-
-	is_domain $opt_O
-		or die "$program_name expects a domain name for \$ORIGIN.\n";
-
 	# Executed for their side-effects only (populating and reducing a hash).
 	&unique_domains( \%domain_appearances );
 	&reduce_domains( \%domain_appearances );
 
-	# This needs to be at the top of the file.
-	say "\$ORIGIN $opt_O.";
-
 	# Without wildcards.
 	# TODO: implement option to toggle wildcards.
-	#print map { "$_.$opt_O. CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
+	#print map { "$_ CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
 
 	#<<<
 	print map {
