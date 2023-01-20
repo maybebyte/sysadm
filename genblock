@@ -153,6 +153,7 @@ DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 			}
 		}
 	}
+	return ( keys %$hashref );
 }
 
 sub unique_domains {
@@ -207,25 +208,20 @@ $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 my %domain_appearances;
 
 if ( $opt_t eq 'plain' ) {
-	print map { $_ . "\n" } sort &unique_domains( \%domain_appearances );
+	print map { "$_\n" } sort &unique_domains( \%domain_appearances );
 }
 elsif ( $opt_t eq 'unbound' ) {
-	print map { "local-zone: \"$_\" always_refuse" . "\n" }
+	print map { "local-zone: \"$_\" always_refuse\n" }
 		sort &unique_domains( \%domain_appearances );
 }
 elsif ( $opt_t eq 'rpz' ) {
-	# Executed for their side-effects only (populating and reducing a hash).
+	# Executed for its side-effects only (populating a hash).
 	&unique_domains( \%domain_appearances );
-	&reduce_domains( \%domain_appearances );
-
-	# Without wildcards.
-	# TODO: implement option to toggle wildcards.
-	#print map { "$_ CNAME ." . "\n" } sort &unique_domains(\%domain_appearances);
 
 	#<<<
 	print map {
 		"$_ CNAME .\n"
 		. "*.$_ CNAME .\n"
-	} sort keys %domain_appearances;
+	} sort &reduce_domains( \%domain_appearances );
 	#>>>
 }
