@@ -211,7 +211,8 @@ $opt_t ~~ @formats or die "$opt_t is not a valid type.\n";
 
 my %domain_appearances;
 
-&unique_domains( \%domain_appearances );
+&unique_domains( \%domain_appearances )
+	or die "Unable to extract any domains from input.\n";
 
 if ( $opt_t eq 'plain' ) {
 	print map { "$_\n" } sort keys %domain_appearances;
@@ -221,6 +222,7 @@ elsif ( $opt_t eq 'unbound' ) {
 		sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'rpz' ) {
+	## TODO: Add verbose flag and report how many domains were pruned.
 	&reduce_domains( \%domain_appearances );
 
 	#<<<
