@@ -1,24 +1,43 @@
-BLOCKLIST_LOCATION="/var/unbound/etc/blocklist.txt"
+#!/usr/bin/env ksh
 
-# For genblock. Does blocklist handling so the script doesn't have
-# to. Generates blocklist from content of URLs and reloads daemons.
-/bin/test -e "${BLOCKLIST_LOCATION}" \
-	&& /bin/mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
+# Example fetch + reload script for genblock + unbound.
 
-grep -Ev '^#' /etc/sysadm/blocklist_urls \
-	| /usr/bin/xargs -- /usr/bin/ftp -o -
-	| /etc/sysadm/genblock -t rpz -O 'hostname.home.arpa' \
-	> "${BLOCKLIST_LOCATION}"
+PATH='/bin:/usr/bin:/sbin:/usr/sbin'
+
+readonly GENBLOCK_BIN='/etc/sysadm/genblock'
+readonly AUTH_ZONE='hostname.home.arpa'
+readonly BLOCKLIST_LOCATION='/var/unbound/etc/blocklist.txt'
+readonly BLOCKLIST_URLS='/etc/sysadm/blocklist_urls'
+
+reload_zone() {
+	unbound-control -q auth_zone_reload "${AUTH_ZONE}" || return
+	unbound-control -q flush_zone "${AUTH_ZONE}" || return
+}
+
+[ -e "${BLOCKLIST_LOCATION}" ] || {
+	cat >&2 <<EOF
+${BLOCKLIST_LOCATION} missing or invalid.
+Creating a blank file there instead.
+EOF
+	cp '/dev/null' "${BLOCKLIST_LOCATION}"
+}
+
+mv "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
+
+grep -Ev '^#' "${BLOCKLIST_URLS}" \
+	| xargs -- ftp -o - \
+	| "${GENBLOCK_BIN}" -t rpz \
+		> "${BLOCKLIST_LOCATION}"
 
 # https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
 echo 'use-application-dns.net CNAME .' >> "${BLOCKLIST_LOCATION}"
 
-# Nothing to do if they're the same.
+chmod 0444 "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.bak"
+
+# Nothing more to do if they're the same.
 cmp -s "${BLOCKLIST_LOCATION}" "${BLOCKLIST_LOCATION}.txt" && exit
 
-if /usr/sbin/unbound-checkconf; then
-	/bin/chmod 0444 "${BLOCKLIST_LOCATION}"
-	/usr/sbin/rcctl restart unbound
-else
-	/bin/mv "${BLOCKLIST_LOCATION}.bak" "${BLOCKLIST_LOCATION}"
-fi
+reload_zone || {
+	mv "${BLOCKLIST_LOCATION}.bak" "${BLOCKLIST_LOCATION}"
+	reload_zone
+}
