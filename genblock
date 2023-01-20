@@ -57,9 +57,9 @@ sub is_domain {
 	if (
 		$potential_domain =~ /
 	# For more details, see:
-	# RFC1034
-	# RFC2181
-	# and too many others to list
+	# RFC1123 section 2-1
+	# RFC1034 section 3-1
+	# RFC2181 section 11
 
 	# This "main" group MUST match one or more times
 	#
