@@ -159,7 +159,7 @@ DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
 }
 
 sub unique_domains {
-	my $hashref = shift or die "unique_domains needs a hash reference.\n";
+	my $hashref = shift or return 0;
 	my $number_of_domains_added = 0;
 
 PROCESS_LINE: while ( <<>> ) {
