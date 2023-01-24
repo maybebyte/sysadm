@@ -46,16 +46,21 @@ my $acme_client_conf = '/etc/acme-client.conf';
 -e -f $acme_client_conf
 	or die "$acme_client_conf doesn't exist or isn't a file.\n";
 
-for my $domain_name (@ARGV) {
-	my $crt_file = "/etc/ssl/$domain_name.crt";
-	my $ocsp_file = "/etc/ssl/$domain_name.ocsp";
-
+while ( my $domain_name = shift @ARGV ) {
 	# capturex is used to easily suppress output (much easier than an equivalent
 	# solution with IPC::Open2 or IPC::Open3).
 	my $dummy = capturex [ 0, 2 ], qw(acme-client --), $domain_name;
 	undef $dummy;
 
 	if ( defined $opt_O ) {
+		my $crt_file = "/etc/ssl/$domain_name.crt";
+		my $ocsp_file = "/etc/ssl/$domain_name.ocsp";
+
+		if ( ! -e -f $crt_file ) {
+			warn "No $crt_file present, skipping OCSP staple generation.\n";
+			next;
+		}
+
 		my @ocspcheck = $opt_N ? qw(ocspcheck -N) : 'ocspcheck';
 		my $dummy_two = capturex @ocspcheck, '-o', $ocsp_file, qw(--),
 			$crt_file;
