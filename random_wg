@@ -73,14 +73,7 @@ use Scalar::Util qw(looks_like_number);
 
 # External modules should be separated from modules included with Perl.
 use IPC::System::Simple;
-use Net::IP;
-
-# Edit this to your liking.
-my @wireguard_files = (
-	'/path/to/wireguard/wg-001.conf',
-	'/path/to/wireguard/wg-002.conf',
-	'/path/to/wireguard/wg-003.conf',
-);
+use Net::IP qw(ip_get_version ip_splitprefix);
 
 my $program_name = fileparse $0;
 
@@ -91,6 +84,38 @@ $program_name [-ahmntuv] [-c clearnet_interface] [-d pf_vpn_dns_anchor]
               [-M mtu_for_wireguard] [-T rtable]
 EOF
 }
+
+# $ip can be an IPv4 or IPv6 address with or without prefix.
+# $type is optional. If provided, can be '4' or '6'.
+sub handle_prefix_ip {
+	my $ip = shift or return;
+	my $type = shift;
+	my $prefix;
+
+	# The substitution strips the prefix, otherwise ip_get_version errors.
+	my $ip_type = ip_get_version( $ip =~ s|/ [0-9]+ \z||rx );
+	$ip_type or die "Expected an IP address. Received: '$ip'\n";
+
+	if ( defined $type ) {
+		if ( ( $type != 4 ) and ( $type != 6 ) ) {
+			die "Expected IP type of '4' or '6'. Received: '$type'\n";
+		}
+		$ip_type eq $type
+			or die "'$ip_type' doesn't match given type ('$type')\n";
+	}
+
+	( $ip, $prefix ) = ip_splitprefix $ip
+		or die "Unable to split prefix of '$ip'.\n";
+
+	return ( $ip, $prefix );
+}
+
+# Edit this to your liking.
+my @wireguard_files = (
+	'/path/to/wireguard/wg-001.conf',
+	'/path/to/wireguard/wg-002.conf',
+	'/path/to/wireguard/wg-003.conf',
+);
 
 my $wg_file = sample 1, @wireguard_files;
 $wg_file // die "$program_name needs a WireGuard configuration file.\n";
@@ -128,9 +153,6 @@ my %wg_properties;
 open my $wg_file_fh, '<', $wg_file;
 
 # The format of the configuration file being parsed is based on INI.
-#
-# TODO: change IP sanity checking so it specifically checks IPv4 or IPv6. Right
-# now, it does not do so, it only checks for a valid IP address in general.
 while (<$wg_file_fh>) {
 	chomp;
 
@@ -151,14 +173,11 @@ while (<$wg_file_fh>) {
 		my $local_ip = ( split ' ' )[-1];
 		my ( $local_ipv4, $local_ipv6 ) = split ',', $local_ip;
 
-		my $ip4 = new Net::IP($local_ipv4)
-			or die "Expected: IPv4 address.\n" . "Received: $local_ipv4\n";
+		($local_ipv4) = handle_prefix_ip $local_ipv4, 4;
+		($local_ipv6) = handle_prefix_ip $local_ipv6, 6;
 
-		my $ip6 = new Net::IP($local_ipv6)
-			or die "Expected: IPv6 address.\n" . "Received: $local_ipv6\n";
-
-		$wg_properties{local_ipv4} = $ip4->ip;
-		$wg_properties{local_ipv6} = $ip6->ip;
+		$wg_properties{local_ipv4} = $local_ipv4;
+		$wg_properties{local_ipv6} = $local_ipv6;
 	}
 
 	elsif (/\A PublicKey/aaxx) {
@@ -175,9 +194,7 @@ while (<$wg_file_fh>) {
 		my $endpoint = ( split ' ' )[-1];
 		my ( $endpoint_ip, $endpoint_port ) = split ':', $endpoint;
 
-		my $ip = new Net::IP($endpoint_ip)
-			or die "Expected: Endpoint IP address.\n"
-			. "Received: $endpoint_ip\n";
+		($endpoint_ip) = handle_prefix_ip $endpoint_ip;
 
 		unless ( looks_like_number $endpoint_port
 			and $endpoint_port >= 1
@@ -187,39 +204,35 @@ while (<$wg_file_fh>) {
 				. "Received: $endpoint_port\n";
 		}
 
-		$wg_properties{endpoint_ip} = $ip->ip;
+		$wg_properties{endpoint_ip} = $endpoint_ip;
 		$wg_properties{endpoint_port} = $endpoint_port;
 	}
 
 	elsif (/\A DNS/aaxx) {
 		my $dns_ip = ( split ' ' )[-1];
-
-		my $ip = new Net::IP($dns_ip)
-			or die "Expected: IP address of DNS server.\n"
-			. "Received: $dns_ip\n";
-
-		$wg_properties{dns_ip} = $ip->ip;
+		($dns_ip) = handle_prefix_ip $dns_ip;
+		$wg_properties{dns_ip} = $dns_ip;
 	}
 
 	elsif (/\A AllowedIPs/aaxx) {
 		my $allowed_ips = ( split ' ' )[-1];
 		my ( $allowed_ipv4, $allowed_ipv6 ) = split ',', $allowed_ips;
 
-		my $ip4 = new Net::IP($allowed_ipv4)
-			or die "Expected: IPv4 mask to allow.\n"
-			. "Received: $allowed_ipv4\n";
+		# Preserving the netmask is important (AllowedIPs consists of IPv(4|6)
+		# ranges that specify what addresses the peer allows inbound traffic to
+		# originate from, and what addresses the peer allows itself to send
+		# outbound traffic to).
+		my ( $allowed_ipv4_prefix, $allowed_ipv6_prefix );
+		( $allowed_ipv4, $allowed_ipv4_prefix ) =
+			handle_prefix_ip $allowed_ipv4, 4;
+		( $allowed_ipv6, $allowed_ipv6_prefix ) =
+			handle_prefix_ip $allowed_ipv6, 6;
 
-		my $ip6 = new Net::IP($allowed_ipv6)
-			or die "Expected: IPv6 mask to allow.\n"
-			. "Received: $allowed_ipv6\n";
+		$allowed_ipv4 = $allowed_ipv4 . "/$allowed_ipv4_prefix";
+		$allowed_ipv6 = $allowed_ipv6 . "/$allowed_ipv6_prefix";
 
-		# $ip(4|6)->print is used instead of $ip(4|6)->ip since preserving the
-		# netmask is important (AllowedIPs consists of IPv(4|6) ranges that
-		# specify what addresses the peer allows inbound traffic to originate
-		# from, and what addresses the peer allows itself to send outbound
-		# traffic to).
-		$wg_properties{allowed_ipv4} = $ip4->print;
-		$wg_properties{allowed_ipv6} = $ip6->print;
+		$wg_properties{allowed_ipv4} = $allowed_ipv4;
+		$wg_properties{allowed_ipv6} = $allowed_ipv6;
 	}
 }
 
