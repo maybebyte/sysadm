@@ -106,68 +106,68 @@ our ( $opt_c, $opt_h, $opt_n, $opt_N, $opt_v );
 
 getopts 'c:hnNv';
 usage if $opt_h;
-my $config_file = $opt_c // '/etc/random_wg.conf';
-my $check_config_syntax = $opt_n // 0;
-my $dry_run = $opt_N // 0;
-my $verbose = $opt_v // 0;
 
+my $config_file = $opt_c // '/etc/random_wg.conf';
 read_config $config_file => my %config or die "Parsing error: $!\n";
 
-# Set default configuration values.
-$config{misc}{verbose} = $verbose // $config{misc}{verbose} // 0;
+my $check_config_syntax = $opt_n // 0;
+my $dry_run = $opt_N // 0;
+my $verbose = $opt_v // $config{misc}{verbose} // 0;
 
-$config{networking}{clearnet_interface} =
-	$config{networking}{clearnet_interface} // 'em0';
+# Set default configuration values, reading them into simple variables.
+my @conf_files = @{ $config{files}->{conf_files} };
+my $clearnet_interface = $config{networking}{clearnet_interface} // 'em0';
+my $wg_interface = $config{networking}{wg_interface} // 'wg0';
+my $adjust_mtu = $config{networking}{adjust_mtu} // 0;
+my $mtu_size = $config{networking}{mtu_size} // 1412;
+my $use_rtable = $config{networking}{use_rtable} // 0;
+my $rtable_number = $config{networking}{rtable_number} // 1;
+my $adjust_anchors = $config{firewall}{adjust_anchors} // 0;
+my $dns_anchor_name = $config{firewall}{dns_anchor_name} // 'vpn_dns';
+my $endpoint_anchor_name = $config{firewall}{endpoint_anchor_name}
+	// 'vpn_endpoint';
 
-$config{networking}{wg_interface} = $config{networking}{wg_interface} // 'wg0';
-$config{networking}{adjust_mtu} = $config{networking}{adjust_mtu} // 0;
-$config{networking}{mtu_size} = $config{networking}{mtu_size} // 1412;
-$config{networking}{use_rtable} = $config{networking}{use_rtable} // 0;
-$config{networking}{rtable_number} = $config{networking}{rtable_number} // 1;
-$config{firewall}{adjust_anchors} = $config{firewall}{adjust_anchors} // 0;
+# Clear unneeded variables out.
+undef %config;
+undef $config_file;
+undef $opt_c;
+undef $opt_h;
+undef $opt_n;
+undef $opt_N;
+undef $opt_v;
 
-$config{firewall}{dns_anchor_name} = $config{firewall}{dns_anchor_name}
-	// 'vpn_dns';
-
-$config{firewall}{endpoint_anchor_name} =
-	$config{firewall}{endpoint_anchor_name} // 'vpn_endpoint';
-
-$config{files}{conf_files} // die
+@conf_files // die
 	"$program_name needs config files to initialize WireGuard. See wg(8).\n";
 
-$config{firewall}{adjust_anchors} =~ /\A [0-1] \z/x
+$adjust_anchors =~ /\A [0-1] \z/x
 	or die
-	"adjust_pf_anchors is a boolean. It must be either '1' or '0' (true or false).\n";
+	"adjust_anchors is a boolean. It must be either '1' or '0' (true or false).\n";
 
-$config{networking}{adjust_mtu} =~ /\A [0-1] \z/x
+$adjust_mtu =~ /\A [0-1] \z/x
 	or die
 	"adjust_mtu is a boolean. It must be either '1' or '0' (true or false).\n";
 
-$config{networking}{use_rtable} =~ /\A [0-1] \z/x
+$use_rtable =~ /\A [0-1] \z/x
 	or die
 	"use_rtable is a boolean. It must be either '1' or '0' (true or false).\n";
 
 # TODO: sanity check these beyond looks_like_number (are they an appropriate
 # length?).
-looks_like_number( $config{networking}{rtable_number} )
+looks_like_number($rtable_number)
 	or die "Provide an integer for rtable(4).\n";
 
-looks_like_number( $config{networking}{mtu_size} )
+looks_like_number($mtu_size)
 	or die "Provide an appropriate value for the MTU.\n";
 
-$config{networking}{clearnet_interface} =~ /\A [a-z]+ [0-9]+ \z/aaxx
+$clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
 	or die "The clearnet interface must match '/[a-z]+[0-9]+/'.\n";
 
-$config{networking}{wg_interface} =~ /\A wg[0-9]+ \z/aaxx
+$wg_interface =~ /\A wg[0-9]+ \z/aaxx
 	or die "wg(4) must match '/wg[0-9]+/'.\n";
 
 exit if $check_config_syntax;
 
-# In the hash %config under the 'files' key, dereference the 'conf_files' array reference.
-#
-# Treat the contents of that array as an array rather than a scalar, so that we
-# can sample one file randomly from it.
-my $wg_file = sample 1, @{ $config{files}->{conf_files} };
+my $wg_file = sample 1, @conf_files;
 $wg_file // die "$program_name needs a WireGuard configuration file.\n";
 
 my %wg_properties;
@@ -262,58 +262,51 @@ while ( readline $wg_file_fh ) {
 close $wg_file_fh;
 
 if ($dry_run) {
-	if ( $config{misc}{verbose} ) {
-		say
-			"Would execute: `ifconfig $config{networking}{wg_interface} destroy`";
-		say
-			"Would execute: `ifconfig $config{networking}{wg_interface} create`";
+	if ($verbose) {
+		say "Would execute: `ifconfig $wg_interface destroy`";
+		say "Would execute: `ifconfig $wg_interface create`";
 
-		say "Would execute: `ifconfig $config{networking}{wg_interface} wgkey "
+		say "Would execute: `ifconfig $wg_interface wgkey "
 			. "$wg_properties{private_key}`";
 
 		say "Would execute: "
-			. "`ifconfig $config{networking}{wg_interface} wgpeer $wg_properties{peer_key} "
+			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
 			. "wgendpoint $wg_properties{endpoint_ip} "
 			. "$wg_properties{endpoint_port} "
 			. "wgaip $wg_properties{allowed_ipv4}`";
 
 		say "Would execute: "
-			. "`ifconfig $config{networking}{wg_interface} inet $wg_properties{local_ipv4}`";
+			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
 
-		if ( $config{networking}{use_rtable} ) {
+		if ($use_rtable) {
 			say "Would execute: "
-				. "`ifconfig $config{networking}{wg_interface} wgrtable $config{networking}{rtable_number}`";
+				. "`ifconfig $wg_interface wgrtable $rtable_number`";
 		}
 
-		if ( $config{networking}{adjust_mtu} ) {
-			say
-				"Would execute: `ifconfig $config{networking}{wg_interface} mtu $config{networking}{mtu_size}`";
+		if ($adjust_mtu) {
+			say "Would execute: `ifconfig $wg_interface mtu $mtu_size`";
 		}
 
-		say "Would execute: `ifconfig $config{networking}{wg_interface} up`";
+		say "Would execute: `ifconfig $wg_interface up`";
 
 		say "Would execute: `route -qn add -inet default "
 			. "-iface $wg_properties{local_ipv4}`";
 
-		if ( $config{firewall}{adjust_anchors} ) {
-			say
-				"Would execute: `pfctl -a $config{firewall}{dns_anchor_name} -F all`";
-			say
-				"Would open pipe: `pfctl -a $config{firewall}{dns_anchor_name} -f -`";
+		if ($adjust_anchors) {
+			say "Would execute: `pfctl -a $dns_anchor_name -F all`";
+			say "Would open pipe: `pfctl -a $dns_anchor_name -f -`";
 
 			say "Would write to pipe: "
-				. "`pass out quick on $config{networking}{wg_interface} inet proto { tcp udp } "
+				. "`pass out quick on $wg_interface inet proto { tcp udp } "
 				. "to $wg_properties{dns_ip} port domain`";
 
 			say "Would close pipe.";
 
-			say
-				"Would execute: `pfctl -a $config{firewall}{endpoint_anchor_name} -F all`";
-			say
-				"Would open pipe: `pfctl -a $config{firewall}{endpoint_anchor_name} -f -`";
+			say "Would execute: `pfctl -a $endpoint_anchor_name -F all`";
+			say "Would open pipe: `pfctl -a $endpoint_anchor_name -f -`";
 
 			say "Would write to pipe: "
-				. "`pass out on $config{networking}{clearnet_interface} inet proto udp "
+				. "`pass out on $clearnet_interface inet proto udp "
 				. "to $wg_properties{endpoint_ip} port "
 				. "$wg_properties{endpoint_port}`";
 
@@ -330,55 +323,48 @@ else {
 		# won't fail with "ifconfig: SIOCIFCREATE: File exists" later. If
 		# destruction fails (wgX doesn't exist), ignore it and move on as it
 		# isn't a problem.
-		say
-			"Executing: `ifconfig $config{networking}{wg_interface} destroy`"
-			if $config{misc}{verbose};
-		eval {
-			system 'ifconfig', $config{networking}{wg_interface}, 'destroy';
-		};
+		say "Executing: `ifconfig $wg_interface destroy`"
+			if $verbose;
+		eval { system 'ifconfig', $wg_interface, 'destroy'; };
 
 		open STDERR, ">&", $old_STDERR;
 		close $old_STDERR;
 	};
 
-	say "Executing: `ifconfig $config{networking}{wg_interface} create`"
-		if $config{misc}{verbose};
-	system 'ifconfig', $config{networking}{wg_interface}, 'create';
+	say "Executing: `ifconfig $wg_interface create`"
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'create';
 
 	say "Executing: "
-		. "`ifconfig $config{networking}{wg_interface} create $wg_properties{private_key}`"
-		if $config{misc}{verbose};
-	system 'ifconfig', $config{networking}{wg_interface}, 'wgkey',
-		$wg_properties{private_key};
+		. "`ifconfig $wg_interface create $wg_properties{private_key}`"
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
 
 	say "Executing: "
-		. "`ifconfig $config{networking}{wg_interface} wgpeer $wg_properties{peer_key} "
+		. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
 		. "wgendpoint $wg_properties{endpoint_ip} "
 		. "$wg_properties{endpoint_port} "
 		. "wgaip $wg_properties{allowed_ipv4}`"
-		if $config{misc}{verbose};
-	system 'ifconfig', $config{networking}{wg_interface}, 'wgpeer',
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'wgpeer',
 		$wg_properties{peer_key},
 		'wgendpoint', $wg_properties{endpoint_ip},
 		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4};
 
 	say "Executing: "
-		. "`ifconfig $config{networking}{wg_interface} inet $wg_properties{local_ipv4}`"
-		if $config{misc}{verbose};
-	system 'ifconfig', $config{networking}{wg_interface}, 'inet',
-		$wg_properties{local_ipv4};
+		. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`"
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
 
 	# wgrtable can be relevant when the WireGuard interface uses the default
 	# routing table and what would ordinarily be egress uses a non-default
 	# routing table [see rdomain(4) and rtable(4)]. This setup can be useful as
 	# a fail-safe mechanism so that the "actual" IP isn't leaked when the VPN
 	# goes down (connectivity will be lost instead).
-	if ( $config{networking}{use_rtable} ) {
-		say
-			"Executing: `ifconfig $config{networking}{wg_interface} wgrtable $config{networking}{rtable_number}`"
-			if $config{misc}{verbose};
-		system 'ifconfig', $config{networking}{wg_interface}, 'wgrtable',
-			$config{networking}{rtable_number};
+	if ($use_rtable) {
+		say "Executing: `ifconfig $wg_interface wgrtable $rtable_number`"
+			if $verbose;
+		system 'ifconfig', $wg_interface, 'wgrtable', $rtable_number;
 	}
 
 	# The default MTU of 1420 is made with the assumption that egress uses an
@@ -390,32 +376,29 @@ else {
 	#
 	# Background information on the default MTU:
 	# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
-	if ( $config{networking}{adjust_mtu} ) {
-		say
-			"Executing: `ifconfig $config{networking}{wg_interface} mtu $config{networking}{mtu_size}`"
-			if $config{misc}{verbose};
-		system 'ifconfig', $config{networking}{wg_interface}, 'mtu',
-			$config{networking}{mtu_size};
+	if ($adjust_mtu) {
+		say "Executing: `ifconfig $wg_interface mtu $mtu_size`"
+			if $verbose;
+		system 'ifconfig', $wg_interface, 'mtu', $mtu_size;
 	}
 
-	say "Executing: `ifconfig $config{networking}{wg_interface} up`"
-		if $config{misc}{verbose};
-	system 'ifconfig', $config{networking}{wg_interface}, 'up';
+	say "Executing: `ifconfig $wg_interface up`"
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'up';
 
 	say "Executing: `route -qn add -inet default "
 		. "-iface $wg_properties{local_ipv4}`"
-		if $config{misc}{verbose};
+		if $verbose;
 	system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
 
-	if ( $config{firewall}{adjust_anchors} ) {
-		say "Executing: `pfctl -a $config{firewall}{dns_anchor_name} -F all`"
-			if $config{misc}{verbose};
-		system qw(pfctl -a), $config{firewall}{dns_anchor_name}, qw(-F all);
+	if ($adjust_anchors) {
+		say "Executing: `pfctl -a $dns_anchor_name -F all`"
+			if $verbose;
+		system qw(pfctl -a), $dns_anchor_name, qw(-F all);
 
-		say "Opening pipe: `pfctl -a $config{firewall}{dns_anchor_name} -f -`"
-			if $config{misc}{verbose};
-		open my $pfctl_dns_fh, '|-', qw(pfctl -a),
-			$config{firewall}{dns_anchor_name}, qw(-f -);
+		say "Opening pipe: `pfctl -a $dns_anchor_name -f -`"
+			if $verbose;
+		open my $pfctl_dns_fh, '|-', qw(pfctl -a), $dns_anchor_name, qw(-f -);
 
 		# This pass rule uses `quick` because the anchor is placed right before
 		# a rule in my pf.conf(5) that blocks connections to private addresses
@@ -428,41 +411,35 @@ else {
 		#
 		# TODO: Consider making this a configuration file option when the time
 		# comes.
-		say
-			"Writing to pipe: `pass out quick on $config{networking}{wg_interface} inet "
+		say "Writing to pipe: `pass out quick on $wg_interface inet "
 			. "proto { tcp udp } to $wg_properties{dns_ip} port domain`"
-			if $config{misc}{verbose};
+			if $verbose;
 		print $pfctl_dns_fh
-			"pass out quick on $config{networking}{wg_interface} inet proto { tcp udp } "
+			"pass out quick on $wg_interface inet proto { tcp udp } "
 			. "to $wg_properties{dns_ip} port domain";
 
-		say "Closing pipe." if $config{misc}{verbose};
+		say "Closing pipe." if $verbose;
 		close $pfctl_dns_fh;
 
-		say
-			"Executing: `pfctl -a $config{firewall}{endpoint_anchor_name} -F all`"
-			if $config{misc}{verbose};
-		system qw(pfctl -a), $config{firewall}{endpoint_anchor_name},
-			qw(-F all);
+		say "Executing: `pfctl -a $endpoint_anchor_name -F all`"
+			if $verbose;
+		system qw(pfctl -a), $endpoint_anchor_name, qw(-F all);
 
-		say
-			"Opening pipe: `pfctl -a $config{firewall}{endpoint_anchor_name} -f -`"
-			if $config{misc}{verbose};
+		say "Opening pipe: `pfctl -a $endpoint_anchor_name -f -`"
+			if $verbose;
 		open my $pfctl_endpoint_fh, '|-', qw(pfctl -a),
-			$config{firewall}{endpoint_anchor_name},
+			$endpoint_anchor_name,
 			qw(-f -);
 
-		say
-			"Writing to pipe: `pass out on $config{networking}{clearnet_interface} inet "
+		say "Writing to pipe: `pass out on $clearnet_interface inet "
 			. "proto udp to $wg_properties{endpoint_ip} port "
 			. "$wg_properties{endpoint_port}`"
-			if $config{misc}{verbose};
-		print $pfctl_endpoint_fh
-			"pass out on $config{networking}{clearnet_interface} "
+			if $verbose;
+		print $pfctl_endpoint_fh "pass out on $clearnet_interface "
 			. "inet proto udp to $wg_properties{endpoint_ip} "
 			. "port $wg_properties{endpoint_port}";
 
-		say "Closing pipe." if $config{misc}{verbose};
+		say "Closing pipe." if $verbose;
 		close $pfctl_endpoint_fh;
 
 		# The rules are reloaded here so that a problem with queueing is
@@ -474,7 +451,7 @@ else {
 			warn "Parsing pf(4) rules failed: $@";
 		}
 		else {
-			say "Executing `pfctl -f /etc/pf.conf`" if $config{misc}{verbose};
+			say "Executing `pfctl -f /etc/pf.conf`" if $verbose;
 			system qw(pfctl -f), '/etc/pf.conf';
 		}
 	}
