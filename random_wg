@@ -175,7 +175,7 @@ my %wg_properties;
 open my $wg_file_fh, '<', $wg_file;
 
 # The format of the configuration file being parsed is based on INI.
-while (<$wg_file_fh>) {
+while ( readline $wg_file_fh ) {
 	chomp;
 
 	if (/\A PrivateKey/aaxx) {
