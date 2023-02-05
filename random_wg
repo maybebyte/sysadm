@@ -165,6 +165,7 @@ $clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
 $wg_interface =~ /\A wg[0-9]+ \z/aaxx
 	or die "wg(4) must match '/wg[0-9]+/'.\n";
 
+# TODO: perhaps print out the working configuration if -v is set.
 exit if $check_config_syntax;
 
 my $wg_file = sample 1, @conf_files;
