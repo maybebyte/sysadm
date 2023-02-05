@@ -169,6 +169,7 @@ exit if $check_config_syntax;
 
 my $wg_file = sample 1, @conf_files;
 $wg_file // die "$program_name needs a WireGuard configuration file.\n";
+undef @conf_files;
 
 my %wg_properties;
 
