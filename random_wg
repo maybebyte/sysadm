@@ -133,7 +133,7 @@ $config{firewall}{endpoint_anchor_name} =
 	$config{firewall}{endpoint_anchor_name} // 'vpn_endpoint';
 
 $config{files}{conf_files} // die
-	"$program_name needs conf files to initialize WireGuard. See wg(8).\n";
+	"$program_name needs config files to initialize WireGuard. See wg(8).\n";
 
 $config{firewall}{adjust_anchors} =~ /\A [0-1] \z/x
 	or die
