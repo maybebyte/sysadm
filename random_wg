@@ -114,8 +114,11 @@ my $check_config_syntax = $opt_n // 0;
 my $dry_run = $opt_N // 0;
 my $verbose = $opt_v // $config{misc}{verbose} // 0;
 
-# Set default configuration values, reading them into simple variables.
 my @conf_files = @{ $config{files}->{conf_files} };
+@conf_files // die
+	"$program_name needs config files to initialize WireGuard. See wg(8).\n";
+
+# Set default configuration values, reading them into simple variables.
 my $clearnet_interface = $config{networking}{clearnet_interface} // 'em0';
 my $wg_interface = $config{networking}{wg_interface} // 'wg0';
 my $adjust_mtu = $config{networking}{adjust_mtu} // 0;
@@ -135,9 +138,6 @@ undef $opt_h;
 undef $opt_n;
 undef $opt_N;
 undef $opt_v;
-
-@conf_files // die
-	"$program_name needs config files to initialize WireGuard. See wg(8).\n";
 
 $adjust_anchors =~ /\A [0-1] \z/x
 	or die
