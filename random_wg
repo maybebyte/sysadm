@@ -44,6 +44,9 @@
 #   lost connectivity and a VPN reset is desired.
 #
 # - Address long lines.
+#
+# - Print the line where configuration parsing failed/errored out if that's the
+#   case.
 
 # UNLIKELY:
 # - Decoupling this from OpenBSD and making it more system agnostic. Even if
@@ -151,13 +154,22 @@ $use_rtable =~ /\A [0-1] \z/x
 	or die
 	"use_rtable is a boolean. It must be either '1' or '0' (true or false).\n";
 
-# TODO: sanity check these beyond looks_like_number (are they an appropriate
-# length?).
-looks_like_number($rtable_number)
-	or die "Provide an integer for rtable(4).\n";
+if ( ! looks_like_number($rtable_number)
+	|| $rtable_number < 0
+	|| $rtable_number > 255 )
+{
+	die "Provide an integer between 0-255 for rtable(4).\n";
+}
 
-looks_like_number($mtu_size)
-	or die "Provide an appropriate value for the MTU.\n";
+# Numbers are taken from sys/net/if_wg.c:
+# if (ifr->ifr_mtu <= 0 || ifr->ifr_mtu > 9000)
+#     ret = EINVAL;
+if ( ! looks_like_number($mtu_size)
+	|| $mtu_size <= 0
+	|| $mtu_size > 9000 )
+{
+	die "Provide an integer between 1-9000 for the MTU.\n";
+}
 
 $clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
 	or die "The clearnet interface must match '/[a-z]+[0-9]+/'.\n";
