@@ -154,9 +154,9 @@ $use_rtable =~ /\A [0-1] \z/x
 	or die
 	"use_rtable is a boolean. It must be either '1' or '0' (true or false).\n";
 
-if ( ! looks_like_number($rtable_number)
-	|| $rtable_number < 0
-	|| $rtable_number > 255 )
+if ( !looks_like_number($rtable_number)
+	or $rtable_number < 0
+	or $rtable_number > 255 )
 {
 	die "Provide an integer between 0-255 for rtable(4).\n";
 }
@@ -164,9 +164,9 @@ if ( ! looks_like_number($rtable_number)
 # Numbers are taken from sys/net/if_wg.c:
 # if (ifr->ifr_mtu <= 0 || ifr->ifr_mtu > 9000)
 #     ret = EINVAL;
-if ( ! looks_like_number($mtu_size)
-	|| $mtu_size <= 0
-	|| $mtu_size > 9000 )
+if ( !looks_like_number($mtu_size)
+	or $mtu_size <= 0
+	or $mtu_size > 9000 )
 {
 	die "Provide an integer between 1-9000 for the MTU.\n";
 }
@@ -233,9 +233,9 @@ while ( readline $wg_file_fh ) {
 		($endpoint_ip) = handle_prefix_ip $endpoint_ip;
 
 		# TODO: is this range perhaps too permissive/wide?
-		unless ( looks_like_number $endpoint_port
-			and $endpoint_port >= 1
-			and $endpoint_port <= 65535 )
+		if ( !looks_like_number $endpoint_port
+			or $endpoint_port < 1
+			or $endpoint_port > 65535 )
 		{
 			die "Expected: endpoint port - 1-5 digits, between 1-65535.\n"
 				. "Received: $endpoint_port\n";
