@@ -47,6 +47,8 @@
 #
 # - Print the line where configuration parsing failed/errored out if that's the
 #   case.
+#
+# - Support IPv6 fully.
 
 # UNLIKELY:
 # - Decoupling this from OpenBSD and making it more system agnostic. Even if
