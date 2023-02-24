@@ -180,7 +180,7 @@ sub generate_website {
 	my $rss_file_path = catdir $web_server_dir, 'rss.xml';
 	say "RSS FEED LOCATION: $rss_file_path" if $opt_v;
 
-	my $rssg_index_name = 'index.md';
+	my $rssg_index_name = 'index.html';
 	say "INDEX NAME FOR RSSG: $rssg_index_name" if $opt_v;
 
 	my $rssg_index_location = catfile $clone_dir, $rssg_index_name;
