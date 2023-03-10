@@ -284,6 +284,8 @@ if ($dry_run) {
 		say "Would execute: `ifconfig $wg_interface destroy`";
 		say "Would execute: `ifconfig $wg_interface create`";
 
+		# TODO: scrub output to exclude private key. Optionally, enable
+		# sensitive information disclosure with a flag.
 		say "Would execute: `ifconfig $wg_interface wgkey "
 			. "$wg_properties{private_key}`";
 
@@ -353,6 +355,13 @@ else {
 		if $verbose;
 	system 'ifconfig', $wg_interface, 'create';
 
+	# TODO: Rewrite this in a safer way. Anyone watching the process table could
+	# easily get the private key and it's a risk that just shouldn't exist.
+	#
+	# Could potentially use a hostname.if(5) file instead? Unsure if netstart(8)
+	# also shares this problem, but I'm guessing it does if it invokes
+	# ifconfig(8) the same way. In this case, I'll need an entirely different
+	# approach.
 	say "Executing: "
 		. "`ifconfig $wg_interface create $wg_properties{private_key}`"
 		if $verbose;
