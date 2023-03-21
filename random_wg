@@ -293,10 +293,13 @@ if ($dry_run) {
 			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
 			. "wgendpoint $wg_properties{endpoint_ip} "
 			. "$wg_properties{endpoint_port} "
-			. "wgaip $wg_properties{allowed_ipv4}`";
+			. "wgaip $wg_properties{allowed_ipv4} "
+			. "wgaip $wg_properties{allowed_ipv6}`";
 
 		say "Would execute: "
 			. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`";
+		say "Would execute: "
+			. "`ifconfig $wg_interface inet6 $wg_properties{local_ipv6}`";
 
 		if ($use_rtable) {
 			say "Would execute: "
@@ -311,6 +314,8 @@ if ($dry_run) {
 
 		say "Would execute: `route -qn add -inet default "
 			. "-iface $wg_properties{local_ipv4}`";
+		say "Would execute: `route -qn add -inet6 default "
+			. "-iface $wg_properties{local_ipv6}`";
 
 		if ($adjust_anchors) {
 			say "Would execute: `pfctl -a $dns_anchor_name -F all`";
@@ -371,17 +376,24 @@ else {
 		. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
 		. "wgendpoint $wg_properties{endpoint_ip} "
 		. "$wg_properties{endpoint_port} "
-		. "wgaip $wg_properties{allowed_ipv4}`"
+		. "wgaip $wg_properties{allowed_ipv4} "
+		. "wgaip $wg_properties{allowed_ipv6}`"
 		if $verbose;
 	system 'ifconfig', $wg_interface, 'wgpeer',
 		$wg_properties{peer_key},
 		'wgendpoint', $wg_properties{endpoint_ip},
-		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4};
+		$wg_properties{endpoint_port}, 'wgaip', $wg_properties{allowed_ipv4},
+		'wgaip', $wg_properties{allowed_ipv6};
 
 	say "Executing: "
 		. "`ifconfig $wg_interface inet $wg_properties{local_ipv4}`"
 		if $verbose;
 	system 'ifconfig', $wg_interface, 'inet', $wg_properties{local_ipv4};
+
+	say "Executing: "
+		. "`ifconfig $wg_interface inet6 $wg_properties{local_ipv6}`"
+		if $verbose;
+	system 'ifconfig', $wg_interface, 'inet6', $wg_properties{local_ipv6};
 
 	# wgrtable can be relevant when the WireGuard interface uses the default
 	# routing table and what would ordinarily be egress uses a non-default
@@ -417,6 +429,11 @@ else {
 		. "-iface $wg_properties{local_ipv4}`"
 		if $verbose;
 	system qw(route -qn add -inet default -iface), $wg_properties{local_ipv4};
+
+	say "Executing: `route -qn add -inet6 default "
+		. "-iface $wg_properties{local_ipv6}`"
+		if $verbose;
+	system qw(route -qn add -inet6 default -iface), $wg_properties{local_ipv6};
 
 	if ($adjust_anchors) {
 		say "Executing: `pfctl -a $dns_anchor_name -F all`"
