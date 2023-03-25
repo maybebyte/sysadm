@@ -74,9 +74,13 @@ say "RSSG LOCATION: $bin_rssg" if $opt_v;
 # $owner is written to $repo_location/owner
 my ( $owner, $domain_with_schema ) = qw(Ashlen https://www.anthes.is);
 my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
+my $website_name = 'anthesis';
+my $website_title = "Read about Unix, say hi, /etc | $website_name";
 say "OWNER: $owner" if $opt_v;
 say "DOMAIN WITH SCHEMA: $domain_with_schema" if $opt_v;
 say "DOMAIN WITHOUT SCHEMA: $domain_without_schema" if $opt_v;
+say "WEBSITE NAME: $website_name" if $opt_v;
+say "WEBSITE TITLE: $website_title" if $opt_v;
 
 my $web_server_dir = catfile &rootdir, qw(var www htdocs),
 	$domain_without_schema;
@@ -158,13 +162,13 @@ sub generate_website {
 	say "Running 'git clone -- $repo_location $clone_dir'" if $opt_v;
 	systemx qw(git clone --), $repo_location, $clone_dir;
 
-	say "Running '$bin_ssg $clone_dir $web_server_dir $domain_without_schema "
+	say "Running '$bin_ssg $clone_dir $web_server_dir $website_name "
 		. "$domain_with_schema'"
 		if $opt_v;
 
 	my $ssg_pid =
 		open3( undef, my $ssg_out, '>&STDERR', $bin_ssg,
-			$clone_dir, $web_server_dir, $domain_without_schema,
+			$clone_dir, $web_server_dir, $website_name,
 			$domain_with_schema )
 		or die "Could not open ssg: $!\n";
 
@@ -173,9 +177,6 @@ sub generate_website {
 	# NOTE: This MUST come after waitpid; otherwise, ssg won't generate
 	# the website.
 	close $ssg_out;
-
-	my $rss_title = "Newsletter - $domain_without_schema";
-	say "RSS TITLE: $rss_title" if $opt_v;
 
 	my $rss_file_path = catdir $web_server_dir, 'rss.xml';
 	say "RSS FEED LOCATION: $rss_file_path" if $opt_v;
@@ -186,13 +187,13 @@ sub generate_website {
 	my $rssg_index_location = catfile $clone_dir, $rssg_index_name;
 	say "INDEX LOCATION FOR RSSG: $rssg_index_location" if $opt_v;
 
-	say "Running '$bin_rssg $rssg_index_location $rss_title'" if $opt_v;
+	say "Running '$bin_rssg $rssg_index_location $website_title'" if $opt_v;
 
 	# NOTE: For whatever reason, rssg doesn't play nice with sending its
 	# STDOUT to a file handle. It hangs indefinitely.
 	my $rssg_pid =
 		open3( undef, my $rssg_out, '>&STDERR', $bin_rssg,
-			$rssg_index_location, $rss_title )
+			$rssg_index_location, $website_title )
 		or die "Could not open rssg: $!\n";
 
 	open my $rss_feed_fh, '>', $rss_file_path;
