@@ -203,7 +203,7 @@ while ( readline $wg_file_fh ) {
 		# base64 and 32 bytes in length when decoded from base64. The same
 		# applies for public keys as well.
 		decoded_base64_length $private_key == 32
-			or die "The given private key ($private_key) couldn't be base64 "
+			or die "The private key couldn't be base64 "
 			. "decoded to a 32 byte string.\n";
 
 		$wg_properties{private_key} = $private_key;
@@ -284,10 +284,7 @@ if ($dry_run) {
 		say "Would execute: `ifconfig $wg_interface destroy`";
 		say "Would execute: `ifconfig $wg_interface create`";
 
-		# TODO: scrub output to exclude private key. Optionally, enable
-		# sensitive information disclosure with a flag.
-		say "Would execute: `ifconfig $wg_interface wgkey "
-			. "$wg_properties{private_key}`";
+		say "Would execute: `ifconfig $wg_interface wgkey [redacted]`";
 
 		say "Would execute: "
 			. "`ifconfig $wg_interface wgpeer $wg_properties{peer_key} "
@@ -367,9 +364,7 @@ else {
 	# also shares this problem, but I'm guessing it does if it invokes
 	# ifconfig(8) the same way. In this case, I'll need an entirely different
 	# approach.
-	say "Executing: "
-		. "`ifconfig $wg_interface create $wg_properties{private_key}`"
-		if $verbose;
+	say "Executing: `ifconfig $wg_interface wgkey [redacted]`";
 	system 'ifconfig', $wg_interface, 'wgkey', $wg_properties{private_key};
 
 	say "Executing: "
