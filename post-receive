@@ -137,7 +137,7 @@ sub gzip_files {
 	## Patterns are evaluated before file tests because it's less
 	## expensive.
 	return if $File::Find::name =~ /\.git/;
-	return unless /\.(?:html|css|txt|xml|asc)\z/;
+	return unless /\.(?:html|css|txt|xml|asc|svg)\z/;
 
 	my $src_toggle = shift // '';
 	if ( $src_toggle eq 'no-src' ) {
