@@ -44,13 +44,13 @@ if ( $^O eq 'openbsd' ) {
 	my @unveils = map { $_, 'r' } @ARGV;
 	while ( my $path = shift @unveils ) {
 		my $perms = shift @unveils;
-		unveil($path, $perms) or die "Unveil failed: $!\n";
+		unveil( $path, $perms ) or die "Unveil failed: $!\n";
 	}
 
 	@unveils = map { $_, 'r' } @INC;
 	while ( my $path = shift @unveils ) {
 		my $perms = shift @unveils;
-		unveil($path, $perms) or die "Unveil failed: $!\n";
+		unveil( $path, $perms ) or die "Unveil failed: $!\n";
 	}
 
 	pledge(qw(stdio rpath flock)) or die "Pledge failed: $!\n";
@@ -84,12 +84,7 @@ sub check_if_valid_ip {
 			or die "'$ip_type' doesn't match given type ('$type')\n";
 	}
 
-	if ( wantarray() ) {
-		return ( $ip, $ip_type );
-	}
-	elsif ( defined wantarray() ) {
-		return $ip;
-	}
+	return $ip;
 }
 
 # $wireguard_config should point to a WireGuard configuration file.
@@ -103,6 +98,15 @@ sub convert_wireguard_config_to_hashref {
 	read_config $wireguard_config => my $wg_properties
 		or die "Parsing error: $!\n";
 
+	my ( $endpoint_ip, $endpoint_port ) = split ':',
+		$wg_properties->{Peer}{Endpoint};
+
+	my ( $local_ipv4, $local_ipv6 ) = split ',',
+		$wg_properties->{Interface}{Address};
+
+	my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
+		$wg_properties->{Peer}{AllowedIPs};
+
 	# Keys should always be 44 bytes in length when encoded in base64
 	# and 32 bytes in length when decoded from base64.
 	decoded_base64_length $wg_properties->{Interface}{PrivateKey} == 32
@@ -110,40 +114,36 @@ sub convert_wireguard_config_to_hashref {
 	decoded_base64_length $wg_properties->{Peer}{PublicKey} == 32
 		or die "Failed to base64 decode public key to a 32 byte string.\n";
 
-	my ( $local_ipv4, $local_ipv6 ) = split ',',
-		$wg_properties->{Interface}{Address};
-	$wg_properties->{Interface}{Address} = {
-		IPv4 => (ip_splitprefix($local_ipv4))[0],
-		IPv6 => (ip_splitprefix($local_ipv6))[0],
-	};
-
-	my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
-		$wg_properties->{Peer}{AllowedIPs};
-	$wg_properties->{Peer}{AllowedIPs} = {
-		IPv4 => scalar check_if_valid_ip( $allowed_ipv4, 4 ),
-		IPv6 => scalar check_if_valid_ip( $allowed_ipv6, 6 ),
-	};
-
-	my ( $endpoint_ip, $endpoint_port ) = split ':',
-		$wg_properties->{Peer}{Endpoint};
-	$wg_properties->{Peer}{Endpoint_IP} = check_if_valid_ip $endpoint_ip;
+	check_if_valid_ip $endpoint_ip;
+	check_if_valid_ip $wg_properties->{Interface}{DNS};
+	check_if_valid_ip( $allowed_ipv4, 4 );
+	check_if_valid_ip( $allowed_ipv6, 6 );
 
 	# TODO: is this range perhaps too permissive/wide?
-	if ( looks_like_number $endpoint_port
-		and $endpoint_port > 1
-		and $endpoint_port < 65535 )
+	if ( !looks_like_number $endpoint_port
+		or $endpoint_port < 1
+		or $endpoint_port > 65535 )
 	{
-		$wg_properties->{Peer}{Endpoint_Port} = $endpoint_port;
-	}
-	else {
 		die <<EOF;
 Expected: endpoint port between 1-65535.
 Received: $endpoint_port
 EOF
 	}
 
-	$wg_properties->{Interface}{DNS} =
-		check_if_valid_ip $wg_properties->{Interface}{DNS};
+	$wg_properties->{Interface}{Address} = {
+		IPv4 => ( ip_splitprefix($local_ipv4) )[0],
+		IPv6 => ( ip_splitprefix($local_ipv6) )[0],
+	};
+
+	$wg_properties->{Peer}{AllowedIPs} = {
+		IPv4 => $allowed_ipv4,
+		IPv6 => $allowed_ipv6,
+	};
+
+	$wg_properties->{Peer}{Endpoint} = {
+		IP => $endpoint_ip,
+		Port => $endpoint_port,
+	};
 
 	return $wg_properties;
 }
@@ -170,7 +170,7 @@ sub convert_wireguard_hashref_to_hostname_if {
 	my $hostname_if .= <<EOF;
 wgkey $hashref->{Interface}{PrivateKey}
 wgpeer $hashref->{Peer}{PublicKey} \\
-	wgendpoint $hashref->{Peer}{Endpoint_IP} $hashref->{Peer}{Endpoint_Port} \\
+	wgendpoint $hashref->{Peer}{Endpoint}{IP} $hashref->{Peer}{Endpoint}{Port} \\
 	wgaip $hashref->{Peer}{AllowedIPs}->{IPv4} \\
 	wgaip $hashref->{Peer}{AllowedIPs}->{IPv6}
 inet $hashref->{Interface}{Address}->{IPv4}
