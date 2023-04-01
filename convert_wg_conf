@@ -171,10 +171,10 @@ sub convert_wireguard_hashref_to_hostname_if {
 wgkey $hashref->{Interface}{PrivateKey}
 wgpeer $hashref->{Peer}{PublicKey} \\
 	wgendpoint $hashref->{Peer}{Endpoint}{IP} $hashref->{Peer}{Endpoint}{Port} \\
-	wgaip $hashref->{Peer}{AllowedIPs}->{IPv4} \\
-	wgaip $hashref->{Peer}{AllowedIPs}->{IPv6}
-inet $hashref->{Interface}{Address}->{IPv4}
-inet6 $hashref->{Interface}{Address}->{IPv6}
+	wgaip $hashref->{Peer}{AllowedIPs}{IPv4} \\
+	wgaip $hashref->{Peer}{AllowedIPs}{IPv6}
+inet $hashref->{Interface}{Address}{IPv4}
+inet6 $hashref->{Interface}{Address}{IPv6}
 EOF
 
 	return $hostname_if;
