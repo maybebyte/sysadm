@@ -150,13 +150,14 @@ EOF
 
 sub convert_wireguard_hashref_to_hostname_if;
 
-our ( $opt_h, $opt_r, $opt_t );
+our ( $opt_h, $opt_m, $opt_r, $opt_t );
 
-getopts 'hrt:';
+getopts 'hm:rt:';
 usage if $opt_h;
 
 my $install_default_routes = $opt_r;
 my $rtable_number = $opt_t;
+my $mtu = $opt_m;
 
 if ( defined $rtable_number ) {
 	if ( !looks_like_number($rtable_number)
@@ -164,6 +165,18 @@ if ( defined $rtable_number ) {
 		or $rtable_number > 255 )
 	{
 		die "Provide an integer between 0-255 for rtable(4).\n";
+	}
+}
+
+# Numbers are taken from sys/net/if_wg.c:
+# if (ifr->ifr_mtu <= 0 || ifr->ifr_mtu > 9000)
+#     ret = EINVAL;
+if ( defined $mtu ) {
+	if ( !looks_like_number($mtu)
+		or $mtu <= 0
+		or $mtu > 9000 )
+	{
+		die "Provide an integer between 1-9000 for the MTU.\n";
 	}
 }
 
@@ -188,6 +201,10 @@ wgpeer $hashref->{Peer}{PublicKey} \\
 inet $hashref->{Interface}{Address}{IPv4}
 inet6 $hashref->{Interface}{Address}{IPv6}
 EOF
+
+	if ($mtu) {
+		$hostname_if .= "mtu $mtu\n";
+	}
 
 	if ($rtable_number) {
 		$hostname_if .= "wgrtable $rtable_number\n";
