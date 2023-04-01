@@ -24,24 +24,43 @@
 use v5.32;
 use strict;
 use warnings;
-use autodie qw(:all);
+use autodie;
 
 use File::Basename qw(fileparse);
 use Getopt::Std;
-use List::Util qw(sample);
 use MIME::Base64 qw(decoded_base64_length);
 use Scalar::Util qw(looks_like_number);
 
 # External modules should be separated from modules included with Perl.
 use Config::Std;
-use IPC::System::Simple;
 use Net::IP qw(ip_get_version ip_splitprefix);
+
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
+
+	pledge(qw(stdio rpath flock unveil)) or die "Pledge failed: $!\n";
+
+	my @unveils = map { $_, 'r' } @ARGV;
+	while ( my $path = shift @unveils ) {
+		my $perms = shift @unveils;
+		unveil($path, $perms) or die "Unveil failed: $!\n";
+	}
+
+	@unveils = map { $_, 'r' } @INC;
+	while ( my $path = shift @unveils ) {
+		my $perms = shift @unveils;
+		unveil($path, $perms) or die "Unveil failed: $!\n";
+	}
+
+	pledge(qw(stdio rpath flock)) or die "Pledge failed: $!\n";
+}
 
 my $program_name = fileparse $0;
 
 sub usage {
 	die <<EOF;
-$program_name [-hnNv] [-c config]
+$program_name [-h] [wireguard_config ...]
 EOF
 }
 
@@ -146,100 +165,18 @@ EOF
 	return $wg_properties;
 }
 
-our ( $opt_c, $opt_h, $opt_n, $opt_v );
+sub convert_wireguard_hashref_to_hostname_if;
 
-getopts 'c:hnv';
+our $opt_h;
+
+getopts 'h';
 usage if $opt_h;
 
-my $config_file = $opt_c // '/etc/random_wg.conf';
-read_config $config_file => my %config or die "Parsing error: $!\n";
-
-my $check_config_syntax = $opt_n // 0;
-my $verbose = $opt_v // $config{misc}{verbose} // 0;
-
-my @conf_files = @{ $config{files}->{conf_files} };
-@conf_files // die
-	"$program_name needs config files to initialize WireGuard. See wg(8).\n";
-
-my $clearnet_interface = $config{networking}{clearnet_interface} // 'em0';
-my $wg_interface = $config{networking}{wg_interface} // 'wg0';
-my $adjust_anchors = $config{firewall}{adjust_anchors} // 0;
-my $dns_anchor_name = $config{firewall}{dns_anchor_name} // 'vpn_dns';
-my $endpoint_anchor_name = $config{firewall}{endpoint_anchor_name}
-	// 'vpn_endpoint';
-
-# The default MTU of 1420 is made with the assumption that egress uses an
-# MTU of 1500, but that assumption may not always be correct. Though it
-# often is, things like pppoe(4) can complicate things. It's important to
-# have the right MTU to avoid IP fragmentation because Path MTU Discovery
-# can't be relied on (erroneous blocking of ICMP for "security" by service
-# providers).
-#
-# Background information on the default MTU:
-# https://lists.zx2c4.com/pipermail/wireguard/2017-December/002201.html
-my $adjust_mtu = $config{networking}{adjust_mtu} // 0;
-my $mtu_size = $config{networking}{mtu_size} // 1412;
-
-# wgrtable can be relevant when the WireGuard interface uses the default
-# routing table and what would ordinarily be egress uses a non-default
-# routing table [see rdomain(4) and rtable(4)]. This setup can be useful as
-# a fail-safe mechanism so that the "actual" IP isn't leaked when the VPN
-# goes down (connectivity will be lost instead).
-my $use_rtable = $config{networking}{use_rtable} // 0;
-my $rtable_number = $config{networking}{rtable_number} // 1;
-
-# Clear unneeded variables out.
-undef %config;
-undef $config_file;
-undef $opt_c;
-undef $opt_h;
-undef $opt_n;
-undef $opt_v;
-
-$adjust_anchors =~ /\A [0-1] \z/x
-	or die "adjust_anchors is a boolean. It must be either 1 or 0.\n";
-
-$adjust_mtu =~ /\A [0-1] \z/x
-	or die "adjust_mtu is a boolean. It must be either 1 or 0.\n";
-
-$use_rtable =~ /\A [0-1] \z/x
-	or die "use_rtable is a boolean. It must be either 1 or 0.\n";
-
-if ( !looks_like_number($rtable_number)
-	or $rtable_number < 0
-	or $rtable_number > 255 )
-{
-	die "Provide an integer between 0-255 for rtable(4).\n";
+while ( my $wg_file = shift @ARGV ) {
+	print convert_wireguard_hashref_to_hostname_if(
+		convert_wireguard_config_to_hashref $wg_file);
+	print "\n" if @ARGV;
 }
-
-# Numbers are taken from sys/net/if_wg.c:
-# if (ifr->ifr_mtu <= 0 || ifr->ifr_mtu > 9000)
-#     ret = EINVAL;
-if ( !looks_like_number($mtu_size)
-	or $mtu_size <= 0
-	or $mtu_size > 9000 )
-{
-	die "Provide an integer between 1-9000 for the MTU.\n";
-}
-
-$clearnet_interface =~ /\A [a-z]+ [0-9]+ \z/aaxx
-	or die "The clearnet interface must match '/[a-z]+[0-9]+/'.\n";
-
-$wg_interface =~ /\A wg[0-9]+ \z/aaxx
-	or die "wg(4) must match '/wg[0-9]+/'.\n";
-
-# TODO: perhaps print out the working configuration if -v is set.
-exit if $check_config_syntax;
-
-my $wg_file = sample 1, @conf_files;
-$wg_file // die "$program_name needs a WireGuard configuration file.\n";
-undef @conf_files;
-
-say "Chose $wg_file" if $verbose;
-
-sub convert_wireguard_hashref_to_hostname_if;
-print convert_wireguard_hashref_to_hostname_if(
-	convert_wireguard_config_to_hashref $wg_file);
 
 # Accepts a hash reference. Uses that interface to create hostname.if(5)
 # output. Check the wireguard section in ifconfig(8) to see what these
@@ -247,12 +184,7 @@ print convert_wireguard_hashref_to_hostname_if(
 sub convert_wireguard_hashref_to_hostname_if {
 	my $hashref = shift or return;
 
-	my $hostname_if;
-
-	$hostname_if .= "mtu $mtu_size\n" if $adjust_mtu;
-	$hostname_if .= "wgrtable $rtable_number\n" if $use_rtable;
-
-	$hostname_if .= <<EOF;
+	my $hostname_if .= <<EOF;
 wgkey $hashref->{Interface}{PrivateKey}
 wgpeer $hashref->{Peer}{PublicKey} \\
 	wgendpoint $hashref->{Peer}{Endpoint_IP} $hashref->{Peer}{Endpoint_Port} \\
@@ -260,40 +192,7 @@ wgpeer $hashref->{Peer}{PublicKey} \\
 	wgaip $hashref->{Peer}{AllowedIPs}->{IPv6}
 inet $hashref->{Interface}{Address}->{IPv4}
 inet6 $hashref->{Interface}{Address}->{IPv6}
-!/sbin/route -qn add -inet default -iface $hashref->{Interface}{Address}->{IPv4}
-!/sbin/route -qn add -inet6 default -iface $hashref->{Interface}{Address}->{IPv6}
 EOF
-
-	if ($adjust_anchors) {
-		$hostname_if .= "!/sbin/pfctl -a $dns_anchor_name -F all\n";
-		$hostname_if .= "!/sbin/pfctl -a $endpoint_anchor_name -F all\n";
-
-		# Allow DNS traffic.
-		#
-		# This pass rule uses `quick` because the anchor is placed right before
-		# a rule in my pf.conf(5) that blocks connections to private addresses
-		# (RFC1918 and friends). These are also known as "martian addresses" or
-		# similar because they aren't (shouldn't be) publicly routable. Without
-		# making use of `quick`, the provided IP address for DNS would be
-		# blocked by the following rule as it's a private address.
-		#
-		# RFC1918: https://datatracker.ietf.org/doc/html/rfc1918
-		#
-		# TODO: Consider making this a configuration file option when the time
-		# comes.
-		$hostname_if .=
-			"!/bin/sh -c 'echo \"pass out quick on $wg_interface inet ";
-		$hostname_if .=
-			"proto { tcp udp } to $hashref->{Interface}{DNS} port domain\" ";
-		$hostname_if .= "| pfctl -f - -a $dns_anchor_name'\n";
-
-		# Allow WireGuard tunnel traffic.
-		$hostname_if .=
-			"!/bin/sh -c 'echo \"pass out on $clearnet_interface inet ";
-		$hostname_if .= "proto udp to $hashref->{Peer}{Endpoint_IP} ";
-		$hostname_if .= "port $hashref->{Peer}{Endpoint_Port}\" ";
-		$hostname_if .= "| pfctl -f - -a $endpoint_anchor_name'\n";
-	}
 
 	return $hostname_if;
 }
