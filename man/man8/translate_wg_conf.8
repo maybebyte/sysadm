@@ -1,0 +1,77 @@
+.Dd April 1, 2023
+.Dt TRANSLATE_WG_CONF 8
+.Os
+.Sh NAME
+.Nm translate_wg_conf
+.Nd translate WireGuard configuration files to other formats
+.\" .Sh LIBRARY
+.\" For sections 2, 3, and 9 only.
+.\" Not used in OpenBSD.
+.Sh SYNOPSIS
+.Nm translate_wg_conf
+.Op Fl hr
+.Op Fl m Ar mtu
+.Op Fl t Ar rtable
+.Ar
+.Sh DESCRIPTION
+The
+.Nm
+utility processes WireGuard configuration files. Currently, it can
+convert the input into output suitable for a
+.Xr hostname.if 5
+file.
+This is designed with later use of
+.Xr netstart 8
+in mind.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl h
+Print usage information and exit.
+.It Fl m Ar mtu
+Declare a Maximum Transmission Unit (MTU). By default, a WireGuard
+interface has an MTU of 1420 (this is 80 less than a typical MTU of
+1500).
+.It Fl r
+Add necessary
+.Xr route 8
+commands to the output so that the WireGuard interface holds the default
+routes.
+.It Fl t Ar rtable
+Declare that the routing table
+.Ar rtable
+will be used to exchange traffic between peers rather than the default
+.Xr rtable 4 .
+One use of this (assuming the interface is in the default routing
+domain) is to make sure that when the tunnel loses connectivity, the
+network connection fails safe rather than open.
+.El
+.Sh EXIT STATUS
+The
+.Nm
+utility exits 0 on success, and >0 if an error occurs.
+.Sh EXAMPLES
+Parse the WireGuard file and print the translated contents to standard
+output.
+.Pp
+.Dl $ translate_wg_conf wireguard-file.conf
+.Pp
+In the output, include a directive instructing
+.Xr wg 4
+to use routing table 1 to exchange traffic between peers. Redirect the
+output to
+.Ar hostname.wg0
+and bring the interface up with
+.Xr netstart 8 .
+.Pp
+.Dl # translate_wg_conf -t 1 wireguard-file.conf > /etc/hostname.wg0
+.Dl # sh /etc/netstart wg0
+.Pp
+.Sh SEE ALSO
+.Xr rtable 4 ,
+.Xr hostname.if 5 ,
+.Xr ifconfig 8 ,
+.Xr netstart 8
+.Sh AUTHORS
+Written and maintained by
+.An Ashlen Aq Mt eurydice@riseup.net .
