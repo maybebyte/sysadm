@@ -60,7 +60,7 @@ my $program_name = fileparse $0;
 
 sub usage {
 	die <<EOF;
-$program_name [-h] [wireguard_config ...]
+$program_name [-hr] [wireguard_config ...]
 EOF
 }
 
@@ -150,9 +150,9 @@ EOF
 
 sub convert_wireguard_hashref_to_hostname_if;
 
-our $opt_h;
+our ( $opt_h, $opt_r );
 
-getopts 'h';
+getopts 'hr';
 usage if $opt_h;
 
 while ( my $wg_file = shift @ARGV ) {
@@ -176,6 +176,13 @@ wgpeer $hashref->{Peer}{PublicKey} \\
 inet $hashref->{Interface}{Address}{IPv4}
 inet6 $hashref->{Interface}{Address}{IPv6}
 EOF
+
+	if ($opt_r) {
+		$hostname_if .= <<EOF;
+!/sbin/route -qn add -inet default -iface $hashref->{Interface}{Address}{IPv4}
+!/sbin/route -qn add -inet6 default -iface $hashref->{Interface}{Address}{IPv6}
+EOF
+	}
 
 	return $hostname_if;
 }
