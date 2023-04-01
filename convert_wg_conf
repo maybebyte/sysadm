@@ -92,23 +92,6 @@ sub check_if_valid_ip {
 	}
 }
 
-# $ip can be an IPv4 or IPv6 address with or without a prefix (though,
-# why would you use this if it doesn't have a prefix?)
-sub split_ip_and_prefix {
-	my $ip = shift or return;
-	my $prefix;
-
-	( $ip, $prefix ) = ip_splitprefix $ip
-		or die "Unable to split prefix of '$ip'.\n";
-
-	if ( wantarray() ) {
-		return ( $ip, $prefix );
-	}
-	elsif ( defined wantarray() ) {
-		return $ip;
-	}
-}
-
 # $wireguard_config should point to a WireGuard configuration file.
 #
 # This subroutine parses that file (it's in INI format), validates
@@ -130,8 +113,8 @@ sub convert_wireguard_config_to_hashref {
 	my ( $local_ipv4, $local_ipv6 ) = split ',',
 		$wg_properties->{Interface}{Address};
 	$wg_properties->{Interface}{Address} = {
-		IPv4 => scalar split_ip_and_prefix( $local_ipv4, 4 ),
-		IPv6 => scalar split_ip_and_prefix( $local_ipv6, 6 ),
+		IPv4 => (ip_splitprefix($local_ipv4))[0],
+		IPv6 => (ip_splitprefix($local_ipv6))[0],
 	};
 
 	my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
