@@ -15,12 +15,15 @@
 
 set -eu
 
+umask 077
+
 /usr/bin/perl /etc/sysadm/rotate-files /var/prosody/prosody-backup.sqlite.gz 5
 
-/usr/bin/touch /var/prosody/prosody-backup.sqlite.gz
-/bin/chmod 640 /var/prosody/prosody-backup.sqlite.gz
-/bin/chmod 440 /var/prosody/prosody-backup.sqlite.gz.?
-/usr/sbin/chown _prosody:_prosody /var/prosody/prosody-backup.sqlite.gz /var/prosody/prosody-backup.sqlite.gz.?
+# Just in case.
+/bin/chmod 400 /var/prosody/prosody-backup.sqlite.gz.?
+/usr/sbin/chown _prosody:_prosody /var/prosody/prosody-backup.sqlite.gz.?
+
+/usr/bin/install -g _prosody -o _prosody -m 600 -- /dev/null /var/prosody/prosody-backup.sqlite.gz
 
 /usr/sbin/rcctl stop prosody
 
@@ -29,6 +32,6 @@ set -eu
 		&& sqlite3 prosody.sqlite .dump \
 		| gzip -c > /var/prosody/prosody-backup.sqlite.gz'
 
-/bin/chmod 440 /var/prosody/prosody-backup.sqlite.gz
+/bin/chmod 400 /var/prosody/prosody-backup.sqlite.gz
 
 /usr/sbin/rcctl start prosody
