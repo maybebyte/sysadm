@@ -27,15 +27,7 @@ use IPC::System::Simple qw(capturex);
 
 if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
-	use OpenBSD::Unveil;
-
-
 	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
-	sub unveil_or_die {
-		my $path = shift or return;
-		my $perms = shift or return;
-		unveil( $path, $perms ) or die "Unveil failed: $!";
-	}
 }
 
 sub usage {
@@ -64,10 +56,6 @@ sub shuffled_lines_from_file {
 		push @line_list, $_;
 	}
 
-	# TODO: unveil reports E2BIG (argument list too long) when a file is
-	# too large (used /usr/share/dict/words as a test). But recreating
-	# this program with Unix utilities in shell handles it fine. I think
-	# it's due to this line.
 	scalar(@line_list) > 0 ? return shuffle @line_list : return 0;
 }
 
@@ -79,14 +67,12 @@ sub first_valid_file_from_array_ref {
 	my $array_ref = shift or return;
 
 	while ( my $file = shift @$array_ref ) {
-		unveil_or_die( $file, 'r' ) if $^O eq 'openbsd';
-
 		# TODO: report unreadable files when verbose is active.
+		next unless -e -r -f $file;
+
+		# Double check that we really can read this.
 		eval { open my $fh, '<', $file; close $fh; };
 		return $file unless $@;
-
-		## Drop read permissions if the file was unreadable.
-		unveil_or_die( $file, '' );
 	}
 	return 0;
 }
@@ -97,17 +83,9 @@ sub first_valid_file_from_array_ref {
 # See these for reference:
 #
 # pledge(2)
-# unveil(2)
 # OpenBSD::Pledge(3p)
-# OpenBSD::Unveil(3p)
-sub initial_pledge_and_unveil {
-	pledge_or_die(qw(rpath flock unveil));
-
-	my %unveil_perms = map { $_, 'r' } @INC, @ARGV;
-	while ( my ( $path, $perms ) = each %unveil_perms ) {
-		unveil_or_die( $path, $perms );
-	}
-
+sub initial_pledge {
+	pledge_or_die(qw(rpath flock));
 	return 1;
 }
 
@@ -116,7 +94,7 @@ our $opt_h;
 getopts 'ht:';
 usage if $opt_h;
 
-initial_pledge_and_unveil() if $^O eq 'openbsd';
+initial_pledge() if $^O eq 'openbsd';
 
 my @random_list_of_confs = shuffled_lines_from_file
 	or die "Failed to shuffle lines\n";
