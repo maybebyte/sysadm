@@ -40,7 +40,8 @@ EOF
 # Reads from STDIN or file(s).
 #
 # Returns a shuffled array containing each line of the input, excluding
-# comments and blanks. If it's an empty array, return 0 instead.
+# comments and blanks. If it's an empty array, return undef/false
+# instead.
 sub shuffled_lines_from_file {
 	my @line_list;
 
@@ -56,13 +57,13 @@ sub shuffled_lines_from_file {
 		push @line_list, $_;
 	}
 
-	scalar(@line_list) > 0 ? return shuffle @line_list : return 0;
+	scalar(@line_list) > 0 ? return shuffle @line_list : return;
 }
 
 # Accepts an array reference as an argument.
 #
 # Returns the first readable file from an array. If there were no
-# readable files, return 0.
+# readable files, return undef/false.
 sub first_valid_file_from_array_ref {
 	my $array_ref = shift or return;
 
@@ -72,9 +73,11 @@ sub first_valid_file_from_array_ref {
 
 		# Double check that we really can read this.
 		eval { open my $fh, '<', $file; close $fh; };
-		return $file unless $@;
+		next if $@;
+
+		return $file;
 	}
-	return 0;
+	return;
 }
 
 # OpenBSD only.
