@@ -19,7 +19,6 @@ use warnings;
 use autodie qw(:all);
 
 use File::Basename qw(fileparse);
-use File::Spec::Functions qw(rel2abs);
 use Getopt::Std;
 use List::Util qw(shuffle);
 
@@ -30,17 +29,19 @@ if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
 	use OpenBSD::Unveil;
 
-	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!\n"; }
-	sub unveil_or_die { unveil(@_) or die "Unveil failed: $!\n"; }
-}
 
-our ( $opt_h, $opt_t, );
-my $translate_wg_bin;
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
+	sub unveil_or_die {
+		my $path = shift or return;
+		my $perms = shift or return;
+		unveil( $path, $perms ) or die "Unveil failed: $!";
+	}
+}
 
 sub usage {
 	my $program_name = fileparse $0;
 	die <<EOF;
-$program_name [-h] [-t translate_wg_bin] [conf_list_file]
+$program_name [-h] [file ...]
 EOF
 }
 
@@ -50,10 +51,10 @@ EOF
 # comments and blanks. If it's an empty array, return 0 instead.
 sub shuffled_lines_from_file {
 	my @line_list;
+
 	while ( <<>> ) {
 		next if /\A \s*? [#]/aaxx;
 		next if /\A \s* \z/aaxx;
-
 		chomp;
 
 		# Assume that this line is valid for now. It's more efficient to
@@ -63,6 +64,10 @@ sub shuffled_lines_from_file {
 		push @line_list, $_;
 	}
 
+	# TODO: unveil reports E2BIG (argument list too long) when a file is
+	# too large (used /usr/share/dict/words as a test). But recreating
+	# this program with Unix utilities in shell handles it fine. I think
+	# it's due to this line.
 	scalar(@line_list) > 0 ? return shuffle @line_list : return 0;
 }
 
@@ -80,8 +85,8 @@ sub first_valid_file_from_array_ref {
 		eval { open my $fh, '<', $file; close $fh; };
 		return $file unless $@;
 
-		# Drop read permissions if the file was unreadable.
-		unveil_or_die( $file, '' ) if $^O eq 'openbsd';
+		## Drop read permissions if the file was unreadable.
+		unveil_or_die( $file, '' );
 	}
 	return 0;
 }
@@ -96,43 +101,29 @@ sub first_valid_file_from_array_ref {
 # OpenBSD::Pledge(3p)
 # OpenBSD::Unveil(3p)
 sub initial_pledge_and_unveil {
-	# TODO: This pledge could be more restrictive given modular
-	# programming, but I don't know how to do this yet.
-	#
-	# Another option is merging this program's code into
-	# translate_wg_conf, but I like keeping them separate to follow the
-	# Unix philosophy a bit better.
-	pledge_or_die(qw(rpath flock proc exec unveil));
+	pledge_or_die(qw(rpath flock unveil));
 
 	my %unveil_perms = map { $_, 'r' } @INC, @ARGV;
 	while ( my ( $path, $perms ) = each %unveil_perms ) {
 		unveil_or_die( $path, $perms );
 	}
 
-	unveil_or_die( $translate_wg_bin, 'x' );
-
 	return 1;
 }
 
+our $opt_h;
+
 getopts 'ht:';
 usage if $opt_h;
-
-# rel2abs is needed because given a relative path and unveil, the
-# program bails with ENOENT.
-$translate_wg_bin = rel2abs $opt_t // '/etc/sysadm/translate_wg_conf';
 
 initial_pledge_and_unveil() if $^O eq 'openbsd';
 
 my @random_list_of_confs = shuffled_lines_from_file
 	or die "Failed to shuffle lines\n";
 
-my $chosen_wg_file = first_valid_file_from_array_ref \@random_list_of_confs
+my $chosen_file = first_valid_file_from_array_ref \@random_list_of_confs
 	or die "No valid files were found\n";
-
-pledge_or_die(qw(proc exec)) if $^O eq 'openbsd';
-
-my $hostname_if_output = capturex $translate_wg_bin, qw(-rt 1), $chosen_wg_file;
 
 pledge_or_die() if $^O eq 'openbsd';
 
-print $hostname_if_output;
+say $chosen_file;
