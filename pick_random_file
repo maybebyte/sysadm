@@ -16,14 +16,11 @@
 use v5.32;
 use strict;
 use warnings;
-use autodie qw(:all);
+use autodie;
 
 use File::Basename qw(fileparse);
 use Getopt::Std;
 use List::Util qw(shuffle);
-
-# External modules should be separate.
-use IPC::System::Simple qw(capturex);
 
 if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
@@ -57,7 +54,8 @@ sub shuffled_lines_from_file {
 		push @line_list, $_;
 	}
 
-	scalar(@line_list) > 0 ? return shuffle @line_list : return;
+	scalar(@line_list) or return;
+	return shuffle @line_list;
 }
 
 # Accepts an array reference as an argument.
@@ -80,24 +78,12 @@ sub first_valid_file_from_array_ref {
 	return;
 }
 
-# OpenBSD only.
-#
-# Restrict the program to certain functionality.
-# See these for reference:
-#
-# pledge(2)
-# OpenBSD::Pledge(3p)
-sub initial_pledge {
-	pledge_or_die(qw(rpath flock));
-	return 1;
-}
-
 our $opt_h;
 
 getopts 'ht:';
 usage if $opt_h;
 
-initial_pledge() if $^O eq 'openbsd';
+pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
 
 my @random_list_of_confs = shuffled_lines_from_file
 	or die "Failed to shuffle lines\n";
