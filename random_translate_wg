@@ -1,0 +1,138 @@
+#!/usr/bin/env perl
+# Copyright (c) 2023 Ashlen <eurydice@riseup.net>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+use v5.32;
+use strict;
+use warnings;
+use autodie qw(:all);
+
+use File::Basename qw(fileparse);
+use File::Spec::Functions qw(rel2abs);
+use Getopt::Std;
+use List::Util qw(shuffle);
+
+# External modules should be separate.
+use IPC::System::Simple qw(capturex);
+
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
+
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!\n"; }
+	sub unveil_or_die { unveil(@_) or die "Unveil failed: $!\n"; }
+}
+
+our ( $opt_h, $opt_t, );
+my $translate_wg_bin;
+
+sub usage {
+	my $program_name = fileparse $0;
+	die <<EOF;
+$program_name [-h] [-t translate_wg_bin] [conf_list_file]
+EOF
+}
+
+# Reads from STDIN or file(s).
+#
+# Returns a shuffled array containing each line of the input, excluding
+# comments and blanks. If it's an empty array, return 0 instead.
+sub shuffled_lines_from_file {
+	my @line_list;
+	while ( <<>> ) {
+		next if /\A \s*? [#]/aaxx;
+		next if /\A \s* \z/aaxx;
+
+		chomp;
+
+		# Assume that this line is valid for now. It's more efficient to
+		# check file validity later (mainly because we may not need to
+		# check every single item since we bail on the first viable
+		# one).
+		push @line_list, $_;
+	}
+
+	scalar(@line_list) > 0 ? return shuffle @line_list : return 0;
+}
+
+# Accepts an array reference as an argument.
+#
+# Returns the first readable file from an array. If there were no
+# readable files, return 0.
+sub first_valid_file_from_array_ref {
+	my $array_ref = shift or return;
+
+	while ( my $file = shift @$array_ref ) {
+		unveil_or_die( $file, 'r' ) if $^O eq 'openbsd';
+
+		# TODO: report unreadable files when verbose is active.
+		eval { open my $fh, '<', $file; close $fh; };
+		return $file unless $@;
+
+		# Drop read permissions if the file was unreadable.
+		unveil_or_die( $file, '' ) if $^O eq 'openbsd';
+	}
+	return 0;
+}
+
+# OpenBSD only.
+#
+# Restrict the program to certain functionality.
+# See these for reference:
+#
+# pledge(2)
+# unveil(2)
+# OpenBSD::Pledge(3p)
+# OpenBSD::Unveil(3p)
+sub initial_pledge_and_unveil {
+	# TODO: This pledge could be more restrictive given modular
+	# programming, but I don't know how to do this yet.
+	#
+	# Another option is merging this program's code into
+	# translate_wg_conf, but I like keeping them separate to follow the
+	# Unix philosophy a bit better.
+	pledge_or_die(qw(rpath flock proc exec unveil));
+
+	my %unveil_perms = map { $_, 'r' } @INC, @ARGV;
+	while ( my ( $path, $perms ) = each %unveil_perms ) {
+		unveil_or_die( $path, $perms );
+	}
+
+	unveil_or_die( $translate_wg_bin, 'x' );
+
+	return 1;
+}
+
+getopts 'ht:';
+usage if $opt_h;
+
+# rel2abs is needed because given a relative path and unveil, the
+# program bails with ENOENT.
+$translate_wg_bin = rel2abs $opt_t // '/etc/sysadm/translate_wg_conf';
+
+initial_pledge_and_unveil() if $^O eq 'openbsd';
+
+my @random_list_of_confs = shuffled_lines_from_file
+	or die "Failed to shuffle lines\n";
+
+my $chosen_wg_file = first_valid_file_from_array_ref \@random_list_of_confs
+	or die "No valid files were found\n";
+
+pledge_or_die(qw(proc exec)) if $^O eq 'openbsd';
+
+my $hostname_if_output = capturex $translate_wg_bin, qw(-rt 1), $chosen_wg_file;
+
+pledge_or_die() if $^O eq 'openbsd';
+
+print $hostname_if_output;
