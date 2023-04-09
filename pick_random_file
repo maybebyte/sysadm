@@ -36,11 +36,11 @@ EOF
 
 # Reads from STDIN or file(s).
 #
-# Returns a shuffled array containing each line of the input, excluding
-# comments and blanks. If it's an empty array, return undef/false
+# Returns a shuffled list containing each line of the input, excluding
+# comments and blanks. If it's an empty list, return undef/false
 # instead.
 sub shuffled_lines_from_file {
-	my @line_list;
+	my %line_list;
 
 	while ( <<>> ) {
 		next if /\A \s*? [#]/aaxx;
@@ -51,11 +51,11 @@ sub shuffled_lines_from_file {
 		# check file validity later (mainly because we may not need to
 		# check every single item since we bail on the first viable
 		# one).
-		push @line_list, $_;
+		++$line_list{$_};
 	}
 
-	scalar(@line_list) or return;
-	return shuffle @line_list;
+	scalar(%line_list) or return;
+	return shuffle keys %line_list;
 }
 
 # Accepts an array reference as an argument.
