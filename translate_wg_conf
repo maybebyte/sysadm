@@ -39,26 +39,26 @@ if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
 	use OpenBSD::Unveil;
 
-	pledge(qw(stdio rpath flock unveil)) or die "Pledge failed: $!\n";
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
 
-	my @unveils = map { $_, 'r' } @ARGV;
-	while ( my $path = shift @unveils ) {
-		my $perms = shift @unveils;
-		unveil( $path, $perms ) or die "Unveil failed: $!\n";
+	sub unveil_or_die {
+		my $file = shift or die "Unveil failed: $!";
+		my $perms = shift or die "Unveil failed: $!";
+		unveil( $file, $perms ) or die "Unveil failed: $!";
 	}
 
-	@unveils = map { $_, 'r' } @INC;
-	while ( my $path = shift @unveils ) {
-		my $perms = shift @unveils;
-		unveil( $path, $perms ) or die "Unveil failed: $!\n";
+	pledge_or_die(qw(stdio rpath flock unveil));
+
+	my %unveils = map { $_, 'r' } @INC, @ARGV;
+	while ( my ( $path, $perms ) = each %unveils ) {
+		unveil_or_die( $path, $perms );
 	}
 
-	pledge(qw(stdio rpath flock)) or die "Pledge failed: $!\n";
+	pledge_or_die(qw(stdio rpath flock));
 }
 
-my $program_name = fileparse $0;
-
 sub usage {
+	my $program_name = fileparse $0;
 	die <<EOF;
 $program_name [-hr] [-m mtu] [-t rtable] [wireguard_config ...]
 EOF
