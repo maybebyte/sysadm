@@ -39,7 +39,7 @@ EOF
 # Returns a shuffled list containing each line of the input, excluding
 # comments and blanks. If it's an empty list, return undef/false
 # instead.
-sub shuffled_lines_from_file {
+sub shuffled_lines_from_input {
 	my %line_list;
 
 	while ( <<>> ) {
@@ -85,7 +85,7 @@ usage if $opt_h;
 
 pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
 
-my @random_list_of_confs = shuffled_lines_from_file
+my @random_list_of_confs = shuffled_lines_from_input
 	or die "Failed to shuffle lines\n";
 
 my $chosen_file = first_valid_file_from_array_ref \@random_list_of_confs
