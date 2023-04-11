@@ -80,7 +80,7 @@ sub first_valid_file_from_array_ref {
 
 our $opt_h;
 
-getopts 'ht:';
+getopts 'h';
 usage if $opt_h;
 
 pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
