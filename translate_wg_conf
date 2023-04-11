@@ -49,7 +49,7 @@ if ( $^O eq 'openbsd' ) {
 
 	pledge_or_die(qw(stdio rpath flock unveil));
 
-	my %unveils = map { $_, 'r' } @INC, @ARGV;
+	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
 	while ( my ( $path, $perms ) = each %unveils ) {
 		unveil_or_die( $path, $perms );
 	}
@@ -60,7 +60,7 @@ if ( $^O eq 'openbsd' ) {
 sub usage {
 	my $program_name = fileparse $0;
 	die <<EOF;
-$program_name [-hr] [-m mtu] [-t rtable] [wireguard_config ...]
+$program_name [-hr] [-m mtu] [-t rtable] wireguard_config
 EOF
 }
 
@@ -74,7 +74,9 @@ sub check_if_valid_ip {
 	# version. On a related note, this substitution strips the prefix if
 	# it's present, otherwise ip_get_version will return undef.
 	my $ip_type = ip_get_version( $ip =~ s|/ [0-9]+ \z||rx );
-	$ip_type or die "Expected an IP address. Received: '$ip'\n";
+	if ( ( $ip_type != 4 ) and ( $type != 6 ) ) {
+		die "Expected an IP address. Received: '$ip'\n";
+	}
 
 	if ( defined $type ) {
 		if ( ( $type != 4 ) and ( $type != 6 ) ) {
@@ -96,7 +98,7 @@ sub check_if_valid_ip {
 sub convert_wireguard_config_to_hashref {
 	my $wireguard_config = shift or return;
 	read_config $wireguard_config => my $wg_properties
-		or die "Parsing error: $!\n";
+		or die "Parsing error: $!";
 
 	my ( $endpoint_ip, $endpoint_port ) = split ':',
 		$wg_properties->{Peer}{Endpoint};
@@ -180,11 +182,9 @@ if ( defined $mtu ) {
 	}
 }
 
-while ( my $wg_file = shift @ARGV ) {
-	print convert_wireguard_hashref_to_hostname_if(
-		convert_wireguard_config_to_hashref $wg_file);
-	print "\n" if @ARGV;
-}
+my $wg_file = shift or die "Provide a WireGuard file to convert.\n";
+print convert_wireguard_hashref_to_hostname_if(
+	convert_wireguard_config_to_hashref $wg_file);
 
 # Accepts a hash reference. Uses that interface to create hostname.if(5)
 # output. Check the wireguard section in ifconfig(8) to see what these
@@ -192,7 +192,7 @@ while ( my $wg_file = shift @ARGV ) {
 sub convert_wireguard_hashref_to_hostname_if {
 	my $hashref = shift or return;
 
-	my $hostname_if .= <<EOF;
+	my $hostname_if = <<EOF;
 wgkey $hashref->{Interface}{PrivateKey}
 wgpeer $hashref->{Peer}{PublicKey} \\
 	wgendpoint $hashref->{Peer}{Endpoint}{IP} $hashref->{Peer}{Endpoint}{Port} \\
