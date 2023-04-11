@@ -28,10 +28,12 @@ if ( $^O eq 'openbsd' ) {
 	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
 }
 
+our ( $opt_h, $opt_n, $opt_v );
+
 sub usage {
 	my $program_name = fileparse $0;
 	die <<EOF;
-$program_name [-h] [-n number_of_files] [file ...]
+$program_name [-hv] [-n number_of_files] [file ...]
 EOF
 }
 
@@ -70,15 +72,20 @@ sub valid_files_from_array_ref {
 	my @files;
 
 	while ( my $file = shift @$array_ref ) {
-
-		# TODO: report unreadable files when verbose is active.
-		next unless -e -r -f $file;
-
 		chomp $file;
 
-		# Double check that we really can read this.
+		unless ( -e -r -f $file ) {
+			warn "Unable to read \"$file\"\n" if $opt_v;
+			next;
+		}
+
+		# The stat(2) is a more performant way to weed out files, but
+		# the most reliable indicator is opening the file.
 		eval { open my $fh, '<', $file; close $fh; };
-		next if $@;
+		if ($@) {
+			warn "Unable to read \"$file\"\n" if $opt_v;
+			next;
+		}
 
 		push @files, $file;
 		last if scalar(@files) == $number_of_files;
@@ -86,9 +93,7 @@ sub valid_files_from_array_ref {
 	return @files;
 }
 
-our ( $opt_h, $opt_n );
-
-getopts 'hn:';
+getopts 'hn:v';
 usage if $opt_h;
 
 if ( defined $opt_n ) {
