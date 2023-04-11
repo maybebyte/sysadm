@@ -20,6 +20,7 @@ use autodie;
 
 use File::Basename qw(fileparse);
 use Getopt::Std;
+use Scalar::Util qw(looks_like_number);
 use List::Util qw(shuffle);
 
 if ( $^O eq 'openbsd' ) {
@@ -30,7 +31,7 @@ if ( $^O eq 'openbsd' ) {
 sub usage {
 	my $program_name = fileparse $0;
 	die <<EOF;
-$program_name [-h] [file ...]
+$program_name [-h] [-n number_of_files] [file ...]
 EOF
 }
 
@@ -62,35 +63,48 @@ sub shuffled_lines_from_input {
 #
 # Returns the first readable file from an array. If there were no
 # readable files, return undef/false.
-sub first_valid_file_from_array_ref {
+sub valid_files_from_array_ref {
 	my $array_ref = shift or return;
+	my $number_of_files = shift or return;
+	looks_like_number($number_of_files) or return;
+	my @files;
 
 	while ( my $file = shift @$array_ref ) {
+
 		# TODO: report unreadable files when verbose is active.
 		next unless -e -r -f $file;
+
+		chomp $file;
 
 		# Double check that we really can read this.
 		eval { open my $fh, '<', $file; close $fh; };
 		next if $@;
 
-		return $file;
+		push @files, $file;
+		last if scalar(@files) == $number_of_files;
 	}
-	return;
+	return @files;
 }
 
-our $opt_h;
+our ( $opt_h, $opt_n );
 
-getopts 'h';
+getopts 'hn:';
 usage if $opt_h;
+
+if ( defined $opt_n ) {
+	looks_like_number($opt_n) or die "-n only accepts integers.\n";
+	$opt_n > 0 or die "-n value must be greater than 0.\n";
+}
 
 pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
 
 my @random_list_of_confs = shuffled_lines_from_input
 	or die "Failed to shuffle lines\n";
 
-my $chosen_file = first_valid_file_from_array_ref \@random_list_of_confs
+my @chosen_files =
+	valid_files_from_array_ref( \@random_list_of_confs, $opt_n // 1 )
 	or die "No valid files were found\n";
 
 pledge_or_die() if $^O eq 'openbsd';
 
-say $chosen_file;
+say join( "\n", @chosen_files );
