@@ -21,7 +21,7 @@
 # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
 # https://www.man7.org/linux/man-pages/man8/wg.8.html
 
-use v5.32;
+use v5.36;
 use strict;
 use warnings;
 use autodie;
