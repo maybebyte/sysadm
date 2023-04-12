@@ -53,7 +53,7 @@ output.
 .Pp
 .Dl $ translate_wg_conf wireguard-file.conf
 .Pp
-In the output, include a directive instructing
+In the output, add routing commands and include a directive instructing
 .Xr wg 4
 to use routing table 1 to exchange traffic between peers. Redirect the
 output to
@@ -61,7 +61,7 @@ output to
 and bring the interface up with
 .Xr netstart 8 .
 .Pp
-.Dl # translate_wg_conf -t 1 wireguard-file.conf > /etc/hostname.wg0
+.Dl # translate_wg_conf -rt 1 wireguard-file.conf > /etc/hostname.wg0
 .Dl # sh /etc/netstart wg0
 .Pp
 .Sh SEE ALSO
