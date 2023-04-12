@@ -35,6 +35,12 @@ use Scalar::Util qw(looks_like_number);
 use Config::Std;
 use Net::IP qw(ip_get_version ip_splitprefix);
 
+# This has to happen before $ARGV[0] in the pledge + unveil section.
+# Otherwise there's a chance $ARGV[0] will be a flag instead of the
+# file, and then the file will be unreadable.
+our ( $opt_h, $opt_m, $opt_r, $opt_t );
+getopts 'hm:rt:';
+
 if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
 	use OpenBSD::Unveil;
@@ -152,11 +158,7 @@ EOF
 
 sub convert_wireguard_hashref_to_hostname_if;
 
-our ( $opt_h, $opt_m, $opt_r, $opt_t );
-
-getopts 'hm:rt:';
 usage if $opt_h;
-
 my $install_default_routes = $opt_r;
 my $rtable_number = $opt_t;
 my $mtu = $opt_m;
