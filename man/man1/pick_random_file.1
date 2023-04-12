@@ -1,0 +1,48 @@
+.Dd April 12, 2023
+.Dt PICK_RANDOM_FILE 1
+.Os
+.Sh NAME
+.Nm pick_random_file
+.Nd pick a random file out of a list
+.\" .Sh LIBRARY
+.\" For sections 2, 3, and 9 only.
+.\" Not used in OpenBSD.
+.Sh SYNOPSIS
+.Nm pick_random_file
+.Op Fl hv
+.Op Fl n Ar number_of_files
+.Ar
+.Sh DESCRIPTION
+The
+.Nm
+utility takes a list of files from standard input or 
+.Ar file ,
+randomizes them, and then sends some of those files to standard output
+after validating that they're readable. By default,
+.Nm
+prints one file.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl h
+Print usage information and exit.
+.It Fl n Ar number_of_files
+Number of files to print. Set it to 0 to print all of them.
+.It Fl v
+Verbose mode. Report files that are unreadable to standard error.
+.El
+.Sh EXIT STATUS
+The
+.Nm
+utility exits 0 on success, and >0 if an error occurs.
+.Sh EXAMPLES
+Print five files to standard output with verbose mode enabled. 
+.Pp
+.Dl $ pick_random_file -vn 5 file
+.Pp
+.Sh SEE ALSO
+.Xr sort 1 ,
+.Xr head 1
+.Sh AUTHORS
+Written and maintained by
+.An Ashlen Aq Mt eurydice@riseup.net .

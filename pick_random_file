@@ -63,12 +63,11 @@ sub shuffled_lines_from_input {
 
 # Accepts an array reference as an argument.
 #
-# Returns the first readable file from an array. If there were no
+# Returns a number of readable files from an array. If there were no
 # readable files, return undef/false.
 sub valid_files_from_array_ref {
 	my $array_ref = shift or return;
-	my $number_of_files = shift or return;
-	looks_like_number($number_of_files) or return;
+	my $number_of_files = shift // return;
 	my @files;
 
 	while ( my $file = shift @$array_ref ) {
@@ -98,7 +97,7 @@ usage if $opt_h;
 
 if ( defined $opt_n ) {
 	looks_like_number($opt_n) or die "-n only accepts integers.\n";
-	$opt_n > 0 or die "-n value must be greater than 0.\n";
+	$opt_n >= 0 or die "-n value must be greater than or equal to 0.\n";
 }
 
 pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
