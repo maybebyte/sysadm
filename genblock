@@ -132,27 +132,40 @@ sub is_domain {
 	return 0;
 }
 
+# Given a hash reference, we "reduce" fully-qualified domains by
+# starting with their root domain.
+#
+# If the root domain is a key in the hash, delete the fully-qualified
+# domain (a wildcard will match it).
+#
+# Otherwise, progressively add subdomains back in, moving right to left,
+# until we either discover a matching key or reach the end.
+#
+# Example:
+# advertising.bad-actor.com
+# bad-actor.com
+#
+# *.bad-actor.com will match advertising.bad-actor.com as well.
+# Therefore, we can delete advertising.bad-actor.com from the hash.
 sub reduce_domains {
-	my $hashref = shift or return 0;
+	my $hashref = shift or return;
 	my $number_of_domains_removed = 0;
 
-DOMAIN: while ( my ( $domain, undef ) = each %$hashref ) {
-		my @domain_chars = split( '', $domain );
-		my @reduced_domain_chars;
+	while ( my ( $domain, undef ) = each %$hashref ) {
+		my @domain_leaves = reverse( split /\./, $domain );
+		my $index = 1;
 
-		while ( scalar @reduced_domain_chars < length $domain ) {
-			push @reduced_domain_chars, pop @domain_chars;
-			last if scalar @domain_chars == 0;
+		while ( ( $index + 1 ) != scalar(@domain_leaves) ) {
+			my $leaf =
+				join( '.', reverse( @domain_leaves[ 0 .. $index ] ) );
 
-			if ( $domain_chars[-1] eq '.' ) {
-				my $leaf = join( '', reverse @reduced_domain_chars );
-
-				if ( defined $hashref->{$leaf} ) {
-					delete $hashref->{$domain};
-					$number_of_domains_removed++;
-					next DOMAIN;
-				}
+			if ( defined $hashref->{$leaf} ) {
+				delete $hashref->{$domain};
+				$number_of_domains_removed++;
+				last;
 			}
+
+			$index++;
 		}
 	}
 	return $number_of_domains_removed;
