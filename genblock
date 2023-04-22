@@ -22,6 +22,12 @@ use File::Basename qw(fileparse);
 use Getopt::Std;
 use List::Util qw(first);
 
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
+	pledge_or_die(qw(rpath));
+}
+
 my $program_name = fileparse $0;
 
 sub usage {
