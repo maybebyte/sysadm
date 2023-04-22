@@ -160,7 +160,6 @@ sub reduce_domains {
 				$redundant_domains_hashref->{$domain} = $leaf;
 				last;
 			}
-
 			$index++;
 		}
 	}
