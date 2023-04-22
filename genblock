@@ -45,7 +45,7 @@ EOT
 }
 
 sub is_domain {
-	my $potential_domain = shift or return 0;
+	my $potential_domain = shift or return;
 
 	if (
 		$potential_domain =~ /
@@ -125,7 +125,7 @@ sub is_domain {
 	{
 		return ${^MATCH};
 	}
-	return 0;
+	return;
 }
 
 # Given a hash reference, we "reduce" fully-qualified domains by
@@ -170,7 +170,7 @@ sub reduce_domains {
 }
 
 sub unique_domains {
-	my $hashref = shift or return 0;
+	my $hashref = shift or return;
 	my $number_of_domains_added = 0;
 
 PROCESS_LINE: while ( <<>> ) {
