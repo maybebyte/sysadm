@@ -173,7 +173,9 @@ PROCESS_LINE: while ( <<>> ) {
 
 		$unique_domains{$domain}++;
 	}
-	return \%unique_domains;
+	wantarray
+		? return %unique_domains
+		: return \%unique_domains;
 }
 
 our $opt_h;
@@ -185,23 +187,23 @@ usage if defined($opt_h);
 my @formats = qw(plain unbound rpz);
 first { $opt_t eq $_ } @formats or die "$opt_t is not a valid type.\n";
 
-my $domain_appearances_hashref = &unique_domains
+my %domain_appearances = &unique_domains
 	or die "Unable to extract any domains from input.\n";
 
 if ( $opt_t eq 'plain' ) {
-	print map { "$_\n" } sort keys %$domain_appearances_hashref;
+	print map { "$_\n" } sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'unbound' ) {
 	print map { "local-zone: \"$_\" always_refuse\n" }
-		sort keys %$domain_appearances_hashref;
+		sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'rpz' ) {
-	&reduce_domains( $domain_appearances_hashref );
+	&reduce_domains( \%domain_appearances );
 
 	#<<<
 	print map {
 		"$_ CNAME .\n"
 		. "*.$_ CNAME .\n"
-	} sort keys %$domain_appearances_hashref;
+	} sort keys %domain_appearances;
 	#>>>
 }
