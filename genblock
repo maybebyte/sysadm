@@ -115,19 +115,19 @@ sub reduce_domains {
 	my $redundant_domains_hashref;
 
 	while ( my $domain = each %$hashref ) {
-		my @domain_leaves = reverse( split /\./, $domain );
-		my $index = 1;
+		## Start with the root domain.
+		my $index = rindex($domain, '.', rindex($domain, '.') - 1);
 
-		while ( ( $index + 1 ) < scalar(@domain_leaves) ) {
-			my $leaf =
-				join( '.', reverse( @domain_leaves[ 0 .. $index ] ) );
+		while ( $index != -1 ) {
+			my $leaf = substr($domain, $index + 1);
 
 			if ( defined $hashref->{$leaf} ) {
 				delete $hashref->{$domain};
 				$redundant_domains_hashref->{$domain} = $leaf;
 				last;
 			}
-			$index++;
+
+			$index = rindex($domain, '.', $index - 1);
 		}
 	}
 	wantarray
