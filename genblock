@@ -114,7 +114,7 @@ sub reduce_domains {
 	my $hashref = shift or return;
 	my $redundant_domains_hashref;
 
-	while ( my ( $domain, undef ) = each %$hashref ) {
+	while ( my $domain = each %$hashref ) {
 		my @domain_leaves = reverse( split /\./, $domain );
 		my $index = 1;
 
@@ -139,7 +139,9 @@ sub unique_domains {
 	my %unique_domains;
 
 PROCESS_LINE: while ( <<>> ) {
-		## Don't process commented or blank lines.
+		chomp;
+
+		# Don't process commented or blank lines.
 		next if /\A \s*? \#/aaxx;
 		next if /\A \s* \z/aaxx;
 
@@ -164,7 +166,6 @@ PROCESS_LINE: while ( <<>> ) {
 
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
-		chomp;
 
 		my $domain = do {
 			is_domain $_ or next PROCESS_LINE;
