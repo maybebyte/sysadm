@@ -112,7 +112,7 @@ sub is_domain {
 # Therefore, we can delete advertising.bad-actor.com from the hash.
 sub reduce_domains {
 	my $hashref = shift or return;
-	my $redundant_domains_hashref;
+	my %redundant_domains;
 
 	while ( my $domain = each %$hashref ) {
 		## Start with the root domain.
@@ -123,7 +123,7 @@ sub reduce_domains {
 
 			if ( defined $hashref->{$leaf} ) {
 				delete $hashref->{$domain};
-				$redundant_domains_hashref->{$domain} = $leaf;
+				$redundant_domains{$domain} = $leaf;
 				last;
 			}
 
@@ -131,8 +131,8 @@ sub reduce_domains {
 		}
 	}
 	wantarray
-		? return %$redundant_domains_hashref
-		: return $redundant_domains_hashref;
+		? return %redundant_domains
+		: return \%redundant_domains;
 }
 
 sub unique_domains {
