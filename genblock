@@ -118,7 +118,7 @@ sub reduce_domains {
 		my @domain_leaves = reverse( split /\./, $domain );
 		my $index = 1;
 
-		while ( ( $index + 1 ) != scalar(@domain_leaves) ) {
+		while ( ( $index + 1 ) < scalar(@domain_leaves) ) {
 			my $leaf =
 				join( '.', reverse( @domain_leaves[ 0 .. $index ] ) );
 
