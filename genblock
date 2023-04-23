@@ -50,81 +50,42 @@ $program_name can read from STDIN, or one or more files.
 EOT
 }
 
+# For more details, see:
+# RFC1123 section 2-1
+# RFC1034 section 3-1
+# RFC2181 section 11
 sub is_domain {
 	my $potential_domain = shift or return;
 
 	if (
 		$potential_domain =~ /
-	# For more details, see:
-	# RFC1123 section 2-1
-	# RFC1034 section 3-1
-	# RFC2181 section 11
-
-	# This "main" group MUST match one or more times
-	#
-	# Its role is to match the leaves in the domain before the top-level domain,
-	# and to do so it encapsulates the optional "hyphen" group because a domain
-	# MAY have hyphens, but we don't know for sure whether it will
-	#
-	# It also includes a "lookahead" to ensure that each leaf is no longer than
-	# 63 characters---this is a zero-width assertion that checks RFC compliance
-	# by looking to see if there are 1-63 letters, digits, hyphens, and
-	# underscores until the next dot
-	#
-	# If the lookahead succeeds, proceed with matching one or more alphanumeric
-	# characters to start
 	\b
+
+	# BEGIN LEAF GROUP
 	(
+
+	# Lookahead ensures that the next domain leaf includes 1-63 allowed
+	# characters
 	(?= [a-z 0-9 -_]{1,63} \.)
+
+	# Matches every leaf up to the top-level domain
+	#
+	# Optional hyphen and underscore group ensures that they can only
+	# occur between the first and last character of a domain leaf
 	[a-z 0-9]+
+	([-_]+ [a-z 0-9]+)*
 
-	# This "hyphen" group MAY match zero or more times
-	#
-	# Its role is to capture hyphens in the middle of a leaf, like "abc-xyz" for
-	# instance
-	#
-	# Inside the optional "hyphen" group, match one or more hyphens or
-	# underscores, followed by one or more alphanumeric characters
+	# END LEAF GROUP, ONE OR MORE
+	\.)+
+
+	# TOP-LEVEL DOMAIN GROUP
+	# Must be a punycode TLD _or_ a regular TLD
 	(
-	[-_]+
-	[a-z 0-9]+
-	)*
-
-	# The "main" noncapturing group ends with a period to mark the end of a
-	# leaf
-	#
-	# The "main" noncapturing group MUST match one or more times as said before,
-	# as this accounts for all of the leaves before the top-level domain
-	\.
-	)+
-
-	# This begins the "top-level domain" section
-	#
-	# It's relatively simple, it MUST be one of two things:
-	#
-	# A punycode prefixed top-level domain
-	# OR
-	# A regular top-level domain
-	(
-
-	# The top-level domain MAY be a punycode prefixed top-level domain, starting
-	# with 'xn--' and matching one or more alphanumeric characters afterward
-	(
-	xn--
-	[a-z 0-9]{2,59}
+	(xn-- [a-z 0-9]{2,59}) # punycode TLD
+	|
+	[a-z]{2,63} # regular TLD
 	)
 
-	| # OR
-
-	# If the top-level domain wasn't the punycode prefixed variant, then it MUST
-	# be a regular top-level domain
-	#
-	# Has at least two letters
-	[a-z]{2,63}
-
-	# The top-level domain is the end, so conclude the regular expression by
-	# closing the "top-level domain" group followed by a word boundary
-	)
 	\b
 	/paaxxn
 		)
