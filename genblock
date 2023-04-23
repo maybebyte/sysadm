@@ -131,7 +131,7 @@ sub reduce_domains {
 		}
 	}
 	wantarray
-		? return keys %$redundant_domains_hashref
+		? return %$redundant_domains_hashref
 		: return $redundant_domains_hashref;
 }
 
