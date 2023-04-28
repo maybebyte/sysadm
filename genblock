@@ -142,16 +142,14 @@ PROCESS_LINE: while ( <<>> ) {
 		chomp;
 
 		# Don't process commented or blank lines.
-		next if /\A \s*? \#/aaxx;
-		next if /\A \s* \z/aaxx;
+		next if /\A \s* (\z|\#)/aaxxn;
 
 		# Get rid of these common leading IP addresses in hosts(5)
 		# formatted blocklists.
 		#
 		# Types of entries that this addresses:
 		# 0.0.0.0alfa-bitcoin.com
-		s/\A \s*? 127\.0\.0\.1 \s*?//aaxx;
-		s/\A \s*? 0\.0\.0\.0 \s*?//aaxx;
+		s/\A \s* (127\.0\.0\.1|0\.0\.0\.0) \s*//aaxxn;
 
 		# Lines with these IP addresses at the tail end of a word
 		# (likely caused by maintainer typos) can't be trusted. Messing
@@ -161,8 +159,7 @@ PROCESS_LINE: while ( <<>> ) {
 		# Here are two examples of lines that match:
 		# zy16eoat1w.com0.0.0.0 102.112.2o7.net
 		# vungle.com0.0.0.0adminer.com
-		next if /\B 127\.0\.0\.1/aaxx;
-		next if /\B 0\.0\.0\.0/aaxx;
+		next if /\B (127\.0\.0\.1|0\.0\.0\.0)/aaxxn;
 
 		# Lowercase vs uppercase doesn't matter for DNS.
 		$_ = lc $_;
