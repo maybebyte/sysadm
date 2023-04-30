@@ -138,7 +138,7 @@ sub reduce_domains {
 sub unique_domains {
 	my %unique_domains;
 
-PROCESS_LINE: while ( <<>> ) {
+	while ( <<>> ) {
 		chomp;
 
 		# Don't process commented or blank lines.
@@ -165,7 +165,7 @@ PROCESS_LINE: while ( <<>> ) {
 		$_ = lc $_;
 
 		my $domain = do {
-			is_domain $_ or next PROCESS_LINE;
+			is_domain $_ or next;
 		};
 
 		$unique_domains{$domain}++;
