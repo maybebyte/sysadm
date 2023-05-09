@@ -37,34 +37,6 @@ use Scalar::Util qw(looks_like_number);
 use Config::Std;
 use Net::IP qw(ip_get_version ip_splitprefix);
 
-# This has to happen before $ARGV[0] in the pledge + unveil section.
-# Otherwise there's a chance $ARGV[0] will be a flag instead of the
-# file, and then the file will be unreadable.
-our ( $opt_h, $opt_m, $opt_r, $opt_t );
-getopts 'hm:rt:';
-
-if ( $^O eq 'openbsd' ) {
-	use OpenBSD::Pledge;
-	use OpenBSD::Unveil;
-
-	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
-
-	sub unveil_or_die {
-		my $file = shift or die "Unveil failed: $!";
-		my $perms = shift or die "Unveil failed: $!";
-		unveil( $file, $perms ) or die "Unveil failed: $!";
-	}
-
-	pledge_or_die(qw(stdio rpath flock unveil));
-
-	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
-	while ( my ( $path, $perms ) = each %unveils ) {
-		unveil_or_die( $path, $perms );
-	}
-
-	pledge_or_die(qw(stdio rpath flock));
-}
-
 sub usage {
 	my $program_name = fileparse $0;
 	die <<EOF;
@@ -97,79 +69,15 @@ sub check_if_valid_ip {
 	return $ip;
 }
 
-# $wireguard_config should point to a WireGuard configuration file.
-#
-# This subroutine parses that file (it's in INI format), validates
-# certain things, and converts its contents into a Perl hash reference.
-# This is so a Perl interface is present for the other functions that
-# want to do something with that.
-sub convert_wireguard_config_to_hashref {
-	my $wireguard_config = shift or return;
-	read_config $wireguard_config => my $wg_properties
-		or die "Parsing error: $!";
-
-	my ( $endpoint_ip, $endpoint_port ) = split ':',
-		$wg_properties->{Peer}{Endpoint};
-
-	my ( $local_ipv4, $local_ipv6 ) = split ',',
-		$wg_properties->{Interface}{Address};
-
-	my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
-		$wg_properties->{Peer}{AllowedIPs};
-
-	# Keys should always be 44 bytes in length when encoded in base64
-	# and 32 bytes in length when decoded from base64.
-	decoded_base64_length $wg_properties->{Interface}{PrivateKey} == 32
-		or die "Failed to base64 decode private key to a 32 byte string.\n";
-	decoded_base64_length $wg_properties->{Peer}{PublicKey} == 32
-		or die "Failed to base64 decode public key to a 32 byte string.\n";
-
-	# TODO: may want to consider adding some `or die` here.
-	check_if_valid_ip $endpoint_ip;
-	check_if_valid_ip $wg_properties->{Interface}{DNS};
-	check_if_valid_ip( $allowed_ipv4, 4 );
-	check_if_valid_ip( $allowed_ipv6, 6 );
-
-	# TODO: is this range perhaps too permissive/wide?
-	if ( !looks_like_number $endpoint_port
-		or $endpoint_port < 1
-		or $endpoint_port > 65535 )
-	{
-		die <<EOF;
-Expected: endpoint port between 1-65535.
-Received: $endpoint_port
-EOF
-	}
-
-	$wg_properties->{Interface}{Address} = {
-		IPv4 => ( ip_splitprefix($local_ipv4) )[0],
-		IPv6 => ( ip_splitprefix($local_ipv6) )[0],
-	};
-
-	$wg_properties->{Peer}{AllowedIPs} = {
-		IPv4 => $allowed_ipv4,
-		IPv6 => $allowed_ipv6,
-	};
-
-	$wg_properties->{Peer}{Endpoint} = {
-		IP => $endpoint_ip,
-		Port => $endpoint_port,
-	};
-
-	return $wg_properties;
-}
-
-sub convert_wireguard_hashref_to_hostname_if;
+our ( $opt_h, $opt_m, $opt_r, $opt_t );
+getopts 'hm:rt:';
 
 usage if $opt_h;
-my $install_default_routes = $opt_r;
-my $rtable_number = $opt_t;
-my $mtu = $opt_m;
 
-if ( defined $rtable_number ) {
-	if ( !looks_like_number($rtable_number)
-		or $rtable_number < 0
-		or $rtable_number > 255 )
+if ( defined $opt_t ) {
+	if ( !looks_like_number($opt_t)
+		or $opt_t < 0
+		or $opt_t > 255 )
 	{
 		die "Provide an integer between 0-255 for rtable(4).\n";
 	}
@@ -178,49 +86,111 @@ if ( defined $rtable_number ) {
 # Numbers are taken from sys/net/if_wg.c:
 # if (ifr->ifr_mtu <= 0 || ifr->ifr_mtu > 9000)
 #     ret = EINVAL;
-if ( defined $mtu ) {
-	if ( !looks_like_number($mtu)
-		or $mtu <= 0
-		or $mtu > 9000 )
+if ( defined $opt_m ) {
+	if ( !looks_like_number($opt_m)
+		or $opt_m <= 0
+		or $opt_m > 9000 )
 	{
 		die "Provide an integer between 1-9000 for the MTU.\n";
 	}
 }
 
-my $wg_file = shift or die "Provide a WireGuard file to convert.\n";
-print convert_wireguard_hashref_to_hostname_if(
-	convert_wireguard_config_to_hashref $wg_file);
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
 
-# Accepts a hash reference. Uses that interface to create hostname.if(5)
-# output. Check the wireguard section in ifconfig(8) to see what these
-# different parameters do.
-sub convert_wireguard_hashref_to_hostname_if {
-	my $hashref = shift or return;
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
 
-	my $hostname_if = <<EOF;
-wgkey $hashref->{Interface}{PrivateKey}
-wgpeer $hashref->{Peer}{PublicKey} \\
-	wgendpoint $hashref->{Peer}{Endpoint}{IP} $hashref->{Peer}{Endpoint}{Port} \\
-	wgaip $hashref->{Peer}{AllowedIPs}{IPv4} \\
-	wgaip $hashref->{Peer}{AllowedIPs}{IPv6}
-inet $hashref->{Interface}{Address}{IPv4}
-inet6 $hashref->{Interface}{Address}{IPv6}
-EOF
-
-	if ($mtu) {
-		$hostname_if .= "mtu $mtu\n";
+	sub unveil_or_die {
+		my $file = shift or die "Unveil failed: $!";
+		my $perms = shift or die "Unveil failed: $!";
+		unveil( $file, $perms ) or die "Unveil failed: $!";
 	}
 
-	if ($rtable_number) {
-		$hostname_if .= "wgrtable $rtable_number\n";
+	pledge_or_die(qw(stdio rpath flock unveil));
+
+	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
+	while ( my ( $path, $perms ) = each %unveils ) {
+		unveil_or_die( $path, $perms );
 	}
 
-	if ($install_default_routes) {
-		$hostname_if .= <<EOF;
-!/sbin/route -qn add -inet default -iface $hashref->{Interface}{Address}{IPv4}
-!/sbin/route -qn add -inet6 default -iface $hashref->{Interface}{Address}{IPv6}
-EOF
-	}
-
-	return $hostname_if;
+	pledge_or_die(qw(stdio rpath flock));
 }
+
+my $wg_file = shift or die "Provide a WireGuard file to convert.\n";
+
+read_config $wg_file => my %wg_properties
+	or die "Parsing error: $!";
+
+my ( $endpoint_ip, $endpoint_port ) = split ':', $wg_properties{Peer}{Endpoint};
+
+my ( $local_ipv4, $local_ipv6 ) = split ',', $wg_properties{Interface}{Address};
+
+my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
+	$wg_properties{Peer}{AllowedIPs};
+
+# Keys should always be 44 bytes in length when encoded in base64
+# and 32 bytes in length when decoded from base64.
+decoded_base64_length $wg_properties{Interface}{PrivateKey} == 32
+	or die "Failed to base64 decode private key to a 32 byte string.\n";
+decoded_base64_length $wg_properties{Peer}{PublicKey} == 32
+	or die "Failed to base64 decode public key to a 32 byte string.\n";
+
+check_if_valid_ip $endpoint_ip or die "Invalid IP: $endpoint_ip\n";
+check_if_valid_ip $wg_properties{Interface}{DNS}
+	or die "Invalid IP: $wg_properties{Interface}{DNS}\n";
+check_if_valid_ip( $allowed_ipv4, 4 ) or die "Invalid IP: $allowed_ipv4\n";
+check_if_valid_ip( $allowed_ipv6, 6 ) or die "Invalid IP: $allowed_ipv6\n";
+
+# TODO: is this range perhaps too permissive/wide?
+if ( !looks_like_number $endpoint_port
+	or $endpoint_port < 1
+	or $endpoint_port > 65535 )
+{
+	die <<EOF;
+Expected: endpoint port between 1-65535.
+Received: $endpoint_port
+EOF
+}
+
+$wg_properties{Interface}{Address} = {
+	IPv4 => ( ip_splitprefix($local_ipv4) )[0],
+	IPv6 => ( ip_splitprefix($local_ipv6) )[0],
+};
+
+$wg_properties{Peer}{AllowedIPs} = {
+	IPv4 => $allowed_ipv4,
+	IPv6 => $allowed_ipv6,
+};
+
+$wg_properties{Peer}{Endpoint} = {
+	IP => $endpoint_ip,
+	Port => $endpoint_port,
+};
+
+my $hostname_if = <<EOF;
+wgkey $wg_properties{Interface}{PrivateKey}
+wgpeer $wg_properties{Peer}{PublicKey} \\
+	wgendpoint $wg_properties{Peer}{Endpoint}{IP} $wg_properties{Peer}{Endpoint}{Port} \\
+	wgaip $wg_properties{Peer}{AllowedIPs}{IPv4} \\
+	wgaip $wg_properties{Peer}{AllowedIPs}{IPv6}
+inet $wg_properties{Interface}{Address}{IPv4}
+inet6 $wg_properties{Interface}{Address}{IPv6}
+EOF
+
+if ($opt_m) {
+	$hostname_if .= "mtu $opt_m\n";
+}
+
+if ($opt_t) {
+	$hostname_if .= "wgrtable $opt_t\n";
+}
+
+if ($opt_r) {
+	$hostname_if .= <<EOF;
+!/sbin/route -qn add -inet default -iface $wg_properties{Interface}{Address}{IPv4}
+!/sbin/route -qn add -inet6 default -iface $wg_properties{Interface}{Address}{IPv6}
+EOF
+}
+
+print $hostname_if;
