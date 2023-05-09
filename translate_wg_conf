@@ -21,6 +21,8 @@
 # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
 # https://www.man7.org/linux/man-pages/man8/wg.8.html
 
+# TODO: handle IPv4 and IPv6 only files.
+
 use v5.36;
 use strict;
 use warnings;
@@ -122,6 +124,7 @@ sub convert_wireguard_config_to_hashref {
 	decoded_base64_length $wg_properties->{Peer}{PublicKey} == 32
 		or die "Failed to base64 decode public key to a 32 byte string.\n";
 
+	# TODO: may want to consider adding some `or die` here.
 	check_if_valid_ip $endpoint_ip;
 	check_if_valid_ip $wg_properties->{Interface}{DNS};
 	check_if_valid_ip( $allowed_ipv4, 4 );
