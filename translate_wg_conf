@@ -54,7 +54,7 @@ sub check_if_valid_ip {
 	# version. On a related note, this substitution strips the prefix if
 	# it's present, otherwise ip_get_version will return undef.
 	my $ip_type = ip_get_version( $ip =~ s|/ [0-9]+ \z||rx );
-	if ( ( $ip_type != 4 ) and ( $type != 6 ) ) {
+	if ( ( $ip_type != 4 ) and ( $ip_type != 6 ) ) {
 		die "Expected an IP address. Received: '$ip'\n";
 	}
 
