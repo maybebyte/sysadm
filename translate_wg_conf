@@ -129,6 +129,17 @@ my ( $local_ipv4, $local_ipv6 ) = split ',', $wg_properties{Interface}{Address};
 my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
 	$wg_properties{Peer}{AllowedIPs};
 
+# TODO: is this range perhaps too permissive/wide?
+if ( !looks_like_number $endpoint_port
+	or $endpoint_port < 1
+	or $endpoint_port > 65535 )
+{
+	die <<EOF;
+Expected: endpoint port between 1-65535.
+Received: $endpoint_port
+EOF
+}
+
 # Keys should always be 44 bytes in length when encoded in base64
 # and 32 bytes in length when decoded from base64.
 decoded_base64_length $wg_properties{Interface}{PrivateKey} == 32
@@ -141,17 +152,6 @@ check_if_valid_ip $wg_properties{Interface}{DNS}
 	or die "Invalid IP: $wg_properties{Interface}{DNS}\n";
 check_if_valid_ip( $allowed_ipv4, 4 ) or die "Invalid IP: $allowed_ipv4\n";
 check_if_valid_ip( $allowed_ipv6, 6 ) or die "Invalid IP: $allowed_ipv6\n";
-
-# TODO: is this range perhaps too permissive/wide?
-if ( !looks_like_number $endpoint_port
-	or $endpoint_port < 1
-	or $endpoint_port > 65535 )
-{
-	die <<EOF;
-Expected: endpoint port between 1-65535.
-Received: $endpoint_port
-EOF
-}
 
 $wg_properties{Interface}{Address} = {
 	IPv4 => ( ip_splitprefix($local_ipv4) )[0],
