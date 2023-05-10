@@ -72,11 +72,9 @@ and bring the interface up with
 .Sh AUTHORS
 Written and maintained by
 .An Ashlen Aq Mt eurydice@riseup.net .
-.Sh BUGS
-.Nm
-only performs accurate translation of
-.Ar wireguard_file
-when both IPv4 and IPv6 are part of the AllowedIPs and Address fields.
-.Nm
-needs to be patched to handle the case where only IPv4 or IPv6 are
-mentioned.
+.Sh CAVEATS
+When using 
+.Fl r ,
+.Nm 
+will only print default route commands for the first IPv4 and IPv6
+addresses it encounters.

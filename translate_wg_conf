@@ -21,8 +21,6 @@
 # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
 # https://www.man7.org/linux/man-pages/man8/wg.8.html
 
-# TODO: handle IPv4 and IPv6 only files.
-
 use v5.36;
 use strict;
 use warnings;
@@ -37,8 +35,9 @@ use Scalar::Util qw(looks_like_number);
 use Config::Std;
 use Net::IP qw(ip_get_version ip_splitprefix);
 
+my $program_name = fileparse $0;
+
 sub usage {
-	my $program_name = fileparse $0;
 	die <<EOF;
 $program_name [-hr] [-m mtu] [-t rtable] wireguard_config
 EOF
@@ -53,10 +52,8 @@ sub check_if_valid_ip {
 	# ip_get_version returns undef if it's unable to determine the
 	# version. On a related note, this substitution strips the prefix if
 	# it's present, otherwise ip_get_version will return undef.
-	my $ip_type = ip_get_version( $ip =~ s|/ [0-9]+ \z||rx );
-	if ( ( $ip_type != 4 ) and ( $ip_type != 6 ) ) {
-		die "Expected an IP address. Received: '$ip'\n";
-	}
+	my $ip_type = ip_get_version( $ip =~ s|/ [0-9]+ \z||rx )
+		or die "Failed to retrieve IP version for '$ip'.\n";
 
 	if ( defined $type ) {
 		if ( ( $type != 4 ) and ( $type != 6 ) ) {
@@ -123,11 +120,8 @@ read_config $wg_file => my %wg_properties
 	or die "Parsing error: $!";
 
 my ( $endpoint_ip, $endpoint_port ) = split ':', $wg_properties{Peer}{Endpoint};
-
-my ( $local_ipv4, $local_ipv6 ) = split ',', $wg_properties{Interface}{Address};
-
-my ( $allowed_ipv4, $allowed_ipv6 ) = split ',',
-	$wg_properties{Peer}{AllowedIPs};
+my @local_addresses = split ',', $wg_properties{Interface}{Address};
+my @allowed_addresses = split ',', $wg_properties{Peer}{AllowedIPs};
 
 # TODO: is this range perhaps too permissive/wide?
 if ( !looks_like_number $endpoint_port
@@ -150,18 +144,14 @@ decoded_base64_length $wg_properties{Peer}{PublicKey} == 32
 check_if_valid_ip $endpoint_ip or die "Invalid IP: $endpoint_ip\n";
 check_if_valid_ip $wg_properties{Interface}{DNS}
 	or die "Invalid IP: $wg_properties{Interface}{DNS}\n";
-check_if_valid_ip( $allowed_ipv4, 4 ) or die "Invalid IP: $allowed_ipv4\n";
-check_if_valid_ip( $allowed_ipv6, 6 ) or die "Invalid IP: $allowed_ipv6\n";
 
-$wg_properties{Interface}{Address} = {
-	IPv4 => ( ip_splitprefix($local_ipv4) )[0],
-	IPv6 => ( ip_splitprefix($local_ipv6) )[0],
-};
+$wg_properties{Peer}{AllowedIPs} = [];
+push @{ $wg_properties{Peer}{AllowedIPs} },
+	grep { check_if_valid_ip($_) } @allowed_addresses;
 
-$wg_properties{Peer}{AllowedIPs} = {
-	IPv4 => $allowed_ipv4,
-	IPv6 => $allowed_ipv6,
-};
+$wg_properties{Interface}{Address} = [];
+push @{ $wg_properties{Interface}{Address} }, map { ( ip_splitprefix($_) )[0] }
+	grep { check_if_valid_ip($_) } @local_addresses;
 
 $wg_properties{Peer}{Endpoint} = {
 	IP => $endpoint_ip,
@@ -172,11 +162,21 @@ my $hostname_if = <<EOF;
 wgkey $wg_properties{Interface}{PrivateKey}
 wgpeer $wg_properties{Peer}{PublicKey} \\
 	wgendpoint $wg_properties{Peer}{Endpoint}{IP} $wg_properties{Peer}{Endpoint}{Port} \\
-	wgaip $wg_properties{Peer}{AllowedIPs}{IPv4} \\
-	wgaip $wg_properties{Peer}{AllowedIPs}{IPv6}
-inet $wg_properties{Interface}{Address}{IPv4}
-inet6 $wg_properties{Interface}{Address}{IPv6}
 EOF
+
+my $count = 0;
+for my $ip ( @{ $wg_properties{Peer}{AllowedIPs} } ) {
+	$count++;
+
+	if ( $count < scalar @{ $wg_properties{Peer}{AllowedIPs} } ) {
+		$hostname_if .= "	wgaip $ip \\";
+		$hostname_if .= "\n";
+	}
+	else {
+		$hostname_if .= "	wgaip $ip\n";
+		last;
+	}
+}
 
 if ($opt_m) {
 	$hostname_if .= "mtu $opt_m\n";
@@ -186,11 +186,32 @@ if ($opt_t) {
 	$hostname_if .= "wgrtable $opt_t\n";
 }
 
+my ( $ipv4_route, $ipv6_route );
+
+while ( my $ip = shift @{ $wg_properties{Interface}{Address} } ) {
+	state $ipv4_route_found = 0;
+	state $ipv6_route_found = 0;
+	my $ip_version = ip_get_version $ip;
+
+	if ( $ip_version == 4 ) {
+		$hostname_if .= "inet $ip\n";
+		if ( $opt_r and $ipv4_route_found != 1 ) {
+			$ipv4_route = "!/sbin/route -qn add -inet default -iface $ip\n";
+			$ipv4_route_found++;
+		}
+	}
+	elsif ( $ip_version == 6 ) {
+		$hostname_if .= "inet6 $ip\n";
+		if ( $opt_r and $ipv6_route_found != 1 ) {
+			$ipv6_route = "!/sbin/route -qn add -inet6 default -iface $ip\n";
+			$ipv6_route_found++;
+		}
+	}
+}
+
 if ($opt_r) {
-	$hostname_if .= <<EOF;
-!/sbin/route -qn add -inet default -iface $wg_properties{Interface}{Address}{IPv4}
-!/sbin/route -qn add -inet6 default -iface $wg_properties{Interface}{Address}{IPv6}
-EOF
+	$hostname_if .= $ipv4_route if defined $ipv4_route;
+	$hostname_if .= $ipv6_route if defined $ipv6_route;
 }
 
 print $hostname_if;
