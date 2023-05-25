@@ -145,10 +145,15 @@ check_if_valid_ip $endpoint_ip or die "Invalid IP: $endpoint_ip\n";
 check_if_valid_ip $wg_properties{Interface}{DNS}
 	or die "Invalid IP: $wg_properties{Interface}{DNS}\n";
 
+# Initialize an empty array reference at
+# $wg_properties{Peer}{AllowedIPs}. Extract each valid IP from
+# @allowed_addresses and push them onto the array reference.
 $wg_properties{Peer}{AllowedIPs} = [];
 push @{ $wg_properties{Peer}{AllowedIPs} },
 	grep { check_if_valid_ip($_) } @allowed_addresses;
 
+# Same principle as above, but separate the IP address from its prefix
+# first.
 $wg_properties{Interface}{Address} = [];
 push @{ $wg_properties{Interface}{Address} }, map { ( ip_splitprefix($_) )[0] }
 	grep { check_if_valid_ip($_) } @local_addresses;
@@ -164,6 +169,7 @@ wgpeer $wg_properties{Peer}{PublicKey} \\
 	wgendpoint $wg_properties{Peer}{Endpoint}{IP} $wg_properties{Peer}{Endpoint}{Port} \\
 EOF
 
+# This for loop allows us to handle multiple IP addresses in AllowedIPs.
 my $count = 0;
 for my $ip ( @{ $wg_properties{Peer}{AllowedIPs} } ) {
 	$count++;
@@ -186,30 +192,30 @@ if ($opt_t) {
 	$hostname_if .= "wgrtable $opt_t\n";
 }
 
-my ( $ipv4_route, $ipv6_route );
-
-while ( my $ip = shift @{ $wg_properties{Interface}{Address} } ) {
-	state $ipv4_route_found = 0;
-	state $ipv6_route_found = 0;
-	my $ip_version = ip_get_version $ip;
-
-	if ( $ip_version == 4 ) {
-		$hostname_if .= "inet $ip\n";
-		if ( $opt_r and $ipv4_route_found != 1 ) {
-			$ipv4_route = "!/sbin/route -qn add -inet default -iface $ip\n";
-			$ipv4_route_found++;
-		}
-	}
-	elsif ( $ip_version == 6 ) {
-		$hostname_if .= "inet6 $ip\n";
-		if ( $opt_r and $ipv6_route_found != 1 ) {
-			$ipv6_route = "!/sbin/route -qn add -inet6 default -iface $ip\n";
-			$ipv6_route_found++;
-		}
-	}
-}
-
+# Add default routes based on the first viable IPv4 and IPv6 addresses
+# extracted from the array reference.
 if ($opt_r) {
+	my ( $ipv4_route, $ipv6_route );
+	my ( $ipv4_route_found, $ipv6_route_found ) = ( 0, 0 );
+
+	while ( my $ip = shift @{ $wg_properties{Interface}{Address} } ) {
+		my $ip_version = ip_get_version $ip;
+
+		if ( $ip_version == 4 ) {
+			$hostname_if .= "inet $ip\n";
+			if ( $ipv4_route_found != 1 ) {
+				$ipv4_route = "!/sbin/route -qn add -inet default -iface $ip\n";
+				$ipv4_route_found++;
+			}
+		}
+		elsif ( $ip_version == 6 ) {
+			$hostname_if .= "inet6 $ip\n";
+			if ( $ipv6_route_found != 1 ) {
+				$ipv6_route = "!/sbin/route -qn add -inet6 default -iface $ip\n";
+				$ipv6_route_found++;
+			}
+		}
+	}
 	$hostname_if .= $ipv4_route if defined $ipv4_route;
 	$hostname_if .= $ipv6_route if defined $ipv6_route;
 }
