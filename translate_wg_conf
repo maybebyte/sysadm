@@ -35,9 +35,23 @@ use Scalar::Util qw(looks_like_number);
 use Config::Std;
 use Net::IP qw(ip_get_version ip_splitprefix);
 
-my $program_name = fileparse $0;
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
+
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
+
+	sub unveil_or_die {
+		my $file = shift or die "Unveil failed: $!";
+		my $perms = shift or die "Unveil failed: $!";
+		unveil( $file, $perms ) or die "Unveil failed: $!";
+	}
+
+	pledge_or_die(qw(stdio rpath flock unveil));
+}
 
 sub usage {
+	my $program_name = fileparse $0;
 	die <<EOF;
 $program_name [-hr] [-m mtu] [-t rtable] wireguard_config
 EOF
@@ -69,6 +83,15 @@ sub check_if_valid_ip {
 our ( $opt_h, $opt_m, $opt_r, $opt_t );
 getopts 'hm:rt:';
 
+if ( $^O eq 'openbsd' ) {
+	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
+	while ( my ( $path, $perms ) = each %unveils ) {
+		unveil_or_die( $path, $perms );
+	}
+
+	pledge_or_die(qw(stdio rpath flock));
+}
+
 usage if $opt_h;
 
 if ( defined $opt_t ) {
@@ -90,28 +113,6 @@ if ( defined $opt_m ) {
 	{
 		die "Provide an integer between 1-9000 for the MTU.\n";
 	}
-}
-
-if ( $^O eq 'openbsd' ) {
-	use OpenBSD::Pledge;
-	use OpenBSD::Unveil;
-
-	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
-
-	sub unveil_or_die {
-		my $file = shift or die "Unveil failed: $!";
-		my $perms = shift or die "Unveil failed: $!";
-		unveil( $file, $perms ) or die "Unveil failed: $!";
-	}
-
-	pledge_or_die(qw(stdio rpath flock unveil));
-
-	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
-	while ( my ( $path, $perms ) = each %unveils ) {
-		unveil_or_die( $path, $perms );
-	}
-
-	pledge_or_die(qw(stdio rpath flock));
 }
 
 my $wg_file = shift or die "Provide a WireGuard file to convert.\n";
