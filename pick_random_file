@@ -23,12 +23,14 @@ use Getopt::Std;
 use Scalar::Util qw(looks_like_number);
 use List::Util qw(shuffle);
 
+our ( $opt_h, $opt_n, $opt_v );
+
 if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
 	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
-}
 
-our ( $opt_h, $opt_n, $opt_v );
+	pledge_or_die(qw(rpath flock));
+}
 
 sub usage {
 	my $program_name = fileparse $0;
@@ -99,8 +101,6 @@ if ( defined $opt_n ) {
 	looks_like_number($opt_n) or die "-n only accepts integers.\n";
 	$opt_n >= 0 or die "-n value must be greater than or equal to 0.\n";
 }
-
-pledge_or_die(qw(rpath flock)) if $^O eq 'openbsd';
 
 my @random_list_of_confs = shuffled_lines_from_input
 	or die "Failed to shuffle lines\n";
