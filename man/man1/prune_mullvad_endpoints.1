@@ -1,0 +1,317 @@
+.Dd June 3, 2023
+.Dt PRUNE_MULLVAD_ENDPOINTS 1
+.Os
+.Sh NAME
+.Nm prune_mullvad_endpoints
+.Nd filter through a list of Mullvad VPN endpoints
+.Sh SYNOPSIS
+.Nm prune_mullvad_endpoints
+.Op Fl hw
+.Op Fl c Ar city-code Op Ar ,city-code
+.Op Fl C Ar country-code Op Ar ,country-code
+.Op Fl t Ar tunnel-type Op Ar ,tunnel-type
+.Ar file
+.Sh DESCRIPTION
+The
+.Nm
+utility processes a JSON file containing Mullvad server information. It
+sends the hostnames of Virtual Private Network (VPN) endpoints that
+match a given query to standard output in a random order.
+.Pp
+Filtering is mostly directed by the user. However, by default
+.Nm
+only displays endpoints without status messages that are active and
+running from RAM.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl h
+Print usage information and exit.
+.It Fl c Ar city-code Op Ar ,city-code
+Match against a comma separated list of city codes.
+.It Fl C Ar country-code Op Ar ,country-code
+Match against a comma separated list of country codes.
+.It Fl t Ar tunnel-type Op Ar ,tunnel-type
+Match against a comma separated list of VPN tunnel types.
+.Pp
+Currently this supports:
+.Pp
+.Bl -tag -width Ds -compact
+.It br
+Bridge
+.It ovpn
+OpenVPN
+.It wg
+WireGuard
+.El
+.It Fl w
+Toggle warnings. Currently this displays every available status message
+for endpoints that matched the query.
+.El
+.Sh CITY CODES
+Here are city codes currently supported by
+.Fl c .
+.Pp
+.Bl -tag -width Ds -compact -offset indent
+.It adl
+Adelaide
+.It akl
+Auckland
+.It ams
+Amsterdam
+.It ath
+Athens
+.It atl
+Atlanta, GA
+.It beg
+Belgrade
+.It bne
+Brisbane
+.It bog
+Bogota
+.It bru
+Brussels
+.It bts
+Bratislava
+.It bud
+Budapest
+.It buh
+Bucharest
+.It chi
+Chicago, IL
+.It cph
+Copenhagen
+.It dal
+Dallas, TX
+.It den
+Denver, CO
+.It dub
+Dublin
+.It dus
+Dusseldorf
+.It dxb
+Dubai
+.It fra
+Frankfurt
+.It got
+Gothenburg
+.It hel
+Helsinki
+.It hkg
+Hong Kong
+.It hou
+Houston, TX
+.It iev
+Kyiv
+.It jnb
+Johannesburg
+.It kiv
+Chisinau
+.It lax
+Los Angeles, CA
+.It lis
+Lisbon
+.It lon
+London
+.It lux
+Luxembourg
+.It mad
+Madrid
+.It mel
+Melbourne
+.It mia
+Miami, FL
+.It mil
+Milan
+.It mma
+Malm
+.It mnc
+Manchester
+.It mrs
+Marseille
+.It mtr
+Montreal
+.It nyc
+New York, NY
+.It osa
+Osaka
+.It osl
+Oslo
+.It par
+Paris
+.It per
+Perth
+.It phx
+Phoenix, AZ
+.It prg
+Prague
+.It qas
+Ashburn, VA
+.It rag
+Raleigh, NC
+.It rix
+Riga
+.It rom
+Rome
+.It sao
+Sao Paulo
+.It sea
+Seattle, WA
+.It sin
+Singapore
+.It sjc
+San Jose, CA
+.It skp
+Skopje
+.It slc
+Salt Lake City, UT
+.It sof
+Sofia
+.It sto
+Stockholm
+.It svg
+Stavanger
+.It syd
+Sydney
+.It tia
+Tirana
+.It tll
+Tallinn
+.It tlv
+Tel Aviv
+.It tor
+Toronto
+.It tyo
+Tokyo
+.It uyk
+Secaucus, NJ
+.It van
+Vancouver
+.It vie
+Vienna
+.It waw
+Warsaw
+.It yyc
+Calgary
+.It zag
+Zagreb
+.It zrh
+Zurich
+.El
+.Sh COUNTRY CODES
+Here are country codes currently supported by
+.Fl C .
+.Pp
+.Bl -tag -width Ds -compact -offset indent
+.It ae
+United Arab Emirates
+.It al
+Albania
+.It at
+Austria
+.It au
+Australia
+.It be
+Belgium
+.It bg
+Bulgaria
+.It br
+Brazil
+.It ca
+Canada
+.It ch
+Switzerland
+.It co
+Colombia
+.It cz
+Czech Republic
+.It de
+Germany
+.It dk
+Denmark
+.It ee
+Estonia
+.It es
+Spain
+.It fi
+Finland
+.It fr
+France
+.It gb
+UK
+.It gr
+Greece
+.It hk
+Hong Kong
+.It hr
+Croatia
+.It hu
+Hungary
+.It ie
+Ireland
+.It il
+Israel
+.It it
+Italy
+.It jp
+Japan
+.It lu
+Luxembourg
+.It lv
+Latvia
+.It md
+Moldova
+.It mk
+North Macedonia
+.It nl
+Netherlands
+.It no
+Norway
+.It nz
+New Zealand
+.It pl
+Poland
+.It pt
+Portugal
+.It ro
+Romania
+.It rs
+Serbia
+.It se
+Sweden
+.It sg
+Singapore
+.It sk
+Slovakia
+.It ua
+Ukraine
+.It us
+USA
+.It za
+South Africa
+.El
+.Sh EXIT STATUS
+The
+.Nm
+utility exits 0 on success, and >0 if an error occurs.
+.Sh EXAMPLES
+Print endpoints located in Tokyo or Vienna.
+.Pp
+.Dl $ prune_mullvad_endpoints -c tyo,vie mullvad-json.txt
+.Pp
+Print WireGuard endpoints located in Switzerland.
+.Pp
+.Dl $ prune_mullvad_endpoints -C ch -t wg mullvad-json.txt
+.Pp
+.Pp
+.Sh SEE ALSO
+.Xr translate_wg_conf 1 ,
+.Xr pick_random_file 1
+.Pp
+.Lk https://api-www.mullvad.net/api/www/relays/all/ "JSON data for relays"
+.Sh AUTHORS
+Written and maintained by
+.An Ashlen Aq Mt dev@anthes.is .
+.Sh CAVEATS
+.Nm
+doesn't read from standard input or multiple files.

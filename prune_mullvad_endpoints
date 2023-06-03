@@ -1,0 +1,389 @@
+#!/usr/bin/env perl
+# Copyright (c) 2023 Ashlen <dev@anthes.is>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+# TODO:
+# - There's a bug with -c, -C, and -t parsing:
+#   -c 'sea' works
+#   -c 'sea,' works
+#   -c ',sea' errors with this:
+#   $ ./prune_mullvad_endpoints -c ,sea mullvad-json.txt
+#   -c received an invalid city code
+
+use v5.36;
+use strict;
+use warnings;
+use autodie;
+
+use File::Basename qw(fileparse);
+use Getopt::Std;
+use List::Util qw(shuffle);
+
+# External.
+use JSON::MaybeXS qw(decode_json);
+
+if ( $^O eq 'openbsd' ) {
+	use OpenBSD::Pledge;
+	use OpenBSD::Unveil;
+}
+
+# Mullvad city codes; keep in sync with upstream.
+my %mullvad_city_codes_to_names = (
+	adl => 'Adelaide',
+	akl => 'Auckland',
+	ams => 'Amsterdam',
+	ath => 'Athens',
+	atl => 'Atlanta, GA',
+	beg => 'Belgrade',
+	bne => 'Brisbane',
+	bog => 'Bogota',
+	bru => 'Brussels',
+	bts => 'Bratislava',
+	bud => 'Budapest',
+	buh => 'Bucharest',
+	chi => 'Chicago, IL',
+	cph => 'Copenhagen',
+	dal => 'Dallas, TX',
+	den => 'Denver, CO',
+	dub => 'Dublin',
+	dus => 'Dusseldorf',
+	dxb => 'Dubai',
+	fra => 'Frankfurt',
+	got => 'Gothenburg',
+	hel => 'Helsinki',
+	hkg => 'Hong Kong',
+	hou => 'Houston, TX',
+	iev => 'Kyiv',
+	jnb => 'Johannesburg',
+	kiv => 'Chisinau',
+	lax => 'Los Angeles, CA',
+	lis => 'Lisbon',
+	lon => 'London',
+	lux => 'Luxembourg',
+	mad => 'Madrid',
+	mel => 'Melbourne',
+	mia => 'Miami, FL',
+	mil => 'Milan',
+	mma => 'Malm',
+	mnc => 'Manchester',
+	mrs => 'Marseille',
+	mtr => 'Montreal',
+	nyc => 'New York, NY',
+	osa => 'Osaka',
+	osl => 'Oslo',
+	par => 'Paris',
+	per => 'Perth',
+	phx => 'Phoenix, AZ',
+	prg => 'Prague',
+	qas => 'Ashburn, VA',
+	rag => 'Raleigh, NC',
+	rix => 'Riga',
+	rom => 'Rome',
+	sao => 'Sao Paulo',
+	sea => 'Seattle, WA',
+	sin => 'Singapore',
+	sjc => 'San Jose, CA',
+	skp => 'Skopje',
+	slc => 'Salt Lake City, UT',
+	sof => 'Sofia',
+	sto => 'Stockholm',
+	svg => 'Stavanger',
+	syd => 'Sydney',
+	tia => 'Tirana',
+	tll => 'Tallinn',
+	tlv => 'Tel Aviv',
+	tor => 'Toronto',
+	tyo => 'Tokyo',
+	uyk => 'Secaucus, NJ',
+	van => 'Vancouver',
+	vie => 'Vienna',
+	waw => 'Warsaw',
+	yyc => 'Calgary',
+	zag => 'Zagreb',
+	zrh => 'Zurich',
+);
+
+# Mullvad country codes; keep in sync with upstream.
+my %mullvad_country_codes_to_names = (
+	ae => 'United Arab Emirates',
+	al => 'Albania',
+	at => 'Austria',
+	au => 'Australia',
+	be => 'Belgium',
+	bg => 'Bulgaria',
+	br => 'Brazil',
+	ca => 'Canada',
+	ch => 'Switzerland',
+	co => 'Colombia',
+	cz => 'Czech Republic',
+	de => 'Germany',
+	dk => 'Denmark',
+	ee => 'Estonia',
+	es => 'Spain',
+	fi => 'Finland',
+	fr => 'France',
+	gb => 'UK',
+	gr => 'Greece',
+	hk => 'Hong Kong',
+	hr => 'Croatia',
+	hu => 'Hungary',
+	ie => 'Ireland',
+	il => 'Israel',
+	it => 'Italy',
+	jp => 'Japan',
+	lu => 'Luxembourg',
+	lv => 'Latvia',
+	md => 'Moldova',
+	mk => 'North Macedonia',
+	nl => 'Netherlands',
+	no => 'Norway',
+	nz => 'New Zealand',
+	pl => 'Poland',
+	pt => 'Portugal',
+	ro => 'Romania',
+	rs => 'Serbia',
+	se => 'Sweden',
+	sg => 'Singapore',
+	sk => 'Slovakia',
+	ua => 'Ukraine',
+	us => 'USA',
+	za => 'South Africa',
+);
+
+# Mullvad tunnel types; keep in sync with upstream.
+my %mullvad_tunnel_abbrs_to_names = (
+	br => 'bridge',
+	ovpn => 'openvpn',
+	wg => 'wireguard',
+);
+my %mullvad_tunnel_names_to_abbrs =
+	map { ( $mullvad_tunnel_abbrs_to_names{$_}, $_ ); }
+	keys %mullvad_tunnel_abbrs_to_names;
+
+my $program_name = fileparse $0;
+
+if ( $^O eq 'openbsd' ) {
+	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
+
+	sub unveil_or_die {
+		my $file = shift or die 'Unveil failed: missing file';
+		my $perms = shift or die 'Unveil failed: missing permissions';
+		unveil( $file, $perms ) or die "Unveil failed: $!";
+	}
+}
+
+sub usage {
+	die <<EOF;
+$program_name [-hw] [-c city_code [,...]] [-C country_code [,...]] 
+	[-t tunnel_type [,...]] file
+
+See $program_name(1) for more details.
+EOF
+}
+
+sub decode_json_and_return_hashref {
+	my $file_path = shift or die 'decode_json_and_return_hashref needs a file';
+	my $decoded_json;
+
+	eval {
+		my $json = do {
+			local $/;
+			open my $json_fh, '<', $file_path;
+			<$json_fh>;
+		};
+
+		$decoded_json = decode_json $json;
+	};
+	die "Couldn't read JSON from '$file_path': $@" if $@;
+
+	return $decoded_json;
+}
+
+sub prune_option_data {
+	my $opt_name = shift or die 'prune_option_data needs an option name';
+	my $opt_data = shift or die 'prune_option_data needs option data';
+	my $valid_data_hash_ref = shift
+		or die
+		'prune_option_data needs a hash reference to validate provided data';
+
+	my %opt_name_to_data_description = (
+		c => 'city code',
+		C => 'country code',
+		t => 'tunnel type',
+	);
+
+	my $data_description = $opt_name_to_data_description{$opt_name} // die;
+
+	my %return_hash = map {
+		$valid_data_hash_ref->{$_}
+			? ( $_, 1 )
+			: die "-$opt_name received an invalid $data_description\n";
+	} split ',', $opt_data;
+
+	scalar %return_hash
+		or die "-$opt_name needs at least one $data_description\n";
+
+	return %return_hash;
+}
+
+our ( $opt_c, $opt_C, $opt_h, $opt_t, $opt_w );
+getopts 'hwc:C:t:' or die "getopts failed. Did you pass an invalid flag?\n";
+
+usage if $opt_h;
+$ARGV[0] // die "$program_name needs a JSON file\n";
+
+if ( $^O eq 'openbsd' ) {
+	pledge_or_die(qw(rpath unveil));
+
+	my %unveils = map { $_, 'r' } @INC, $ARGV[0];
+	while ( my ( $path, $perms ) = each %unveils ) {
+		unveil_or_die( $path, $perms );
+	}
+
+	pledge_or_die(qw(rpath));
+}
+
+my $file_path = shift or die "$program_name needs a JSON file\n";
+my $decoded_json = decode_json_and_return_hashref $file_path;
+
+my %provided_city_codes;
+if ($opt_c) {
+	%provided_city_codes = prune_option_data 'c', $opt_c,
+		\%mullvad_city_codes_to_names;
+}
+
+my %provided_country_codes;
+if ($opt_C) {
+	%provided_country_codes = prune_option_data 'C', $opt_C,
+		\%mullvad_country_codes_to_names;
+}
+
+my %provided_tunnel_types;
+if ($opt_t) {
+	%provided_tunnel_types = prune_option_data 't', $opt_t,
+		\%mullvad_tunnel_abbrs_to_names;
+}
+
+my %desired_servers;
+
+while ( my $server_hash_ref = shift @$decoded_json ) {
+	## Must be active.
+	next unless $server_hash_ref->{active} eq 'true';
+
+	# Must be running in diskless mode for the purposes of
+	# confidentiality.
+	next unless $server_hash_ref->{stboot} eq 'true';
+
+	# Must be one of the specified tunnel types.
+	my $endpoint_tunnel_type = do {
+		my $short_tunnel_name =
+			$mullvad_tunnel_names_to_abbrs{ $server_hash_ref->{type} } // next;
+
+		if ($opt_t) {
+			$short_tunnel_name
+				if exists $provided_tunnel_types{$short_tunnel_name};
+		}
+		else {
+			$short_tunnel_name;
+		}
+	};
+	$endpoint_tunnel_type // next;
+
+	# Must be a specified city code, or a city code corresponding to at
+	# least one endpoint if none were specified.
+	if (%provided_city_codes) {
+		next
+			unless exists $provided_city_codes{ $server_hash_ref->{city_code} };
+	}
+	else {
+		next
+			unless
+			exists $mullvad_city_codes_to_names{ $server_hash_ref->{city_code}
+			};
+	}
+
+	# Must be a specified country code, or a country code corresponding
+	# to at least one endpoint if none were specified.
+	if (%provided_country_codes) {
+		next
+			unless
+			exists $provided_country_codes{ $server_hash_ref->{country_code} };
+	}
+	else {
+		next
+			unless exists
+			$mullvad_country_codes_to_names{ $server_hash_ref->{country_code} };
+	}
+
+	# The city name and country name of the endpoint must match the
+	# values that our hashes map to the city and country codes.
+	next
+		unless $mullvad_city_codes_to_names{ $server_hash_ref->{city_code} } eq
+		$server_hash_ref->{city_name};
+	next
+		unless
+		$mullvad_country_codes_to_names{ $server_hash_ref->{country_code} } eq
+		$server_hash_ref->{country_name};
+
+	# Must have a well-formed hostname.
+	next unless $server_hash_ref->{hostname} =~ /
+		\A
+		$server_hash_ref->{country_code}-
+		$server_hash_ref->{city_code}-
+		$endpoint_tunnel_type-\d{3}
+		\z
+	/x;
+
+	# If there are status messages, it's probably for the best that we
+	# skip to the next entry. Chances are that the endpoint we're on
+	# isn't functional. Emit a warning if -w was passed.
+	unless ( scalar( @{ $server_hash_ref->{status_messages} } ) == 0 ) {
+		if ($opt_w) {
+			warn "$server_hash_ref->{hostname} has status messages\n";
+			while ( my $message_hash_ref =
+				shift @{ $server_hash_ref->{status_messages} } )
+			{
+				warn "Timestamp: $message_hash_ref->{timestamp}\n";
+				warn "Message: $message_hash_ref->{message}\n";
+			}
+
+			# XXX: suppress newline on the last status message
+			warn "\n";
+		}
+		next;
+	}
+
+	# Since we've reached this point, add to the hash using the hostname
+	# as a key and the hash reference as a value.
+	#
+	# NOTE: BE WARY AND VALIDATE BEFORE ANY OTHER LOOKUPS HAPPEN. This
+	# is technically user input (we don't control the JSON). The
+	# nastiest thing I can think of is a subroutine reference embedded
+	# in JSON that then gets called upon lookup. There is some good
+	# news, though.
+	#
+	# - Pledge and unveil reduce the risk significantly.
+	# - It would have to be a relatively targeted attack.
+	#
+	# Even so... definitely something to keep in mind if the program
+	# gets extended further.
+	$desired_servers{ $server_hash_ref->{hostname} } = $server_hash_ref;
+}
+
+unless ( scalar %desired_servers ) {
+	warn "No servers matched your query, exiting.\n";
+	exit;
+}
+
+say join( "\n", shuffle keys %desired_servers );
