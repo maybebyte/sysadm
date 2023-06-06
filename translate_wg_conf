@@ -176,11 +176,11 @@ for my $ip ( @{ $wg_properties{Peer}{AllowedIPs} } ) {
 	$count++;
 
 	if ( $count < scalar @{ $wg_properties{Peer}{AllowedIPs} } ) {
-		$hostname_if .= "	wgaip $ip \\";
+		$hostname_if .= "\t" . "wgaip $ip \\";
 		$hostname_if .= "\n";
 	}
 	else {
-		$hostname_if .= "	wgaip $ip\n";
+		$hostname_if .= "\t" . "wgaip $ip\n";
 		last;
 	}
 }
