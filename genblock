@@ -25,7 +25,7 @@ use List::Util qw(first);
 if ( $^O eq 'openbsd' ) {
 	use OpenBSD::Pledge;
 	sub pledge_or_die { pledge(@_) or die "Pledge failed: $!"; }
-	pledge_or_die(qw(rpath));
+	pledge_or_die qw(rpath);
 }
 
 my $program_name = fileparse $0;
@@ -116,10 +116,10 @@ sub reduce_domains {
 
 	while ( my $domain = each %$hashref ) {
 		## Start with the root domain.
-		my $index = rindex($domain, '.', rindex($domain, '.') - 1);
+		my $index = rindex $domain, '.', rindex( $domain, '.' ) - 1;
 
 		while ( $index != -1 ) {
-			my $leaf = substr($domain, $index + 1);
+			my $leaf = substr $domain, $index + 1;
 
 			if ( defined $hashref->{$leaf} ) {
 				delete $hashref->{$domain};
@@ -127,7 +127,7 @@ sub reduce_domains {
 				last;
 			}
 
-			$index = rindex($domain, '.', $index - 1);
+			$index = rindex $domain, '.', $index - 1;
 		}
 	}
 	wantarray
@@ -179,7 +179,7 @@ our $opt_h;
 our $opt_t = 'plain';
 
 getopts 'ht:';
-usage if defined($opt_h);
+usage if defined $opt_h;
 
 my @formats = qw(plain unbound rpz);
 first { $opt_t eq $_ } @formats or die "$opt_t is not a valid type.\n";
@@ -195,7 +195,7 @@ elsif ( $opt_t eq 'unbound' ) {
 		sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'rpz' ) {
-	&reduce_domains( \%domain_appearances );
+	&reduce_domains \%domain_appearances;
 
 	#<<<
 	print map {
