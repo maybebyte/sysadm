@@ -195,7 +195,7 @@ elsif ( $opt_t eq 'unbound' ) {
 		sort keys %domain_appearances;
 }
 elsif ( $opt_t eq 'rpz' ) {
-	&reduce_domains \%domain_appearances;
+	&reduce_domains( \%domain_appearances );
 
 	#<<<
 	print map {
