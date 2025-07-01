@@ -75,7 +75,7 @@ say "RSSG LOCATION: $bin_rssg" if $opt_v;
 my ( $owner, $domain_with_schema ) = qw(Ashlen https://www.anthes.is);
 my $domain_without_schema = $domain_with_schema =~ s{\A[a-z]+://}{}r;
 my $website_name = 'anthesis';
-my $website_title = "Read about Unix, say hi, /etc | $website_name";
+my $website_title = "My Unix blog: scripts, software, /etc - $website_name";
 say "OWNER: $owner" if $opt_v;
 say "DOMAIN WITH SCHEMA: $domain_with_schema" if $opt_v;
 say "DOMAIN WITHOUT SCHEMA: $domain_without_schema" if $opt_v;
