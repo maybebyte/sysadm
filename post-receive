@@ -252,7 +252,7 @@ sub update_ssg {
 	systemx qw(git clone --), $repo_location, $clone_dir;
 
 	my $clone_bin = catdir $clone_dir, qw(.local bin);
-	my $clone_ssg = catdir $clone_bin, 'ssg6';
+	my $clone_ssg = catdir $clone_bin, 'ssg';
 	my $clone_rssg = catdir $clone_bin, 'rssg';
 
 	say "Replacing $bin_ssg with newer $clone_ssg" if $opt_v;
