@@ -373,5 +373,21 @@ my ( $stagit_css_source, $stagit_css_destination ) = (
 say "Copying CSS from $stagit_css_source to $stagit_css_destination" if $opt_v;
 copy $stagit_css_source, $stagit_css_destination;
 
+my ( $stagit_logo_source, $stagit_logo_destination ) = (
+	catfile( $web_server_dir, qw(stagit logo.png) ),
+	catfile( $stagit_dir, 'logo.png' )
+);
+
+say "Copying logo from $stagit_logo_source to $stagit_logo_destination" if $opt_v;
+copy $stagit_logo_source, $stagit_logo_destination;
+
+my ( $stagit_favicon_source, $stagit_favicon_destination ) = (
+	catfile( $web_server_dir, qw(stagit favicon.png) ),
+	catfile( $stagit_dir, 'favicon.png' )
+);
+
+say "Copying favicon from $stagit_favicon_source to $stagit_favicon_destination" if $opt_v;
+copy $stagit_favicon_source, $stagit_favicon_destination;
+
 say "Gzipping files in $stagit_dir" if $opt_v;
 find make_wanted( \&gzip_files ), $stagit_dir;
